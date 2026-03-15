@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TransactionAggregate {
+public class ReportsTransactionAggregate {
     private String category;
     private BigDecimal totalAmount;
     private Long transactionCount;

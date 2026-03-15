@@ -10,7 +10,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ErrorResponse {
+public class ReportsErrorResponse {
 
     private String error;
 
@@ -24,7 +24,7 @@ public class ErrorResponse {
 
     private List<String> details;
 
-    public ErrorResponse(String error, String message, Integer status, String path) {
+    public ReportsErrorResponse(String error, String message, Integer status, String path) {
         this.error = error;
         this.message = message;
         this.status = status;

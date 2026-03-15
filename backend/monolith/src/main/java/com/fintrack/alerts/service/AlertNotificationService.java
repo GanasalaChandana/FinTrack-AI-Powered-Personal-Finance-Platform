@@ -14,13 +14,13 @@ import java.time.LocalDateTime;
 
 @Service
 @Slf4j
-public class NotificationService {
+public class AlertNotificationService {
 
     private final JavaMailSender mailSender;
     private final NotificationLogRepository notificationLogRepository;
 
     @Autowired
-    public NotificationService(
+    public AlertNotificationService(
             @Autowired(required = false) JavaMailSender mailSender,
             NotificationLogRepository notificationLogRepository) {
         this.mailSender = mailSender;

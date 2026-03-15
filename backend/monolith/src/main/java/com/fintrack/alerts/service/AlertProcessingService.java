@@ -27,7 +27,7 @@ public class AlertProcessingService {
 
     private final AlertRuleRepository alertRuleRepository;
     private final AlertHistoryRepository alertHistoryRepository;
-    private final NotificationService notificationService;
+    private final AlertNotificationService AlertNotificationService;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
@@ -88,7 +88,7 @@ public class AlertProcessingService {
                             "amount", transaction.getAmount().toString(),
                             "threshold", threshold.toString()));
 
-            notificationService.sendNotification(alert);
+            AlertNotificationService.sendNotification(alert);
         }
     }
 

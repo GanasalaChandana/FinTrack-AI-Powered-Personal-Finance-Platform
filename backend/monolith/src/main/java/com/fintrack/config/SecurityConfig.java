@@ -13,6 +13,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -26,102 +27,96 @@ import java.util.List;
 @Slf4j
 public class SecurityConfig {
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        log.info("🔧 Configuring Security Filter Chain...");
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 
-        http
-                // ✅ CORS + CSRF
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable)
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                log.info("Configuring Security Filter Chain...");
 
-                // ✅ Stateless API (no sessions)
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                http
+                                // CORS + CSRF
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .csrf(AbstractHttpConfigurer::disable)
 
-                // ✅ Authorization rules
-                .authorizeHttpRequests(auth -> auth
-                        // Allow all OPTIONS requests for CORS preflight
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                // Stateless API (no sessions)
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                        // 🔓 Public endpoints (no token required)
-                        .requestMatchers(
-                                "/api/auth/**", // register, login, google
-                                "/oauth2/**", // OAuth2 endpoints
-                                "/login/oauth2/**",
-                                "/actuator/**",
-                                "/actuator/health",
-                                "/api/users/health", // Health checks
-                                "/error")
-                        .permitAll()
+                                // Authorization rules
+                                .authorizeHttpRequests(auth -> auth
+                                                // Allow all OPTIONS requests for CORS preflight
+                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // 🔒 Everything else requires authentication
-                        .anyRequest().authenticated())
+                                                // Public endpoints (no token required)
+                                                .requestMatchers(
+                                                                "/api/auth/**",
+                                                                "/oauth2/**",
+                                                                "/login/oauth2/**",
+                                                                "/actuator/**",
+                                                                "/actuator/health",
+                                                                "/api/users/health",
+                                                                "/error")
+                                                .permitAll()
 
-                // ✅ CRITICAL: Disable default login mechanisms (prevents browser popup)
-                .httpBasic(AbstractHttpConfigurer::disable)
-                .formLogin(AbstractHttpConfigurer::disable)
-                .logout(AbstractHttpConfigurer::disable);
+                                                // Everything else requires authentication
+                                                .anyRequest().authenticated())
 
-        log.info("✅ Security Filter Chain configured successfully");
-        return http.build();
-    }
+                                // Disable default login mechanisms
+                                .httpBasic(AbstractHttpConfigurer::disable)
+                                .formLogin(AbstractHttpConfigurer::disable)
+                                .logout(AbstractHttpConfigurer::disable)
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        log.info("🌐 Configuring CORS...");
+                                // ADD JWT filter before Spring's username/password filter
+                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        CorsConfiguration configuration = new CorsConfiguration();
+                log.info("Security Filter Chain configured successfully");
+                return http.build();
+        }
 
-        // ✅ Exact origins for local development
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",
-                "http://127.0.0.1:3000",
-                "http://localhost:3001",
-                "http://127.0.0.1:3001",
-                "http://localhost:5173",
-                "http://127.0.0.1:5173",
-                "http://localhost:8080", // API Gateway
-                "http://127.0.0.1:8080"));
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                log.info("Configuring CORS...");
 
-        // ✅ Wildcard patterns for Vercel deployments
-        configuration.setAllowedOriginPatterns(Arrays.asList(
-                "https://fintrack-liart.vercel.app",
-                "https://fintrack-liart-*.vercel.app",
-                "https://*.vercel.app"));
+                CorsConfiguration configuration = new CorsConfiguration();
 
-        // ✅ All HTTP methods
-        configuration.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
+                configuration.setAllowedOrigins(Arrays.asList(
+                                "http://localhost:3000",
+                                "http://127.0.0.1:3000",
+                                "http://localhost:3001",
+                                "http://127.0.0.1:3001",
+                                "http://localhost:5173",
+                                "http://127.0.0.1:5173",
+                                "http://localhost:8080",
+                                "http://127.0.0.1:8080"));
 
-        // ✅ Allow all headers
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+                configuration.setAllowedOriginPatterns(Arrays.asList(
+                                "https://fintrack-liart.vercel.app",
+                                "https://fintrack-liart-*.vercel.app",
+                                "https://*.vercel.app"));
 
-        // ✅ Expose headers that frontend needs
-        configuration.setExposedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "X-User-Id"));
+                configuration.setAllowedMethods(Arrays.asList(
+                                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
 
-        // ✅ Allow credentials (cookies, auth headers)
-        configuration.setAllowCredentials(true);
+                configuration.setAllowedHeaders(List.of("*"));
 
-        // ✅ Cache preflight for 1 hour
-        configuration.setMaxAge(3600L);
+                configuration.setExposedHeaders(Arrays.asList(
+                                "Authorization",
+                                "Content-Type",
+                                "Accept",
+                                "X-User-Id"));
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+                configuration.setAllowCredentials(true);
+                configuration.setMaxAge(3600L);
 
-        log.info("✅ CORS configured successfully");
-        log.info("   - Allowed Origins: {}", configuration.getAllowedOrigins());
-        log.info("   - Allowed Methods: {}", configuration.getAllowedMethods());
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
 
-        return source;
-    }
+                log.info("CORS configured successfully");
+                return source;
+        }
 }

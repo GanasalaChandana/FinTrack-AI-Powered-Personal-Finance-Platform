@@ -1,5 +1,6 @@
 package com.fintrack.alerts.service;
 
+import com.fintrack.alerts.dto.TransactionEvent;
 import com.fintrack.alerts.entity.AlertHistory;
 import com.fintrack.alerts.entity.AlertRule;
 import com.fintrack.alerts.repository.AlertHistoryRepository;
@@ -53,22 +54,23 @@ public class AlertProcessingService {
     }
 
     @Transactional
-    public void processTransaction(UUID userId, BigDecimal amount, String type, String description,
-            UUID transactionId) {
-        log.info("Processing transaction {} for user {}", transactionId, userId);
+    public void processTransaction(TransactionEvent transaction) {
+        log.info("Processing transaction {} for user {}", transaction.getId(), transaction.getUserId());
 
-        if (isRateLimited(userId)) {
-            log.warn("Rate limit exceeded for user {}", userId);
+        if (isRateLimited(transaction.getUserId())) {
+            log.warn("Rate limit exceeded for user {}", transaction.getUserId());
             return;
         }
 
-        List<AlertRule> activeRules = alertRuleRepository.findByUserIdAndIsActiveTrue(userId);
-        checkHighAmountAlert(userId, amount, type, description, transactionId, activeRules);
+        List<AlertRule> activeRules = alertRuleRepository.findByUserIdAndIsActiveTrue(transaction.getUserId());
+
+        checkHighAmountAlert(transaction, activeRules);
+        checkDailyLimitAlert(transaction, activeRules);
+        checkUnusualCategoryAlert(transaction, activeRules);
     }
 
-    private void checkHighAmountAlert(UUID userId, BigDecimal amount, String type,
-            String description, UUID transactionId, List<AlertRule> rules) {
-        if (!"DEBIT".equals(type)) {
+    private void checkHighAmountAlert(TransactionEvent transaction, List<AlertRule> rules) {
+        if (!"DEBIT".equals(transaction.getType())) {
             return;
         }
 
@@ -78,20 +80,29 @@ public class AlertProcessingService {
                 .map(AlertRule::getThresholdAmount)
                 .orElse(highAmountThreshold);
 
-        if (amount.abs().compareTo(threshold) > 0) {
+        if (transaction.getAmount().abs().compareTo(threshold) > 0) {
             AlertHistory alert = createAlert(
-                    userId,
+                    transaction.getUserId(),
                     null,
                     AlertHistory.AlertType.HIGH_AMOUNT,
                     AlertHistory.Severity.WARNING,
-                    String.format("High transaction detected: $%.2f for '%s'", amount.abs(), description),
+                    String.format("High transaction detected: $%.2f for '%s'",
+                            transaction.getAmount().abs(), transaction.getDescription()),
                     Map.of(
-                            "transactionId", transactionId.toString(),
-                            "amount", amount.toString(),
+                            "transactionId", transaction.getId().toString(),
+                            "amount", transaction.getAmount().toString(),
                             "threshold", threshold.toString()));
 
             notificationService.sendNotification(alert);
         }
+    }
+
+    private void checkDailyLimitAlert(TransactionEvent transaction, List<AlertRule> rules) {
+        log.debug("Checking daily limit for user {}", transaction.getUserId());
+    }
+
+    private void checkUnusualCategoryAlert(TransactionEvent transaction, List<AlertRule> rules) {
+        log.debug("Checking unusual category for transaction {}", transaction.getId());
     }
 
     private AlertHistory createAlert(

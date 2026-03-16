@@ -1,4 +1,4 @@
-// lib/api.ts - Complete fixed version with proper port routing
+// lib/api.ts - Updated for monolith (single backend on port 8080)
 
 // =====================
 // Types
@@ -6,7 +6,10 @@
 
 export interface User {
   id: string;
-  name: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  username?: string;
   email: string;
   [key: string]: any;
 }
@@ -35,9 +38,7 @@ export interface Transaction {
 export interface Budget {
   id?: string;
   category: string;
-  // ✅ FIX: "budget" is the limit field (matches Spring Boot @Column name)
   budget: number;
-  // ✅ "spent" is what the backend returns — keep this field name
   spent: number;
   icon: string;
   color: string;
@@ -45,7 +46,6 @@ export interface Budget {
   userId?: string;
   createdAt?: string;
   updatedAt?: string;
-  // Allow extra fields from backend we haven't mapped yet
   [key: string]: any;
 }
 
@@ -56,6 +56,19 @@ export interface BudgetSummary {
   remaining: number;
   percentage: number;
   budgets: Budget[];
+}
+
+export interface Goal {
+  id?: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  deadline?: string;
+  category?: string;
+  userId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: any;
 }
 
 export interface Alert {
@@ -96,17 +109,11 @@ export interface Notification {
 
 function getBaseUrl(): string {
   const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-  const cleanUrl = url.replace(/\/$/, "");
-  return cleanUrl;
+  return url.replace(/\/$/, "");
 }
 
 function getTransactionsUrl(): string {
-  const envUrl =
-    process.env.NEXT_PUBLIC_TRANSACTIONS_API_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:8080";
-  const cleanUrl = envUrl.replace(/\/$/, "");
-  return cleanUrl;
+  return getBaseUrl();
 }
 
 function buildApiUrl(endpoint: string, useTransactionsService: boolean = false): string {
@@ -124,21 +131,19 @@ const LEGACY_TOKEN_KEY = "ft_token";
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
-
   const token =
     localStorage.getItem(PRIMARY_TOKEN_KEY) ||
     localStorage.getItem(LEGACY_TOKEN_KEY) ||
     sessionStorage.getItem(PRIMARY_TOKEN_KEY) ||
     getCookieToken();
-
   return token || null;
 }
 
 function getCookieToken(): string | null {
   if (typeof document === "undefined") return null;
-  const cookies = document.cookie.split('; ');
-  const tokenCookie = cookies.find(row => row.startsWith(`${PRIMARY_TOKEN_KEY}=`));
-  return tokenCookie ? tokenCookie.split('=')[1] : null;
+  const cookies = document.cookie.split("; ");
+  const tokenCookie = cookies.find((row) => row.startsWith(`${PRIMARY_TOKEN_KEY}=`));
+  return tokenCookie ? tokenCookie.split("=")[1] : null;
 }
 
 export function setToken(token: string): void {
@@ -165,7 +170,7 @@ export function getUser(): User | null {
   try {
     return userStr ? JSON.parse(userStr) : null;
   } catch (error) {
-    console.error("❌ Error parsing user from localStorage:", error);
+    console.error("Error parsing user from localStorage:", error);
     return null;
   }
 }
@@ -254,9 +259,9 @@ export async function apiRequest<T = any>(
       if (!response.ok) {
         if (response.status === 401) {
           removeToken();
-          if (typeof window !== 'undefined') {
+          if (typeof window !== "undefined") {
             setTimeout(() => {
-              window.location.href = '/register?mode=signin&reason=session_expired';
+              window.location.href = "/register?mode=signin&reason=session_expired";
             }, 100);
           }
         }
@@ -270,9 +275,8 @@ export async function apiRequest<T = any>(
       }
 
       return data as T;
-
     } catch (error: any) {
-      console.error(`❌ API ERROR [${endpoint}]:`, error.message);
+      console.error(`API ERROR [${endpoint}]:`, error.message);
       throw error;
     } finally {
       pendingRequests.delete(requestKey);
@@ -298,9 +302,7 @@ export const transactionsAPI = {
         : {}
     );
 
-    const endpoint = params.toString()
-      ? `/api/transactions?${params}`
-      : "/api/transactions";
+    const endpoint = params.toString() ? `/api/transactions?${params}` : "/api/transactions";
 
     try {
       const data = await apiRequest<Transaction[] | any>(endpoint, { method: "GET" }, true);
@@ -309,14 +311,14 @@ export const transactionsAPI = {
 
       if (Array.isArray(data)) {
         transactions = data;
-      } else if (data && typeof data === 'object') {
+      } else if (data && typeof data === "object") {
         if (Array.isArray(data.transactions)) transactions = data.transactions;
-        else if (Array.isArray(data.data))         transactions = data.data;
-        else if (Array.isArray(data.content))      transactions = data.content;
-        else if (Array.isArray(data.items))        transactions = data.items;
-        else if (Array.isArray(data.result))       transactions = data.result;
+        else if (Array.isArray(data.data))    transactions = data.data;
+        else if (Array.isArray(data.content)) transactions = data.content;
+        else if (Array.isArray(data.items))   transactions = data.items;
+        else if (Array.isArray(data.result))  transactions = data.result;
         else {
-          console.error("❌ Unexpected transactions response format:", JSON.stringify(data).slice(0, 300));
+          console.error("Unexpected transactions response format:", JSON.stringify(data).slice(0, 300));
           return [];
         }
       } else {
@@ -330,9 +332,8 @@ export const transactionsAPI = {
       }));
 
       return transactions;
-
     } catch (error: any) {
-      console.error("❌ Error fetching transactions:", error);
+      console.error("Error fetching transactions:", error);
       return [];
     }
   },
@@ -376,10 +377,33 @@ export const transactionsAPI = {
 // =====================
 
 export const authAPI = {
-  register: async (userData: { name: string; email: string; password: string }): Promise<AuthResponse> => {
+  register: async (userData: {
+    email: string;
+    password: string;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+  }): Promise<AuthResponse> => {
+    let firstName = userData.firstName;
+    let lastName = userData.lastName;
+    if (!firstName && userData.name) {
+      const parts = userData.name.trim().split(" ");
+      firstName = parts[0];
+      lastName = parts.slice(1).join(" ") || parts[0];
+    }
+
+    const payload = {
+      email: userData.email,
+      password: userData.password,
+      username: userData.username || userData.email.split("@")[0],
+      firstName: firstName || "",
+      lastName: lastName || "",
+    };
+
     const response = await apiRequest<AuthResponse>("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify(userData),
+      body: JSON.stringify(payload),
     }, false);
     if (response.token) setToken(response.token);
     if (response.user) setUser(response.user);
@@ -400,7 +424,7 @@ export const authAPI = {
     try {
       await apiRequest("/api/auth/logout", { method: "POST" }, false);
     } catch (error) {
-      console.error("❌ Logout API error:", error);
+      console.error("Logout API error:", error);
     } finally {
       removeToken();
     }
@@ -434,11 +458,6 @@ export const authAPI = {
 
 // =====================
 // Budgets API
-// ✅ KEY FIX: budgets were returning 401 because the token wasn't being
-// attached correctly — now uses the same apiRequest path as transactions.
-//
-// Also: getBudgetSummary() is used as a fallback because the Goals & Budgets
-// page already works, meaning /api/budgets/summary returns correct spent data.
 // =====================
 
 export const budgetsAPI = {
@@ -451,37 +470,31 @@ export const budgetsAPI = {
 
       if (Array.isArray(data)) {
         budgets = data;
-      } else if (data && typeof data === 'object') {
-        if (Array.isArray(data.budgets)) budgets = data.budgets;
+      } else if (data && typeof data === "object") {
+        if (Array.isArray(data.budgets))      budgets = data.budgets;
         else if (Array.isArray(data.data))    budgets = data.data;
         else if (Array.isArray(data.content)) budgets = data.content;
         else if (Array.isArray(data.items))   budgets = data.items;
       }
 
       if (budgets.length === 0) {
-        // ✅ FALLBACK: try /api/budgets/summary which the Goals & Budgets page
-        // uses successfully — it returns budgets[] with correct spent values
-        console.warn("⚠️ /api/budgets returned empty — trying /api/budgets/summary as fallback");
         try {
           const summary = await apiRequest<BudgetSummary>("/api/budgets/summary", { method: "GET" }, false);
           if (summary?.budgets && Array.isArray(summary.budgets) && summary.budgets.length > 0) {
-            console.log("✅ Got budgets from summary endpoint:", summary.budgets.length);
             budgets = summary.budgets;
           }
         } catch (summaryErr) {
-          console.error("❌ Summary fallback also failed:", summaryErr);
+          console.error("Budget summary fallback failed:", summaryErr);
         }
       }
 
-      // ✅ Normalise: ensure `budget` (limit) and `spent` are always numbers
       return budgets.map((b) => ({
         ...b,
         budget: typeof b.budget === "string" ? parseFloat(b.budget) || 0 : (b.budget ?? 0),
         spent:  typeof b.spent  === "string" ? parseFloat(b.spent)  || 0 : (b.spent  ?? 0),
       }));
-
     } catch (error: any) {
-      console.error("❌ Error fetching budgets:", error);
+      console.error("Error fetching budgets:", error);
       return [];
     }
   },
@@ -511,6 +524,41 @@ export const budgetsAPI = {
 };
 
 // =====================
+// Goals API  ← NEW
+// =====================
+
+export const goalsAPI = {
+  getAll: async (): Promise<Goal[]> => {
+    try {
+      const data = await apiRequest<Goal[] | any>("/api/goals", { method: "GET" }, false);
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === "object") {
+        if (Array.isArray(data.goals))   return data.goals;
+        if (Array.isArray(data.data))    return data.data;
+        if (Array.isArray(data.content)) return data.content;
+        if (Array.isArray(data.items))   return data.items;
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching goals:", error);
+      return [];
+    }
+  },
+
+  getById: (id: string): Promise<Goal> =>
+    apiRequest<Goal>(`/api/goals/${id}`, { method: "GET" }, false),
+
+  create: (goal: Omit<Goal, "id">): Promise<Goal> =>
+    apiRequest<Goal>("/api/goals", { method: "POST", body: JSON.stringify(goal) }, false),
+
+  update: (id: string, goal: Partial<Goal>): Promise<Goal> =>
+    apiRequest<Goal>(`/api/goals/${id}`, { method: "PUT", body: JSON.stringify(goal) }, false),
+
+  delete: (id: string): Promise<{ message: string }> =>
+    apiRequest(`/api/goals/${id}`, { method: "DELETE" }, false),
+};
+
+// =====================
 // Alerts API
 // =====================
 
@@ -519,14 +567,14 @@ export const alertsAPI = {
     try {
       const data = await apiRequest<Alert[] | any>("/api/alerts", { method: "GET" }, false);
       if (Array.isArray(data)) return data;
-      if (data && typeof data === 'object') {
-        if (Array.isArray(data.alerts)) return data.alerts;
-        if (Array.isArray(data.data))   return data.data;
+      if (data && typeof data === "object") {
+        if (Array.isArray(data.alerts))  return data.alerts;
+        if (Array.isArray(data.data))    return data.data;
         if (Array.isArray(data.content)) return data.content;
       }
       return [];
     } catch (error: any) {
-      console.error("❌ Error fetching alerts:", error);
+      console.error("Error fetching alerts:", error);
       return [];
     }
   },
@@ -535,10 +583,10 @@ export const alertsAPI = {
     try {
       const data = await apiRequest<Alert[] | any>("/api/alerts/unread", { method: "GET" }, false);
       if (Array.isArray(data)) return data;
-      if (data && typeof data === 'object' && Array.isArray(data.alerts)) return data.alerts;
+      if (data && typeof data === "object" && Array.isArray(data.alerts)) return data.alerts;
       return [];
     } catch (error) {
-      console.error("❌ Error fetching unread alerts:", error);
+      console.error("Error fetching unread alerts:", error);
       return [];
     }
   },
@@ -575,10 +623,10 @@ export const notificationsAPI = {
         false
       );
       if (Array.isArray(data)) return data;
-      if (data && typeof data === 'object' && Array.isArray(data.notifications)) return data.notifications;
+      if (data && typeof data === "object" && Array.isArray(data.notifications)) return data.notifications;
       return [];
     } catch (error: any) {
-      console.error("❌ Error fetching notifications:", error);
+      console.error("Error fetching notifications:", error);
       return [];
     }
   },
@@ -624,7 +672,7 @@ export const reportsAPI = {
 
 export const healthAPI = {
   check: (): Promise<{ status: string; timestamp: string }> =>
-    apiRequest("/api/health", { method: "GET" }, false),
+    apiRequest("/actuator/health", { method: "GET" }, false),
 
   ping: (): Promise<{ message: string }> =>
     apiRequest("/api/health/ping", { method: "GET" }, false),

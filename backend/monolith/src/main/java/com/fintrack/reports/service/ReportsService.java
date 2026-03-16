@@ -1,10 +1,7 @@
-// ==========================================
-// ReportsService.java - Complete Fixed Version
-// ==========================================
 package com.fintrack.reports.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -20,7 +17,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ReportsService {
 
     private final RestTemplate restTemplate;
@@ -32,6 +28,10 @@ public class ReportsService {
     // Goals/Budgets service runs on port 8085
     @Value("${services.budgets.url:http://localhost:8085}")
     private String budgetsServiceUrl;
+
+    public ReportsService(@Qualifier("reportsRestTemplate") RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     /**
      * Get comprehensive financial reports
@@ -45,22 +45,11 @@ public class ReportsService {
 
         Map<String, Object> report = new HashMap<>();
 
-        // Get summary data
         report.put("summary", getFinancialSummary(userId, startDate, endDate, dateRange));
-
-        // Get monthly trend data
         report.put("monthlyData", getMonthlySummary(userId, dateRange));
-
-        // Get category breakdown
         report.put("categoryBreakdown", getCategoryBreakdown(userId, startDate, endDate));
-
-        // Get savings goals
         report.put("savingsGoals", getSavingsGoals(userId));
-
-        // Get top expenses
         report.put("topExpenses", getTopExpenses(userId, startDate, endDate, 5));
-
-        // Get insights
         report.put("insights", generateInsights(userId, startDate, endDate));
 
         log.info("Successfully generated financial reports for user: {}", userId);
@@ -71,13 +60,12 @@ public class ReportsService {
      * Get financial summary with changes
      */
     public Map<String, Object> getFinancialSummary(String userId, LocalDate startDate,
-                                                   LocalDate endDate, String dateRange) {
-        // Current period
+            LocalDate endDate, String dateRange) {
         List<Map<String, Object>> currentTransactions = getTransactionsFromService(userId, startDate, endDate);
 
-        // Previous period for comparison
         LocalDate[] previousRange = getPreviousPeriod(dateRange);
-        List<Map<String, Object>> previousTransactions = getTransactionsFromService(userId, previousRange[0], previousRange[1]);
+        List<Map<String, Object>> previousTransactions = getTransactionsFromService(userId, previousRange[0],
+                previousRange[1]);
 
         BigDecimal currentIncome = calculateTotalByType(currentTransactions, "INCOME");
         BigDecimal currentExpenses = calculateTotalByType(currentTransactions, "EXPENSE");
@@ -92,8 +80,6 @@ public class ReportsService {
         summary.put("totalExpenses", currentExpenses);
         summary.put("netSavings", currentSavings);
         summary.put("savingsRate", calculateSavingsRate(currentSavings, currentIncome));
-
-        // Calculate percentage changes
         summary.put("incomeChange", calculatePercentageChange(previousIncome, currentIncome));
         summary.put("expensesChange", calculatePercentageChange(previousExpenses, currentExpenses));
         summary.put("savingsChange", calculatePercentageChange(previousSavings, currentSavings));
@@ -120,13 +106,12 @@ public class ReportsService {
             return new ArrayList<>();
         }
 
-        // Group by month
         Map<String, List<Map<String, Object>>> monthlyGroups = transactions.stream()
-            .collect(Collectors.groupingBy(t -> {
-                String dateStr = (String) t.get("date");
-                LocalDate date = LocalDate.parse(dateStr);
-                return date.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
-            }));
+                .collect(Collectors.groupingBy(t -> {
+                    String dateStr = (String) t.get("date");
+                    LocalDate date = LocalDate.parse(dateStr);
+                    return date.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+                }));
 
         List<Map<String, Object>> monthlySummary = new ArrayList<>();
 
@@ -141,7 +126,7 @@ public class ReportsService {
             monthData.put("income", income);
             monthData.put("expenses", expenses);
             monthData.put("savings", savings);
-            monthData.put("target", BigDecimal.valueOf(1500)); // Default target
+            monthData.put("target", BigDecimal.valueOf(1500));
 
             monthlySummary.add(monthData);
         }
@@ -153,34 +138,30 @@ public class ReportsService {
      * Get spending breakdown by category
      */
     public List<Map<String, Object>> getCategoryBreakdown(String userId, LocalDate startDate,
-                                                          LocalDate endDate) {
+            LocalDate endDate) {
         List<Map<String, Object>> allTransactions = getTransactionsFromService(userId, startDate, endDate);
 
-        // Filter expenses only
         List<Map<String, Object>> expenses = allTransactions.stream()
-            .filter(t -> "EXPENSE".equals(t.get("type")))
-            .collect(Collectors.toList());
+                .filter(t -> "EXPENSE".equals(t.get("type")))
+                .collect(Collectors.toList());
 
         if (expenses.isEmpty()) {
             log.info("No expenses found for user {} in date range", userId);
             return new ArrayList<>();
         }
 
-        // Group by category
         Map<String, List<Map<String, Object>>> categoryGroups = expenses.stream()
-            .collect(Collectors.groupingBy(t -> (String) t.get("category")));
+                .collect(Collectors.groupingBy(t -> (String) t.get("category")));
 
         List<Map<String, Object>> breakdown = new ArrayList<>();
         BigDecimal totalExpenses = calculateTotal(expenses);
 
-        String[] colors = {"#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#ef4444", "#6b7280"};
+        String[] colors = { "#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#ef4444", "#6b7280" };
         int colorIndex = 0;
 
         for (Map.Entry<String, List<Map<String, Object>>> entry : categoryGroups.entrySet()) {
             Map<String, Object> categoryData = new HashMap<>();
             BigDecimal categoryTotal = calculateTotal(entry.getValue());
-
-            // Get budget for this category
             BigDecimal budget = getBudgetForCategory(userId, entry.getKey());
 
             categoryData.put("name", entry.getKey());
@@ -193,8 +174,8 @@ public class ReportsService {
         }
 
         return breakdown.stream()
-            .sorted((a, b) -> ((BigDecimal) b.get("amount")).compareTo((BigDecimal) a.get("amount")))
-            .collect(Collectors.toList());
+                .sorted((a, b) -> ((BigDecimal) b.get("amount")).compareTo((BigDecimal) a.get("amount")))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -211,11 +192,11 @@ public class ReportsService {
             HttpEntity<?> entity = new HttpEntity<>(headers);
 
             ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                new ParameterizedTypeReference<List<Map<String, Object>>>() {}
-            );
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                    });
 
             List<Map<String, Object>> goals = response.getBody();
             if (goals == null || goals.isEmpty()) {
@@ -223,7 +204,7 @@ public class ReportsService {
                 return new ArrayList<>();
             }
 
-            String[] colors = {"#10b981", "#3b82f6", "#f59e0b", "#8b5cf6"};
+            String[] colors = { "#10b981", "#3b82f6", "#f59e0b", "#8b5cf6" };
             List<Map<String, Object>> result = new ArrayList<>();
 
             for (int i = 0; i < goals.size(); i++) {
@@ -251,21 +232,19 @@ public class ReportsService {
      * Get top expenses by vendor
      */
     public List<Map<String, Object>> getTopExpenses(String userId, LocalDate startDate,
-                                                    LocalDate endDate, int limit) {
+            LocalDate endDate, int limit) {
         List<Map<String, Object>> allTransactions = getTransactionsFromService(userId, startDate, endDate);
 
-        // Filter expenses only
         List<Map<String, Object>> expenses = allTransactions.stream()
-            .filter(t -> "EXPENSE".equals(t.get("type")))
-            .collect(Collectors.toList());
+                .filter(t -> "EXPENSE".equals(t.get("type")))
+                .collect(Collectors.toList());
 
         if (expenses.isEmpty()) {
             return new ArrayList<>();
         }
 
-        // Group by description (vendor)
         Map<String, List<Map<String, Object>>> vendorGroups = expenses.stream()
-            .collect(Collectors.groupingBy(t -> (String) t.get("description")));
+                .collect(Collectors.groupingBy(t -> (String) t.get("description")));
 
         List<Map<String, Object>> topExpenses = new ArrayList<>();
 
@@ -282,9 +261,9 @@ public class ReportsService {
         }
 
         return topExpenses.stream()
-            .sorted((a, b) -> ((BigDecimal) b.get("amount")).compareTo((BigDecimal) a.get("amount")))
-            .limit(limit)
-            .collect(Collectors.toList());
+                .sorted((a, b) -> ((BigDecimal) b.get("amount")).compareTo((BigDecimal) a.get("amount")))
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -305,20 +284,21 @@ public class ReportsService {
         BigDecimal savings = income.subtract(expenses);
         BigDecimal savingsRate = calculateSavingsRate(savings, income);
 
-        // Savings insights
         if (income.compareTo(BigDecimal.ZERO) > 0) {
             if (savingsRate.compareTo(BigDecimal.valueOf(30)) > 0) {
                 insights.add("Great job! Your savings rate of " + savingsRate.intValue() + "% is excellent.");
             } else if (savingsRate.compareTo(BigDecimal.valueOf(20)) > 0) {
-                insights.add("Your savings rate of " + savingsRate.intValue() + "% is good. Consider increasing it to 30% or more.");
+                insights.add("Your savings rate of " + savingsRate.intValue()
+                        + "% is good. Consider increasing it to 30% or more.");
             } else if (savingsRate.compareTo(BigDecimal.ZERO) >= 0) {
-                insights.add("Your savings rate of " + savingsRate.intValue() + "% could be improved. Aim for at least 20%.");
+                insights.add("Your savings rate of " + savingsRate.intValue()
+                        + "% could be improved. Aim for at least 20%.");
             } else {
-                insights.add("You're spending more than you earn. Review your expenses to improve your financial health.");
+                insights.add(
+                        "You're spending more than you earn. Review your expenses to improve your financial health.");
             }
         }
 
-        // Category over-budget insights
         List<Map<String, Object>> categories = getCategoryBreakdown(userId, startDate, endDate);
         for (Map<String, Object> category : categories) {
             BigDecimal amount = (BigDecimal) category.get("amount");
@@ -327,9 +307,9 @@ public class ReportsService {
             if (amount.compareTo(budget) > 0 && insights.size() < 4) {
                 BigDecimal overBudget = amount.subtract(budget);
                 BigDecimal percentage = overBudget.divide(budget, 2, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
+                        .multiply(BigDecimal.valueOf(100));
                 insights.add(category.get("name") + " is " + percentage.intValue() +
-                    "% over budget. Consider reducing spending in this category.");
+                        "% over budget. Consider reducing spending in this category.");
             }
         }
 
@@ -342,10 +322,11 @@ public class ReportsService {
 
     // ========== REST API Helper Methods ==========
 
-    private List<Map<String, Object>> getTransactionsFromService(String userId, LocalDate startDate, LocalDate endDate) {
+    private List<Map<String, Object>> getTransactionsFromService(String userId, LocalDate startDate,
+            LocalDate endDate) {
         try {
             String url = String.format("%s/api/transactions/reports?userId=%s&startDate=%s&endDate=%s",
-                transactionsServiceUrl, userId, startDate.toString(), endDate.toString());
+                    transactionsServiceUrl, userId, startDate.toString(), endDate.toString());
 
             log.debug("Fetching transactions from: {}", url);
 
@@ -354,11 +335,11 @@ public class ReportsService {
             HttpEntity<?> entity = new HttpEntity<>(headers);
 
             ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                new ParameterizedTypeReference<List<Map<String, Object>>>() {}
-            );
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                    });
 
             List<Map<String, Object>> transactions = response.getBody();
             log.debug("Fetched {} transactions", transactions != null ? transactions.size() : 0);
@@ -373,18 +354,18 @@ public class ReportsService {
     private BigDecimal getBudgetForCategory(String userId, String category) {
         try {
             String url = String.format("%s/api/budgets/category?userId=%s&category=%s",
-                budgetsServiceUrl, userId, category);
+                    budgetsServiceUrl, userId, category);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<?> entity = new HttpEntity<>(headers);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                new ParameterizedTypeReference<Map<String, Object>>() {}
-            );
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    new ParameterizedTypeReference<Map<String, Object>>() {
+                    });
 
             if (response.getBody() != null && response.getBody().get("amount") != null) {
                 return new BigDecimal(response.getBody().get("amount").toString());
@@ -392,7 +373,7 @@ public class ReportsService {
         } catch (Exception e) {
             log.debug("Budget not found for category {}: {}", category, e.getMessage());
         }
-        return BigDecimal.valueOf(1000); // Default budget
+        return BigDecimal.valueOf(1000);
     }
 
     // ========== Helper Methods ==========
@@ -421,7 +402,7 @@ public class ReportsService {
                 startDate = endDate.minusDays(30);
         }
 
-        return new LocalDate[]{startDate, endDate};
+        return new LocalDate[] { startDate, endDate };
     }
 
     private LocalDate[] getPreviousPeriod(String dateRange) {
@@ -431,20 +412,20 @@ public class ReportsService {
         LocalDate endDate = current[0];
         LocalDate startDate = endDate.minusDays(daysDiff);
 
-        return new LocalDate[]{startDate, endDate};
+        return new LocalDate[] { startDate, endDate };
     }
 
     private BigDecimal calculateTotalByType(List<Map<String, Object>> transactions, String type) {
         return transactions.stream()
-            .filter(t -> type.equals(t.get("type")))
-            .map(t -> new BigDecimal(t.get("amount").toString()))
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .filter(t -> type.equals(t.get("type")))
+                .map(t -> new BigDecimal(t.get("amount").toString()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private BigDecimal calculateTotal(List<Map<String, Object>> transactions) {
         return transactions.stream()
-            .map(t -> new BigDecimal(t.get("amount").toString()))
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(t -> new BigDecimal(t.get("amount").toString()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private BigDecimal calculateSavingsRate(BigDecimal savings, BigDecimal income) {
@@ -452,7 +433,7 @@ public class ReportsService {
             return BigDecimal.ZERO;
         }
         return savings.divide(income, 4, RoundingMode.HALF_UP)
-            .multiply(BigDecimal.valueOf(100));
+                .multiply(BigDecimal.valueOf(100));
     }
 
     private BigDecimal calculatePercentageChange(BigDecimal previous, BigDecimal current) {
@@ -460,8 +441,8 @@ public class ReportsService {
             return BigDecimal.ZERO;
         }
         return current.subtract(previous)
-            .divide(previous, 4, RoundingMode.HALF_UP)
-            .multiply(BigDecimal.valueOf(100));
+                .divide(previous, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
     }
 
     private int calculatePercentage(BigDecimal part, BigDecimal total) {
@@ -469,8 +450,8 @@ public class ReportsService {
             return 0;
         }
         return part.divide(total, 2, RoundingMode.HALF_UP)
-            .multiply(BigDecimal.valueOf(100))
-            .intValue();
+                .multiply(BigDecimal.valueOf(100))
+                .intValue();
     }
 
     private int calculateProgress(BigDecimal current, BigDecimal target) {
@@ -478,7 +459,7 @@ public class ReportsService {
             return 0;
         }
         return current.divide(target, 2, RoundingMode.HALF_UP)
-            .multiply(BigDecimal.valueOf(100))
-            .intValue();
+                .multiply(BigDecimal.valueOf(100))
+                .intValue();
     }
 }

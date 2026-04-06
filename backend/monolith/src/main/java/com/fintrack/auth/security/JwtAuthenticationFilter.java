@@ -4,6 +4,7 @@ import com.fintrack.auth.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Enumeration;
 
 @Component
 @RequiredArgsConstructor
@@ -62,6 +65,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        final String[] resolvedUserId = {null};
+
         try {
             // Extract token
             final String jwt = authHeader.substring(7);
@@ -79,6 +84,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Validate token
                 if (jwtUtil.validateToken(jwt, userDetails)) {
                     log.info("✅ JWT valid for user: {}", userEmail);
+
+                    // Extract userId from JWT claims and store for header injection
+                    String userId = jwtUtil.extractUserId(jwt);
+                    if (userId != null) {
+                        resolvedUserId[0] = userId;
+                        log.debug("👤 Extracted userId from JWT: {}", userId);
+                    }
 
                     // Create authentication token
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -102,7 +114,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Don't throw - let the request continue and fail at authorization
         }
 
-        filterChain.doFilter(request, response);
+        // If we extracted a userId, wrap the request to inject X-User-Id header
+        // so all controllers (budgets, goals, alerts, etc.) receive it automatically
+        if (resolvedUserId[0] != null) {
+            final String userId = resolvedUserId[0];
+            HttpServletRequestWrapper wrappedRequest = new HttpServletRequestWrapper(request) {
+                @Override
+                public String getHeader(String name) {
+                    if ("X-User-Id".equalsIgnoreCase(name)) {
+                        return userId;
+                    }
+                    return super.getHeader(name);
+                }
+
+                @Override
+                public Enumeration<String> getHeaders(String name) {
+                    if ("X-User-Id".equalsIgnoreCase(name)) {
+                        return Collections.enumeration(Collections.singletonList(userId));
+                    }
+                    return super.getHeaders(name);
+                }
+
+                @Override
+                public Enumeration<String> getHeaderNames() {
+                    java.util.List<String> names = Collections.list(super.getHeaderNames());
+                    if (!names.contains("X-User-Id")) {
+                        names.add("X-User-Id");
+                    }
+                    return Collections.enumeration(names);
+                }
+            };
+            filterChain.doFilter(wrappedRequest, response);
+        } else {
+            filterChain.doFilter(request, response);
+        }
     }
 
     /**

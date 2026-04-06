@@ -108,4 +108,18 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("userId") String userId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
+
+    /**
+     * Sum EXPENSE transactions for a specific user, category, and month (YYYY-MM).
+     * Case-insensitive category match. Used for auto-syncing budget spent amounts.
+     */
+    @Query(value = "SELECT COALESCE(SUM(t.amount), 0) FROM public.transactions t " +
+            "WHERE t.user_id = :userId " +
+            "AND t.type = 'EXPENSE' " +
+            "AND LOWER(t.category) = LOWER(:category) " +
+            "AND TO_CHAR(t.date, 'YYYY-MM') = :month", nativeQuery = true)
+    java.math.BigDecimal sumExpensesByCategoryAndMonth(
+            @Param("userId") String userId,
+            @Param("category") String category,
+            @Param("month") String month);
 }

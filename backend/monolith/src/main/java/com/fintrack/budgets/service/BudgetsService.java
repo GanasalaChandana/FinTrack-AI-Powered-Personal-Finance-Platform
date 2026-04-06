@@ -4,10 +4,13 @@ import com.fintrack.budgets.entity.Budget;
 import com.fintrack.budgets.exception.ResourceNotFoundException;
 import com.fintrack.budgets.exception.UnauthorizedException;
 import com.fintrack.budgets.repository.BudgetRepository;
+import com.fintrack.transactions.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -17,15 +20,62 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BudgetsService {
 
     private final BudgetRepository budgetRepository;
+    private final TransactionRepository transactionRepository;
+
+    // ─── Auto-sync helper ────────────────────────────────────────────────────
+
+    /**
+     * Recalculates the 'spent' field of a budget by summing EXPENSE transactions
+     * for the same userId, category (case-insensitive), and month (YYYY-MM).
+     * Persists the updated value and returns the updated budget.
+     */
+    @Transactional
+    public Budget syncSpent(Budget budget) {
+        try {
+            String month = budget.getMonth() != null
+                    ? budget.getMonth()
+                    : YearMonth.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+
+            BigDecimal spent = transactionRepository.sumExpensesByCategoryAndMonth(
+                    budget.getUserId(), budget.getCategory(), month);
+
+            double spentValue = spent != null ? spent.doubleValue() : 0.0;
+
+            if (!Double.valueOf(spentValue).equals(budget.getSpent())) {
+                budget.setSpent(spentValue);
+                budget = budgetRepository.save(budget);
+                log.info("✅ Synced budget '{}' for user {}: spent = {}",
+                        budget.getCategory(), budget.getUserId(), spentValue);
+            }
+        } catch (Exception e) {
+            log.error("⚠️ Failed to sync spent for budget {}: {}", budget.getId(), e.getMessage());
+        }
+        return budget;
+    }
+
+    /**
+     * Sync all budgets for a user and return updated list.
+     */
+    @Transactional
+    public List<Budget> syncAllSpent(List<Budget> budgets) {
+        return budgets.stream().map(this::syncSpent).toList();
+    }
+
+    // ─── CRUD ────────────────────────────────────────────────────────────────
 
     public List<Budget> getAllBudgetsByUserId(String userId, String month) {
+        List<Budget> budgets;
         if (month != null && !month.isEmpty()) {
-            return budgetRepository.findByUserIdAndMonth(userId, month);
+            budgets = budgetRepository.findByUserIdAndMonth(userId, month);
+        } else {
+            budgets = budgetRepository.findByUserId(userId);
         }
-        return budgetRepository.findByUserId(userId);
+        // Auto-sync spent from actual transactions on every fetch
+        return syncAllSpent(budgets);
     }
 
     public Optional<Budget> getBudgetByCategory(String userId, String category) {
@@ -47,7 +97,8 @@ public class BudgetsService {
             throw new UnauthorizedException("You don't have permission to access this budget");
         }
 
-        return budget;
+        // Sync spent from actual transactions
+        return syncSpent(budget);
     }
 
     @Transactional
@@ -83,7 +134,9 @@ public class BudgetsService {
             budget.setEndDate(LocalDateTime.of(year, month, yearMonth.lengthOfMonth(), 23, 59, 59));
         }
 
-        return budgetRepository.save(budget);
+        Budget saved = budgetRepository.save(budget);
+        // Immediately sync spent from existing transactions for this category/month
+        return syncSpent(saved);
     }
 
     @Transactional
@@ -137,7 +190,8 @@ public class BudgetsService {
     public Map<String, Object> getBudgetSummary(String userId, String month) {
         String targetMonth = month != null ? month : YearMonth.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
 
-        List<Budget> budgets = budgetRepository.findByUserIdAndMonth(userId, targetMonth);
+        // Sync spent from transactions before computing summary
+        List<Budget> budgets = syncAllSpent(budgetRepository.findByUserIdAndMonth(userId, targetMonth));
 
         double totalBudget = budgets.stream()
                 .mapToDouble(Budget::getBudget)

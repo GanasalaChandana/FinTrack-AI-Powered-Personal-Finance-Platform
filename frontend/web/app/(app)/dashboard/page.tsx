@@ -21,8 +21,10 @@ import {
   isAuthenticated as checkAuth,
   transactionsAPI,
   budgetsAPI,
+  goalsAPI,
   type Budget,
   type Transaction,
+  type Goal,
 } from "@/lib/api";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -152,13 +154,9 @@ const processSpendingTrend = (transactions: Transaction[], days: number) => {
   return data;
 };
 
-// ✅ FIXED: Uses typed Budget fields directly (b.budget = limit, b.spent = spent).
-// api.ts normalises these fields, so no more field-name guessing needed.
-// Transaction-based spending is computed as a fallback when b.spent === 0.
 const processBudgetComparison = (budgets: Budget[], transactions: Transaction[] = []) => {
   if (!Array.isArray(budgets) || budgets.length === 0) return [];
 
-  // Build category → spent map from this month's expense transactions (fallback)
   const now = new Date();
   const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -170,17 +168,15 @@ const processBudgetComparison = (budgets: Budget[], transactions: Transaction[] 
       if (cat) spendingByCategory.set(cat, (spendingByCategory.get(cat) ?? 0) + Math.abs(t.amount ?? 0));
     });
 
-  // Normalise strings for fuzzy matching (strips special chars)
   const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
   return budgets
     .filter((b) => b.category?.trim() && b.budget > 0)
     .map((b) => {
       const category = b.category.trim();
-      const budget   = b.budget;  // typed: the spending limit
-      const apiSpent = b.spent;   // typed: what the backend says was spent
+      const budget   = b.budget;
+      const apiSpent = b.spent;
 
-      // Fuzzy category match for transaction-based fallback
       const catNorm = normalize(category);
       let txSpent = spendingByCategory.get(category.toLowerCase()) ?? 0;
       if (txSpent === 0) {
@@ -193,9 +189,7 @@ const processBudgetComparison = (budgets: Budget[], transactions: Transaction[] 
         }
       }
 
-      // Prefer API-provided spent; fall back to transaction sum
       const spent = apiSpent > 0 ? apiSpent : txSpent;
-
       return { category, budget, spent, remaining: Math.max(budget - spent, 0) };
     });
 };
@@ -223,17 +217,49 @@ const processCategoryBreakdown = (transactions: Transaction[], days: number) => 
 const buildSparkline = (trendData: any[], key: "income" | "expenses" | "savings") =>
   trendData.map((m) => ({ v: m[key] }));
 
-const calculateStats = (trendData: any[], goalsList: any[]) => {
-  const relevant   = trendData.filter((m) => m.income > 0 || m.expenses > 0);
-  const thisMonth  = relevant[relevant.length - 1] ?? { income: 0, expenses: 0 };
-  const lastMonth  = relevant[relevant.length - 2] ?? { income: 0, expenses: 0 };
-  const totalIncome    = thisMonth.income;
-  const totalExpenses  = thisMonth.expenses;
-  const totalSavings   = totalIncome - totalExpenses;
-  const incomeChange   = safePercentChange(thisMonth.income, lastMonth.income);
-  const expensesChange = safePercentChange(thisMonth.expenses, lastMonth.expenses);
-  const goalsSavings   = goalsList.reduce((s, g) => s + (g.current ?? g.currentAmount ?? 0), 0);
-  const netWorth       = goalsSavings + totalSavings;
+// ✅ FIXED: Calculate stats directly from transactions within date range
+const calculateStats = (transactions: Transaction[], days: number, goalsList: Goal[]) => {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+  const filtered = transactions.filter((t) => t.date >= cutoffStr);
+
+  const totalIncome = filtered
+    .filter((t) => t.type === "income" || t.type === "INCOME")
+    .reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
+
+  const totalExpenses = filtered
+    .filter((t) => t.type === "expense" || t.type === "EXPENSE")
+    .reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
+
+  const totalSavings = totalIncome - totalExpenses;
+
+  // Previous period for % change
+  const prevCutoff = new Date(cutoff);
+  prevCutoff.setDate(prevCutoff.getDate() - days);
+  const prevCutoffStr = prevCutoff.toISOString().slice(0, 10);
+
+  const prevFiltered = transactions.filter(
+    (t) => t.date >= prevCutoffStr && t.date < cutoffStr
+  );
+
+  const prevIncome = prevFiltered
+    .filter((t) => t.type === "income" || t.type === "INCOME")
+    .reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
+
+  const prevExpenses = prevFiltered
+    .filter((t) => t.type === "expense" || t.type === "EXPENSE")
+    .reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
+
+  const incomeChange   = safePercentChange(totalIncome, prevIncome);
+  const expensesChange = safePercentChange(totalExpenses, prevExpenses);
+
+  const goalsSavings = goalsList.reduce(
+    (s, g) => s + (g.currentAmount ?? (g as any).current ?? 0), 0
+  );
+  const netWorth = goalsSavings + totalSavings;
+
   return { totalIncome, totalExpenses, totalSavings, netWorth, incomeChange, expensesChange };
 };
 
@@ -266,11 +292,11 @@ export default function DashboardPage() {
   const [loadingData, setLoadingData]         = useState(false);
   const [userName, setUserName]               = useState<string>("");
   const [lastUpdated, setLastUpdated]         = useState<Date | null>(null);
-  const [dateRange, setDateRange]             = useState<DateRange>("30");
+  const [dateRange, setDateRange]             = useState<DateRange>("90");
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [allBudgets, setAllBudgets]           = useState<Budget[]>([]);
-  const [goals, setGoals]                     = useState<any[]>([]);
+  const [goals, setGoals]                     = useState<Goal[]>([]);
   const [hasTransactions, setHasTransactions] = useState(false);
 
   const [spendingTrendData, setSpendingTrendData]       = useState<any[]>([]);
@@ -320,21 +346,20 @@ export default function DashboardPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [router]);
 
-  // ── Fetch raw data ───────────────────────────────────────────────────────
+  // ── Fetch raw data ✅ FIXED: now also fetches goals ──────────────────────
   const fetchDashboardData = useCallback(async () => {
     setLoadingData(true);
     try {
-      const [transactions, budgets] = await Promise.all([
+      const [transactions, budgets, goalsList] = await Promise.all([
         transactionsAPI.getAll().catch(() => [] as Transaction[]),
         budgetsAPI.getAll().catch(() => [] as Budget[]),
+        goalsAPI.getAll().catch(() => [] as Goal[]),
       ]);
 
-      const txList     = Array.isArray(transactions) ? transactions : [];
-      const budgetList = Array.isArray(budgets)      ? budgets      : [];
-
-      setAllTransactions(txList);
-      setAllBudgets(budgetList);
-      setHasTransactions(txList.length > 0);
+      setAllTransactions(Array.isArray(transactions) ? transactions : []);
+      setAllBudgets(Array.isArray(budgets) ? budgets : []);
+      setGoals(Array.isArray(goalsList) ? goalsList : []);
+      setHasTransactions(Array.isArray(transactions) && transactions.length > 0);
       setLastUpdated(new Date());
     } catch (err) {
       console.error("fetchDashboardData error:", err);
@@ -346,17 +371,17 @@ export default function DashboardPage() {
 
   useEffect(() => { if (isAuthenticated) fetchDashboardData(); }, [isAuthenticated, fetchDashboardData]);
 
-  // ── Recompute derived data whenever source data or date range changes ────
+  // ── Recompute derived data ✅ FIXED: stats from raw transactions ─────────
   useEffect(() => {
     const days = parseInt(dateRange);
     const trendData = processSpendingTrend(allTransactions, days);
     setSpendingTrendData(trendData);
     setBudgetComparisonData(processBudgetComparison(allBudgets, allTransactions));
     setCategoryData(processCategoryBreakdown(allTransactions, days));
-    setStats(calculateStats(trendData, goals));
+    setStats(calculateStats(allTransactions, days, goals));
   }, [allTransactions, allBudgets, goals, dateRange]);
 
-  // ── Sparklines — always 6-month window regardless of range picker ────────
+  // ── Sparklines — always 6-month window ───────────────────────────────────
   const sparklineTrend    = processSpendingTrend(allTransactions, 180);
   const incomeSparkline   = buildSparkline(sparklineTrend, "income");
   const expensesSparkline = buildSparkline(sparklineTrend, "expenses");
@@ -539,8 +564,8 @@ export default function DashboardPage() {
                       color="from-green-500 to-green-600"
                       description={
                         stats.incomeChange === null
-                          ? "This month · No previous data"
-                          : `This month · ${stats.incomeChange >= 0 ? "+" : ""}${stats.incomeChange.toFixed(1)}% vs last month`
+                          ? "This period · No previous data"
+                          : `This period · ${stats.incomeChange >= 0 ? "+" : ""}${stats.incomeChange.toFixed(1)}% vs previous`
                       }
                       sparklineData={incomeSparkline}
                       onClick={() => router.push("/transactions?type=income")}
@@ -553,8 +578,8 @@ export default function DashboardPage() {
                       color="from-red-500 to-red-600"
                       description={
                         stats.expensesChange === null
-                          ? "This month · No previous data"
-                          : `This month · ${stats.expensesChange >= 0 ? "+" : ""}${stats.expensesChange.toFixed(1)}% vs last month`
+                          ? "This period · No previous data"
+                          : `This period · ${stats.expensesChange >= 0 ? "+" : ""}${stats.expensesChange.toFixed(1)}% vs previous`
                       }
                       sparklineData={expensesSparkline}
                       onClick={() => router.push("/transactions?type=expense")}
@@ -587,7 +612,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* ── Charts row 1: Spending Trend + Budget vs Actual ── */}
+            {/* ── Charts row 1 ── */}
             {loadingData ? (
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <SkeletonChart /><SkeletonChart />
@@ -603,7 +628,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* ── Charts row 2: Category Pie + Goals ── */}
+            {/* ── Charts row 2 ── */}
             {!loadingData && (
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 {categoryData.length > 0 ? (
@@ -620,7 +645,7 @@ export default function DashboardPage() {
                 )}
 
                 {goals.length > 0 ? (
-                  <GoalProgressChart goals={goals} />
+                  <GoalProgressChart goals={goals.map((g, i) => ({ id: g.id || String(i), name: g.name, target: g.targetAmount ?? 0, current: g.currentAmount ?? 0, icon: g.icon || "🎯", color: g.color || "from-blue-500 to-blue-600", }))} />
                 ) : (
                   <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-white p-8 text-center">
                     <Target className="mb-3 h-10 w-10 text-gray-300" />
@@ -706,7 +731,7 @@ export default function DashboardPage() {
                         </li>
                       ))}
                       {stats.expensesChange !== null && stats.expensesChange > 20 && (
-                        <li>• Your expenses increased by {stats.expensesChange.toFixed(1)}% this month</li>
+                        <li>• Your expenses increased by {stats.expensesChange.toFixed(1)}% this period</li>
                       )}
                     </ul>
                   </div>

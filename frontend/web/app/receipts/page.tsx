@@ -54,19 +54,26 @@ export default function ReceiptsPage() {
     setIsSaving(true);
     setSaveError(null);
     try {
+      const rawAmount = parseFloat(transaction.amount) || 0;
+      // Negative amount = refund/return → treat as INCOME, use absolute value
+      const amount    = Math.abs(rawAmount);
+      const type      = rawAmount < 0
+        ? "INCOME"
+        : ((transaction.type || "EXPENSE").toUpperCase());
+
       await transactionsAPI.create({
-        date:        transaction.date,
-        merchant:    transaction.merchant,
-        description: transaction.description || `Receipt from ${transaction.merchant}`,
-        amount:      transaction.amount,
-        category:    transaction.category,
-        type:        transaction.type || "expense",
+        date:        transaction.date || new Date().toISOString().split("T")[0],
+        merchant:    transaction.merchant || "Unknown",
+        description: transaction.description || `Receipt from ${transaction.merchant || "Unknown"}`,
+        amount,
+        category:    transaction.category || "Other",
+        type,
       });
 
       // Show success state with transaction details
       setSavedTx({
         merchant: transaction.merchant || "Unknown merchant",
-        amount:   transaction.amount   || 0,
+        amount,
         category: transaction.category || "Other",
         date:     transaction.date     || new Date().toISOString().split("T")[0],
       });

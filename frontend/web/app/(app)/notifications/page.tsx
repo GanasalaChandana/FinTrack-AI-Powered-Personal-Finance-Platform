@@ -46,12 +46,33 @@ const timeAgo = (d: Date): string => {
 
 // ── Notification Generator ────────────────────────────────────────────────────
 
+const NOTIF_STATE_KEY = "fintrack:notif-state";
+
+function loadNotifState(): { read: Set<string>; dismissed: Set<string> } {
+  try {
+    const raw = localStorage.getItem(NOTIF_STATE_KEY);
+    if (raw) {
+      const { read, dismissed } = JSON.parse(raw);
+      return { read: new Set(read), dismissed: new Set(dismissed) };
+    }
+  } catch { }
+  return { read: new Set(), dismissed: new Set() };
+}
+
+function saveNotifState(read: Set<string>, dismissed: Set<string>) {
+  try {
+    localStorage.setItem(NOTIF_STATE_KEY, JSON.stringify({
+      read: [...read], dismissed: [...dismissed],
+    }));
+  } catch { }
+}
+
 function generateNotifications(transactions: Transaction[]): SmartNotification[] {
   if (!transactions.length) return [];
 
   const now = new Date();
-  let id = 0;
-  const mk = () => `notif-${++id}`;
+  // Stable slug-based IDs (deterministic from content)
+  const mk = (slug: string) => `notif-${slug}`;
 
   const notifs: SmartNotification[] = [];
   const expenses = transactions.filter(t => t.type === "expense");
@@ -62,7 +83,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
 
   // ── 1. Welcome / account summary ─────────────────────────────────────────
   notifs.push({
-    id: mk(), type: "INFO", read: false,
+    id: mk("account-summary"), type: "INFO", read: false,
     title: "Account Summary Ready",
     message: `You have ${transactions.length} transactions recorded. Income: ${fmt(totalIncome)} · Expenses: ${fmt(totalExpenses)}.`,
     icon: Sparkles, tag: "Summary",
@@ -73,7 +94,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
   const net = totalIncome - totalExpenses;
   if (net > 0) {
     notifs.push({
-      id: mk(), type: "SUCCESS", read: false,
+      id: mk("positive-net"), type: "SUCCESS", read: false,
       title: "Positive Net Balance",
       message: `Great news! You have a net surplus of ${fmt(net)} this period. Keep it up!`,
       icon: TrendingUp, tag: "Savings", amount: net,
@@ -81,7 +102,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
     });
   } else if (net < 0) {
     notifs.push({
-      id: mk(), type: "WARNING", read: false,
+      id: mk("spending-exceeds"), type: "WARNING", read: false,
       title: "Spending Exceeds Income",
       message: `Your expenses exceed income by ${fmt(Math.abs(net))}. Review your spending to get back on track.`,
       icon: TrendingDown, tag: "Budget", amount: Math.abs(net),
@@ -92,7 +113,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
   // ── 3. Income notifications ───────────────────────────────────────────────
   income.slice(0, 2).forEach((t, i) => {
     notifs.push({
-      id: mk(), type: "SUCCESS", read: false,
+      id: mk(`income-${i}`), type: "SUCCESS", read: false,
       title: "Income Received",
       message: `${fmt(t.amount)} credited from ${t.merchant || t.description}${t.category ? ` (${t.category})` : ""}.`,
       icon: DollarSign, tag: "Income", amount: t.amount,
@@ -108,7 +129,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
     .slice(0, 3)
     .forEach((t, i) => {
       notifs.push({
-        id: mk(), type: "WARNING", read: false,
+        id: mk(`large-expense-${i}`), type: "WARNING", read: false,
         title: "Large Expense Recorded",
         message: `${fmt(t.amount)} charged at ${t.merchant || t.description}${t.category ? ` in ${t.category}` : ""}.`,
         icon: CreditCard, tag: "Expenses", amount: t.amount,
@@ -128,7 +149,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
     const [cat, amt] = topCats[0];
     const pct = totalExpenses > 0 ? Math.round((amt / totalExpenses) * 100) : 0;
     notifs.push({
-      id: mk(), type: pct > 40 ? "WARNING" : "INFO", read: false,
+      id: mk("top-category"), type: pct > 40 ? "WARNING" : "INFO", read: false,
       title: "Top Spending Category",
       message: `${cat} is your highest expense category at ${fmt(amt)} (${pct}% of total spending).`,
       icon: ShoppingBag, tag: "Categories", amount: amt,
@@ -140,7 +161,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
   // ── 6. Monthly spending milestone ────────────────────────────────────────
   if (totalExpenses > 1000) {
     notifs.push({
-      id: mk(), type: "INFO", read: false,
+      id: mk("spending-milestone"), type: "INFO", read: false,
       title: "Spending Milestone",
       message: `Your total expenses have reached ${fmt(totalExpenses)}. You've made ${expenses.length} expense transactions.`,
       icon: Target, tag: "Milestones", amount: totalExpenses,
@@ -159,7 +180,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
     .slice(0, 2)
     .forEach(([merchant, count], i) => {
       notifs.push({
-        id: mk(), type: "INFO", read: false,
+        id: mk(`recurring-${merchant.replace(/\s+/g, '-').toLowerCase().slice(0, 20)}`), type: "INFO", read: false,
         title: "Recurring Transaction Detected",
         message: `You've transacted ${count}× at ${merchant}. This looks like a subscription or regular habit.`,
         icon: Repeat, tag: "Recurring",
@@ -171,7 +192,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
   const uniqueCats = Object.keys(catMap).length;
   if (uniqueCats >= 3) {
     notifs.push({
-      id: mk(), type: "INFO", read: false,
+      id: mk("spending-diversified"), type: "INFO", read: false,
       title: "Spending Diversified Across Categories",
       message: `Your expenses are spread across ${uniqueCats} categories. Top 3: ${topCats.slice(0, 3).map(([c]) => c).join(", ")}.`,
       icon: Filter, tag: "Summary",
@@ -183,7 +204,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
   if (totalIncome > 0 && net > 0) {
     const rate = Math.round((net / totalIncome) * 100);
     notifs.push({
-      id: mk(), type: "SUCCESS", read: false,
+      id: mk("savings-rate"), type: "SUCCESS", read: false,
       title: rate >= 20 ? "Excellent Savings Rate! 🎉" : "Good Savings Progress",
       message: `You're saving ${rate}% of income (${fmt(net)}). ${rate >= 20 ? "You're well above the recommended 20% savings benchmark!" : "Aim for 20% to build a strong financial cushion."}`,
       icon: Gift, tag: "Savings", amount: net,
@@ -251,7 +272,11 @@ export default function NotificationsPage() {
     setError(null);
     try {
       const txns = await transactionsAPI.getAll();
-      setNotifications(generateNotifications(txns));
+      const { read, dismissed } = loadNotifState();
+      const generated = generateNotifications(txns)
+        .filter(n => !dismissed.has(n.id))
+        .map(n => ({ ...n, read: read.has(n.id) }));
+      setNotifications(generated);
       setLastUpdated(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load transactions");
@@ -276,10 +301,41 @@ export default function NotificationsPage() {
   }), [notifications, filter, typeFilter, tagFilter]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
-  const markRead    = (id: string) => setNotifications(p => p.map(n => n.id === id ? { ...n, read: true } : n));
-  const dismiss     = (id: string) => setNotifications(p => p.filter(n => n.id !== id));
-  const markAllRead = () => setNotifications(p => p.map(n => ({ ...n, read: true })));
-  const clearAll    = () => { if (confirm("Clear all notifications?")) setNotifications([]); };
+  const markRead = (id: string) => {
+    setNotifications(p => {
+      const next = p.map(n => n.id === id ? { ...n, read: true } : n);
+      const { read, dismissed } = loadNotifState();
+      read.add(id);
+      saveNotifState(read, dismissed);
+      return next;
+    });
+  };
+  const dismiss = (id: string) => {
+    setNotifications(p => {
+      const next = p.filter(n => n.id !== id);
+      const { read, dismissed } = loadNotifState();
+      dismissed.add(id);
+      saveNotifState(read, dismissed);
+      return next;
+    });
+  };
+  const markAllRead = () => {
+    setNotifications(p => {
+      const next = p.map(n => ({ ...n, read: true }));
+      const { dismissed } = loadNotifState();
+      const read = new Set(next.map(n => n.id));
+      saveNotifState(read, dismissed);
+      return next;
+    });
+  };
+  const clearAll = () => {
+    if (confirm("Clear all notifications?")) {
+      const { read, dismissed } = loadNotifState();
+      notifications.forEach(n => dismissed.add(n.id));
+      saveNotifState(read, dismissed);
+      setNotifications([]);
+    }
+  };
 
   // ── Loading / Auth ─────────────────────────────────────────────────────────
   if (isCheckingAuth || !isAuth) {

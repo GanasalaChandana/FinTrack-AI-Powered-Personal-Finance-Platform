@@ -161,28 +161,38 @@ function generateAlertsFromTransactions(transactions: Transaction[]): SmartAlert
   const expenses = transactions.filter(t => t.type === "expense");
   const income   = transactions.filter(t => t.type === "income");
 
-  // ── 1. Large single transactions (> $500) ────────────────────────────────
-  const largeExpenses = expenses
+  // ── 1. Large single transactions (> $500) — deduplicated by merchant ────────
+  // Group by merchant, keep only the largest transaction per merchant
+  const largeByMerchant: Record<string, Transaction> = {};
+  expenses
     .filter(t => t.amount > 500)
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 3);
-
-  largeExpenses.forEach(t => {
-    alerts.push({
-      id: nextId(),
-      type: "large_transaction",
-      severity: t.amount > 1000 ? "high" : "medium",
-      title: "Large Transaction Detected",
-      message: `${t.merchant || t.description} charged ${fmt(t.amount)}${t.category ? ` in ${t.category}` : ""}.`,
-      amount: t.amount,
-      category: t.category,
-      merchant: t.merchant || t.description,
-      read: false,
-      createdAt: new Date(t.date || now),
-      icon: CreditCard,
-      actionLabel: "View Transaction",
+    .forEach(t => {
+      const key = t.merchant || t.description;
+      if (!largeByMerchant[key] || t.amount > largeByMerchant[key].amount) {
+        largeByMerchant[key] = t;
+      }
     });
-  });
+
+  Object.values(largeByMerchant)
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 3)
+    .forEach(t => {
+      const merchant = t.merchant || t.description;
+      alerts.push({
+        id: nextId(),
+        type: "large_transaction",
+        severity: t.amount > 1000 ? "high" : "medium",
+        title: `Large Transaction: ${merchant}`,
+        message: `${merchant} charged ${fmt(t.amount)}${t.category ? ` in ${t.category}` : ""}.`,
+        amount: t.amount,
+        category: t.category,
+        merchant,
+        read: false,
+        createdAt: new Date(t.date || now),
+        icon: CreditCard,
+        actionLabel: "View Transaction",
+      });
+    });
 
   // ── 2. Top spending categories ────────────────────────────────────────────
   const categoryTotals: Record<string, number> = {};
@@ -427,12 +437,12 @@ export default function AlertsPage() {
       // Generate client-side alerts from transactions
       const generated = generateAlertsFromTransactions(txns);
 
-      // Build a set of already-persisted alert titles to avoid duplicates
-      const existingTitles = new Set(backendAlerts.map((a) => a.title));
+      // Build a set of already-persisted alert keys (title+type) to avoid duplicates
+      const existingKeys = new Set(backendAlerts.map((a) => `${a.title}|${a.type}`));
 
       // Save only new alerts to backend (non-blocking, best-effort)
       const savePromises = generated
-        .filter((a) => !existingTitles.has(a.title))
+        .filter((a) => !existingKeys.has(`${a.title}|${a.type.toUpperCase()}`))
         .map(async (a) => {
           const saved = await saveAlertToBackend(a, userId);
           return saved ? { ...a, backendId: saved.id } : a;
@@ -461,7 +471,7 @@ export default function AlertsPage() {
       });
 
       // New alerts just saved this session (not in backend list yet)
-      const newlySaved = savedResults.filter((a) => !existingTitles.has(a.title));
+      const newlySaved = savedResults.filter((a) => !existingKeys.has(`${a.title}|${a.type.toUpperCase()}`));
 
       // Combine: backend (persistent) first, then new ones
       const severityOrder: Record<Severity, number> = { high: 0, medium: 1, low: 2 };

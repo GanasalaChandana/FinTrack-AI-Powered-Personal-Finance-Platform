@@ -1,5 +1,6 @@
 package com.fintrack.alerts.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.fintrack.alerts.entity.Alert;
@@ -9,6 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class AlertService {
 
@@ -159,9 +161,9 @@ public class AlertService {
             alert.setAcknowledged(false);
             alert.setCreatedAt(LocalDateTime.now());
             alertRepository.save(alert);
-            System.out.println("Alert created for user " + userId + " - " + title);
+            log.debug("Alert created for userId={} type={}", userId, type);
         } else {
-            System.out.println("Alert already exists for user " + userId + " - " + type);
+            log.debug("Alert already exists for userId={} type={}", userId, type);
         }
     }
 }

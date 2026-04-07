@@ -39,28 +39,29 @@ public class TransactionReportsController {
             @RequestParam String startDate,
             @RequestParam String endDate) {
 
-        log.info("📊 Reports request - userId: {}, startDate: {}, endDate: {}",
+        log.debug("Reports request - userId: {}, startDate: {}, endDate: {}",
                 userId, startDate, endDate);
 
         try {
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);
 
-            // Fetch transactions from database
             List<Transaction> transactions = transactionRepository
                     .findByUserIdAndDateBetween(userId, start, end);
 
-            // Convert to Map format for easy JSON serialization
             List<Map<String, Object>> response = transactions.stream()
                     .map(this::convertToMap)
                     .collect(Collectors.toList());
 
-            log.info("✅ Returning {} transactions for reports", response.size());
+            log.debug("Returning {} transactions for reports userId={}", response.size(), userId);
             return ResponseEntity.ok(response);
 
+        } catch (java.time.format.DateTimeParseException e) {
+            log.warn("Invalid date format - startDate={} endDate={}", startDate, endDate);
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            log.error("❌ Error fetching transactions for reports: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(List.of());
+            log.error("Error fetching transactions for reports userId={}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -75,7 +76,7 @@ public class TransactionReportsController {
             @RequestParam String startDate,
             @RequestParam String endDate) {
 
-        log.info("📊 Reports by type - userId: {}, type: {}, startDate: {}, endDate: {}",
+        log.debug("Reports by type - userId: {}, type: {}, startDate: {}, endDate: {}",
                 userId, type, startDate, endDate);
 
         try {
@@ -89,12 +90,15 @@ public class TransactionReportsController {
                     .map(this::convertToMap)
                     .collect(Collectors.toList());
 
-            log.info("✅ Returning {} {} transactions", response.size(), type);
+            log.debug("Returning {} {} transactions for userId={}", response.size(), type, userId);
             return ResponseEntity.ok(response);
 
+        } catch (java.time.format.DateTimeParseException e) {
+            log.warn("Invalid date format - startDate={} endDate={}", startDate, endDate);
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            log.error("❌ Error fetching transactions by type: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(List.of());
+            log.error("Error fetching transactions by type userId={}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -108,7 +112,7 @@ public class TransactionReportsController {
             @RequestParam String startDate,
             @RequestParam String endDate) {
 
-        log.info("📊 Reports totals - userId: {}, startDate: {}, endDate: {}",
+        log.debug("Reports totals - userId: {}, startDate: {}, endDate: {}",
                 userId, startDate, endDate);
 
         try {
@@ -117,21 +121,26 @@ public class TransactionReportsController {
 
             java.math.BigDecimal incomeTotal = transactionRepository
                     .getTotalByTypeAndDateRange(userId, "INCOME", start, end);
-
             java.math.BigDecimal expenseTotal = transactionRepository
                     .getTotalByTypeAndDateRange(userId, "EXPENSE", start, end);
 
-            Map<String, Object> totals = new HashMap<>();
-            totals.put("income", incomeTotal);
-            totals.put("expenses", expenseTotal);
-            totals.put("net", incomeTotal.subtract(expenseTotal));
+            // Guard against null totals (no transactions in range)
+            if (incomeTotal  == null) incomeTotal  = java.math.BigDecimal.ZERO;
+            if (expenseTotal == null) expenseTotal = java.math.BigDecimal.ZERO;
 
-            log.info("✅ Totals - Income: {}, Expenses: {}", incomeTotal, expenseTotal);
+            Map<String, Object> totals = new HashMap<>();
+            totals.put("income",   incomeTotal);
+            totals.put("expenses", expenseTotal);
+            totals.put("net",      incomeTotal.subtract(expenseTotal));
+
             return ResponseEntity.ok(totals);
 
+        } catch (java.time.format.DateTimeParseException e) {
+            log.warn("Invalid date format - startDate={} endDate={}", startDate, endDate);
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            log.error("❌ Error calculating totals: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(Map.of());
+            log.error("Error calculating totals for userId={}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -145,7 +154,7 @@ public class TransactionReportsController {
             @RequestParam String startDate,
             @RequestParam String endDate) {
 
-        log.info("📊 Category breakdown - userId: {}, startDate: {}, endDate: {}",
+        log.debug("Category breakdown - userId: {}, startDate: {}, endDate: {}",
                 userId, startDate, endDate);
 
         try {
@@ -157,20 +166,23 @@ public class TransactionReportsController {
 
             List<Map<String, Object>> response = categoryData.stream()
                     .map(row -> {
-                        Map<String, Object> category = new HashMap<>();
-                        category.put("category", row[0]);
-                        category.put("count", row[1]);
-                        category.put("total", row[2]);
-                        return category;
+                        Map<String, Object> cat = new HashMap<>();
+                        cat.put("category", row[0]);
+                        cat.put("count",    row[1]);
+                        cat.put("total",    row[2]);
+                        return cat;
                     })
                     .collect(Collectors.toList());
 
-            log.info("✅ Returning {} categories", response.size());
+            log.debug("Returning {} categories for userId={}", response.size(), userId);
             return ResponseEntity.ok(response);
 
+        } catch (java.time.format.DateTimeParseException e) {
+            log.warn("Invalid date format - startDate={} endDate={}", startDate, endDate);
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            log.error("❌ Error getting category breakdown: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(List.of());
+            log.error("Error getting category breakdown for userId={}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

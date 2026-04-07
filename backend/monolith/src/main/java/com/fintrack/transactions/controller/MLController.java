@@ -2,11 +2,14 @@ package com.fintrack.transactions.controller;
 
 import com.fintrack.transactions.service.MLClassifierService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/ml")
 @RequiredArgsConstructor
@@ -16,19 +19,40 @@ public class MLController {
 
     @PostMapping("/predict")
     public ResponseEntity<?> predict(@RequestBody Map<String, Object> request) {
-        String description = (String) request.get("description");
-        Double amount = ((Number) request.get("amount")).doubleValue();
+        try {
+            String description = (String) request.get("description");
+            if (description == null || description.isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "description is required"));
+            }
 
-        String category = mlClassifierService.predictCategory(description, amount);
+            Object amountRaw = request.get("amount");
+            double amount = 0.0;
+            if (amountRaw instanceof Number) {
+                amount = ((Number) amountRaw).doubleValue();
+            }
 
-        return ResponseEntity.ok(Map.of(
-                "category", category,
-                "confidence", 0.85 // You can enhance this
-        ));
+            String category = mlClassifierService.predictCategory(description, amount);
+            return ResponseEntity.ok(Map.of("category", category, "confidence", 0.85));
+        } catch (ClassCastException e) {
+            log.warn("ML predict - invalid request body: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Invalid request body: " + e.getMessage()));
+        } catch (Exception e) {
+            log.error("ML predict failed: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Prediction failed"));
+        }
     }
 
     @GetMapping("/metrics")
     public ResponseEntity<?> getMetrics() {
-        return ResponseEntity.ok(mlClassifierService.getModelMetrics());
+        try {
+            return ResponseEntity.ok(mlClassifierService.getModelMetrics());
+        } catch (Exception e) {
+            log.error("Error fetching ML metrics: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to retrieve metrics"));
+        }
     }
 }

@@ -34,17 +34,21 @@ export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasToken, setHasToken] = useState(false);
   const [mounted, setMounted] = useState(false);
-  
+
   const [isAlertsOpen, setIsAlertsOpen] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertsUnreadCount, setAlertsUnreadCount] = useState(0);
   const alertsDropdownRef = useRef<HTMLDivElement>(null);
-  
+
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationsUnreadCount, setNotificationsUnreadCount] = useState(0);
   const notificationsDropdownRef = useRef<HTMLDivElement>(null);
-  
+
+  // Backoff state — tracks consecutive poll failures to avoid hammering a sleeping backend
+  const pollFailures = useRef(0);
+  const MAX_POLL_FAILURES = 4; // skip polling after 4 consecutive failures (~8 min)
+
   const router = useRouter();
   const pathname = usePathname() || "";
 
@@ -67,10 +71,13 @@ export default function Navigation() {
         const interval = setInterval(() => {
           const currentPath = window.location.pathname;
           if (!isPublicRoute(currentPath) && getToken()) {
-            loadAlerts();
-            loadNotifications();
+            // Skip polling while backend appears to be down (backoff)
+            if (pollFailures.current < MAX_POLL_FAILURES) {
+              loadAlerts();
+              loadNotifications();
+            }
           }
-        }, 120000); // poll every 2 minutes — reduces load on free-tier backend
+        }, 120000); // poll every 2 minutes — reduces load on free-tier Render dyno
         return () => clearInterval(interval);
       }
     }
@@ -105,6 +112,7 @@ export default function Navigation() {
         credentials: 'omit',
       });
       if (response.ok) {
+        pollFailures.current = 0; // reset backoff on success
         const data = await response.json();
         setAlerts(data.slice(0, 5));
         setAlertsUnreadCount(data.filter((a: Alert) => !a.isRead).length);
@@ -113,9 +121,12 @@ export default function Navigation() {
         setHasToken(false);
         setAlerts([]);
         setAlertsUnreadCount(0);
+      } else {
+        pollFailures.current += 1;
       }
     } catch {
-      // Network error — silent fail, keep existing state
+      // Network error (backend asleep / offline)
+      pollFailures.current += 1;
     }
   };
 
@@ -195,6 +206,7 @@ export default function Navigation() {
         credentials: 'omit',
       });
       if (response.ok) {
+        pollFailures.current = 0; // reset backoff on success
         const data = await response.json();
         setNotifications(data.slice(0, 5));
         setNotificationsUnreadCount(data.filter((n: Notification) => !n.read).length);
@@ -203,9 +215,12 @@ export default function Navigation() {
         setHasToken(false);
         setNotifications([]);
         setNotificationsUnreadCount(0);
+      } else {
+        pollFailures.current += 1;
       }
     } catch {
-      // Network error — silent fail
+      // Network error (backend asleep / offline)
+      pollFailures.current += 1;
     }
   };
 

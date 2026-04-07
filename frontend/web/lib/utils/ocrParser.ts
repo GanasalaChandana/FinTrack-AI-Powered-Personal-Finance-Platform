@@ -18,20 +18,16 @@ export interface ReceiptItem {
 
 // Common merchant patterns
 const MERCHANT_PATTERNS = [
-  /walmart/i,
-  /target/i,
-  /costco/i,
-  /safeway/i,
-  /kroger/i,
-  /whole foods/i,
-  /trader joe/i,
-  /amazon/i,
-  /starbucks/i,
-  /mcdonald/i,
-  /subway/i,
-  /best buy/i,
-  /home depot/i,
-  /lowes/i,
+  /walmart/i, /target/i, /costco/i, /safeway/i, /kroger/i,
+  /whole foods/i, /trader joe/i, /amazon/i, /starbucks/i,
+  /mcdonald/i, /subway/i, /best buy/i, /home depot/i, /lowes?/i,
+  /ikea/i, /cvs/i, /walgreens/i, /rite aid/i, /dollar tree/i,
+  /dollar general/i, /aldi/i, /publix/i, /wegmans/i, /sprouts/i,
+  /chipotle/i, /domino/i, /pizza hut/i, /taco bell/i, /wendy/i,
+  /chick.fil/i, /panera/i, /dunkin/i, /peet/i, /in.n.out/i,
+  /shell/i, /chevron/i, /exxon/i, /mobil/i, /bp\b/i, /circle k/i,
+  /macy/i, /nordstrom/i, /gap\b/i, /old navy/i, /h&m/i, /zara/i,
+  /apple store/i, /microsoft/i, /staples/i, /office depot/i,
 ];
 
 // Price patterns
@@ -94,25 +90,66 @@ export const parseReceiptImage = async (imageFile: File): Promise<ParsedReceipt>
   }
 };
 
+/** Strip OCR noise characters, keeping letters, digits, spaces, and basic punctuation */
+function cleanMerchantLine(line: string): string {
+  return line
+    .replace(/[^a-zA-Z0-9\s&',.\-#]/g, ' ') // remove >, |, {, }, *, etc.
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Returns true if the line is plausibly a merchant name */
+function isLikelyMerchant(line: string): boolean {
+  if (line.length < 3) return false;
+  // Reject if more than half the chars are digits (prices, phone numbers)
+  const digits = (line.match(/\d/g) || []).length;
+  if (digits / line.length > 0.5) return false;
+  // Reject street addresses
+  if (/\d+\s+\w+\s+(st|ave|rd|blvd|dr|ln|way|ct|pl|suite|ste)\b/i.test(line)) return false;
+  // Reject phone numbers
+  if (/\d{3}[\s\-\.]\d{3,4}/.test(line)) return false;
+  // Reject date-like strings
+  if (/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(line)) return false;
+  // Must contain at least one letter
+  if (!/[a-zA-Z]/.test(line)) return false;
+  return true;
+}
+
 function extractMerchant(lines: string[]): string {
-  // Check first few lines for merchant name
-  for (let i = 0; i < Math.min(5, lines.length); i++) {
-    const line = lines[i];
-    
-    // Check against known merchants
+  const searchLines = lines.slice(0, 7);
+
+  // 1. Known merchant match (highest confidence)
+  for (const line of searchLines) {
     for (const pattern of MERCHANT_PATTERNS) {
       if (pattern.test(line)) {
-        return line.trim();
+        return cleanMerchantLine(line);
       }
-    }
-
-    // If line has more than 3 chars and is mostly uppercase, likely merchant
-    if (line.length > 3 && line === line.toUpperCase()) {
-      return line.trim();
     }
   }
 
-  return lines[0]?.trim() || 'Unknown Merchant';
+  // 2. All-caps line (store names are typically printed in all-caps on receipts)
+  let bestAllCaps = '';
+  for (const line of searchLines) {
+    const cleaned = cleanMerchantLine(line);
+    if (!isLikelyMerchant(cleaned)) continue;
+    const letters = cleaned.replace(/[^a-zA-Z]/g, '');
+    if (letters.length >= 3 && letters === letters.toUpperCase() && cleaned.length > bestAllCaps.length) {
+      bestAllCaps = cleaned;
+    }
+  }
+  if (bestAllCaps) return bestAllCaps;
+
+  // 3. Longest valid line in first 7 lines
+  let best = '';
+  for (const line of searchLines) {
+    const cleaned = cleanMerchantLine(line);
+    if (isLikelyMerchant(cleaned) && cleaned.length > best.length) {
+      best = cleaned;
+    }
+  }
+  if (best) return best;
+
+  return 'Unknown Merchant';
 }
 
 function extractDate(text: string): string {

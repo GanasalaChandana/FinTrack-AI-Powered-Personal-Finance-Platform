@@ -69,7 +69,7 @@ export default function Navigation() {
             loadAlerts();
             loadNotifications();
           }
-        }, 30000);
+        }, 120000); // poll every 2 minutes — reduces load on free-tier backend
         return () => clearInterval(interval);
       }
     }

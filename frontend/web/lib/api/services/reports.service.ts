@@ -449,12 +449,17 @@ class ReportsService {
       typeof window !== "undefined"
         ? localStorage.getItem("authToken") || localStorage.getItem("ft_token")
         : null;
+    const userId =
+      typeof window !== "undefined" ? localStorage.getItem("userId") : null;
 
     try {
       const url = buildUrl(`/api/reports/export/pdf?range=${encodeURIComponent(dateRange)}`);
       const response = await fetch(url, {
         method: "GET",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: {
+          ...(token  && { Authorization: `Bearer ${token}` }),
+          ...(userId && { "X-User-Id": userId }),
+        },
         credentials: "include",
       });
       if (response.ok) return response.blob();

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { getToken } from "@/lib/api";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -12,31 +13,23 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const checkAuth = () => {
-      if (typeof window === 'undefined') {
-        return;
-      }
+      if (typeof window === "undefined") return;
 
-      const token = localStorage.getItem("authToken");
-      
-      console.log('🔐 AuthGate checking token on:', pathname);
-      console.log('🔐 Token found:', token ? 'YES ✅' : 'NO ❌');
-      
+      const token = getToken();
+
       if (!token) {
-        console.log('❌ No token, redirecting to login');
-        // Remember where user wanted to go
         const next = pathname && pathname !== "/" ? `?next=${encodeURIComponent(pathname)}` : "";
         router.replace(`/login${next}`);
       } else {
-        console.log('✅ Token found, allowing access to:', pathname);
         setIsAuthenticated(true);
       }
-      
+
       setIsChecking(false);
     };
 
     // Small delay to ensure storage is ready after navigation
     const timeout = setTimeout(checkAuth, 150);
-    
+
     return () => clearTimeout(timeout);
   }, [pathname, router]);
 

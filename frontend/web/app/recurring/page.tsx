@@ -394,11 +394,12 @@ function transformTransaction(apiTxn: ApiTransaction) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function RecurringPage() {
-  const [isLoading,    setIsLoading]    = useState(true);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [savedRules,   setSavedRules]   = useState<SavedRule[]>([]);
-  const [error,        setError]        = useState<string | null>(null);
-  const [showAddForm,  setShowAddForm]  = useState(false);
+  const [isLoading,       setIsLoading]       = useState(true);
+  const [transactions,    setTransactions]    = useState<any[]>([]);
+  const [savedRules,      setSavedRules]      = useState<SavedRule[]>([]);
+  const [error,           setError]           = useState<string | null>(null);
+  const [showAddForm,     setShowAddForm]     = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const { toasts, show: showToast, dismiss } = useToast();
 
   // Load transactions from backend
@@ -472,9 +473,15 @@ export default function RecurringPage() {
     showToast(`Rule saved for "${payload.description}"`);
   }, [loadSavedRules, showToast]);
 
-  // Delete rule — DELETE from backend
-  const handleDeleteSavedRule = useCallback(async (id: number) => {
-    if (!confirm("Delete this recurring rule?")) return;
+  // Delete rule — shows inline confirm, then DELETE from backend
+  const handleDeleteSavedRule = useCallback((id: number) => {
+    setConfirmDeleteId(id);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (confirmDeleteId === null) return;
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
     try {
       await apiRequest(`/api/recurring-transactions/${id}`, { method: "DELETE" });
       setSavedRules((prev) => prev.filter((r) => r.id !== id));
@@ -482,7 +489,7 @@ export default function RecurringPage() {
     } catch {
       showToast("Failed to delete rule", "error");
     }
-  }, [showToast]);
+  }, [confirmDeleteId, showToast]);
 
   // Dismiss auto-detected pattern (no backend needed — just UI feedback)
   const handleDeleteRecurring = useCallback((_id: string) => {
@@ -555,6 +562,27 @@ export default function RecurringPage() {
             <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
               <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
               <p className="text-sm text-amber-700">{error}</p>
+            </div>
+          )}
+
+          {/* Inline delete confirmation */}
+          {confirmDeleteId !== null && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-4">
+              <p className="text-sm text-red-700 font-medium">Delete this recurring rule? This cannot be undone.</p>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="px-3 py-1.5 text-xs font-semibold text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="px-3 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           )}
 

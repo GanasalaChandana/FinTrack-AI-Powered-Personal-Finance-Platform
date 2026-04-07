@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Bell, Mail, LogOut, Menu, X, Check, AlertTriangle, Camera, Brain, RefreshCw, Activity } from "lucide-react";
+import { getToken, removeToken } from "@/lib/api";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -56,7 +57,7 @@ export default function Navigation() {
   useEffect(() => {
     setMounted(true);
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("authToken");
+      const token = getToken();
       const tokenExists = !!token;
       setHasToken(tokenExists);
       const shouldLoadData = tokenExists && !isPublicRoute(pathname);
@@ -65,7 +66,7 @@ export default function Navigation() {
         loadNotifications();
         const interval = setInterval(() => {
           const currentPath = window.location.pathname;
-          if (!isPublicRoute(currentPath) && localStorage.getItem("authToken")) {
+          if (!isPublicRoute(currentPath) && getToken()) {
             loadAlerts();
             loadNotifications();
           }
@@ -92,10 +93,15 @@ export default function Navigation() {
     try {
       const currentPath = window.location.pathname;
       if (isPublicRoute(currentPath)) return;
-      const token = localStorage.getItem("authToken");
+      const token = getToken();
       if (!token) return;
+      const userId = localStorage.getItem("userId");
       const response = await fetch(`${API_BASE_URL}/api/alerts`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(userId && { 'X-User-Id': userId }),
+        },
         credentials: 'omit',
       });
       if (response.ok) {
@@ -103,20 +109,20 @@ export default function Navigation() {
         setAlerts(data.slice(0, 5));
         setAlertsUnreadCount(data.filter((a: Alert) => !a.isRead).length);
       } else if (response.status === 401) {
-        localStorage.removeItem('authToken');
+        removeToken();
         setHasToken(false);
         setAlerts([]);
         setAlertsUnreadCount(0);
       }
-    } catch (error) {
-      console.error('Failed to load alerts:', error);
+    } catch {
+      // Network error — silent fail, keep existing state
     }
   };
 
   const handleAlertMarkAsRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const token = localStorage.getItem("authToken");
+      const token = getToken();
       if (!token) return;
       const response = await fetch(`${API_BASE_URL}/api/alerts/${id}/read`, {
         method: 'PATCH',
@@ -127,15 +133,15 @@ export default function Navigation() {
         setAlerts(alerts.map(a => a.id === id ? { ...a, isRead: true } : a));
         setAlertsUnreadCount(prev => Math.max(0, prev - 1));
       }
-    } catch (error) {
-      console.error('Failed to mark alert as read:', error);
+    } catch {
+      // Silent fail
     }
   };
 
   const handleAlertDismiss = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const token = localStorage.getItem("authToken");
+      const token = getToken();
       if (!token) return;
       const response = await fetch(`${API_BASE_URL}/api/alerts/${id}`, {
         method: 'DELETE',
@@ -149,8 +155,8 @@ export default function Navigation() {
           setAlertsUnreadCount(prev => Math.max(0, prev - 1));
         }
       }
-    } catch (error) {
-      console.error('Failed to dismiss alert:', error);
+    } catch {
+      // Silent fail
     }
   };
 
@@ -178,7 +184,7 @@ export default function Navigation() {
     try {
       const currentPath = window.location.pathname;
       if (isPublicRoute(currentPath)) return;
-      const token = localStorage.getItem("authToken");
+      const token = getToken();
       if (!token) return;
       const userStr = localStorage.getItem("user");
       if (!userStr || userStr === '{}') return;
@@ -193,20 +199,20 @@ export default function Navigation() {
         setNotifications(data.slice(0, 5));
         setNotificationsUnreadCount(data.filter((n: Notification) => !n.read).length);
       } else if (response.status === 401) {
-        localStorage.removeItem('authToken');
+        removeToken();
         setHasToken(false);
         setNotifications([]);
         setNotificationsUnreadCount(0);
       }
-    } catch (error) {
-      console.error('Error loading notifications:', error);
+    } catch {
+      // Network error — silent fail
     }
   };
 
   const handleNotificationMarkAsRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const token = localStorage.getItem("authToken");
+      const token = getToken();
       if (!token) return;
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       if (!user.id) return;
@@ -219,15 +225,15 @@ export default function Navigation() {
         setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
         setNotificationsUnreadCount(prev => Math.max(0, prev - 1));
       }
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+    } catch {
+      // Silent fail
     }
   };
 
   const handleNotificationDismiss = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const token = localStorage.getItem("authToken");
+      const token = getToken();
       if (!token) return;
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       if (!user.id) return;
@@ -243,8 +249,8 @@ export default function Navigation() {
           setNotificationsUnreadCount(prev => Math.max(0, prev - 1));
         }
       }
-    } catch (error) {
-      console.error('Failed to dismiss notification:', error);
+    } catch {
+      // Silent fail
     }
   };
 
@@ -273,12 +279,7 @@ export default function Navigation() {
   };
 
   const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("user");
-      localStorage.removeItem("userId");
-      localStorage.removeItem("ft_token");
-    }
+    removeToken();
     setHasToken(false);
     setAlerts([]);
     setNotifications([]);

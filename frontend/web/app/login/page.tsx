@@ -23,26 +23,15 @@ import {
 // Helper function to wake up the backend
 const wakeUpBackend = async (apiUrl: string): Promise<boolean> => {
   try {
-    console.log('🔔 Pinging backend to wake it up...');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 45000);
-    
     const response = await fetch(`${apiUrl}/actuator/health`, {
       method: 'GET',
       signal: controller.signal,
     });
-    
     clearTimeout(timeoutId);
-    
-    if (response.ok) {
-      console.log('✅ Backend is awake and responding');
-      return true;
-    }
-    
-    console.log('⚠️ Backend responded but not healthy');
-    return false;
-  } catch (error) {
-    console.log('⚠️ Backend wake-up ping failed:', error);
+    return response.ok;
+  } catch {
     return false;
   }
 };
@@ -86,11 +75,9 @@ function AuthPageContent() {
       script.async = true;
       script.defer = true;
       script.onload = () => {
-        console.log('✅ Google Script loaded');
         setGoogleLoaded(true);
       };
       script.onerror = () => {
-        console.error('❌ Failed to load Google Script');
         setError('Failed to load Google Sign-In. Please refresh the page.');
       };
       document.body.appendChild(script);
@@ -129,9 +116,7 @@ function AuthPageContent() {
       }
       
       googleInitialized.current = true;
-      console.log('✅ Google Sign-In initialized');
-    } catch (err) {
-      console.error('❌ Google Sign-In initialization error:', err);
+    } catch {
       setError('Google Sign-In initialization failed. Please try manual login.');
     }
   }, [googleLoaded, mode]);
@@ -160,18 +145,10 @@ function AuthPageContent() {
 
   const handleGoogleSignIn = async (response: GoogleCredentialResponse, retryCount = 0): Promise<void> => {
     const now = Date.now();
-    if (now - lastGoogleCallTime.current < 2000) {
-      console.log('⚠️ Google Sign-In call throttled (too soon)');
-      return;
-    }
+    if (now - lastGoogleCallTime.current < 2000) return;
     lastGoogleCallTime.current = now;
 
-    if (loading || isSubmitting.current) {
-      console.log('⚠️ Already processing authentication');
-      return;
-    }
-    
-    console.log('🔵 Google Sign-In callback triggered');
+    if (loading || isSubmitting.current) return;
     
     setLoading(true);
     isSubmitting.current = true;
@@ -188,8 +165,6 @@ function AuthPageContent() {
         return handleGoogleSignIn(response, retryCount + 1);
       }
       
-      console.log('📤 Sending credential to:', `${API_URL}/api/auth/google`);
-
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000);
 
@@ -208,11 +183,9 @@ function AuthPageContent() {
       });
 
       clearTimeout(timeoutId);
-      console.log('📥 Response status:', res.status);
 
       if (res.status === 429 && retryCount < 3) {
         const waitTime = Math.pow(2, retryCount) * 2000;
-        console.log(`⏳ Rate limited, retrying in ${waitTime/1000}s...`);
         setError(`Server is busy. Retrying in ${waitTime/1000} seconds...`);
         
         setLoading(false);
@@ -231,10 +204,8 @@ function AuthPageContent() {
         
         try {
           const errorData = await res.json();
-          console.error('❌ Error data:', errorData);
           errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (parseErr) {
-          console.error('❌ Could not parse error response');
+        } catch {
           errorMessage = `Server error (${res.status}). Please try again.`;
         }
         
@@ -242,45 +213,22 @@ function AuthPageContent() {
       }
 
       const data = await res.json();
-      console.log('✅ Google sign-in successful', data);
 
       if (data.token) {
-        // Use centralized setToken function
         setToken(data.token);
-        
-        if (data.user?.id) {
-          localStorage.setItem('userId', data.user.id.toString());
-          console.log('✅ User ID stored:', data.user.id);
-        }
-        
-        if (data.user) {
-          setUser(data.user);
-        }
-
-        console.log('🔑 Token stored successfully');
-        console.log('🔍 Verifying token storage...');
-        console.log('  - authToken:', localStorage.getItem('authToken') ? 'EXISTS' : 'MISSING');
-        console.log('  - ft_token:', localStorage.getItem('ft_token') ? 'EXISTS' : 'MISSING');
-
+        if (data.user?.id) localStorage.setItem('userId', data.user.id.toString());
+        if (data.user) setUser(data.user);
         setSuccess(true);
-        
-        setTimeout(() => {
-          console.log('🚀 Navigating to dashboard');
-          router.push('/dashboard');
-        }, 1000);
+        setTimeout(() => router.push('/dashboard'), 1000);
       } else {
         throw new Error('No authentication token received');
       }
 
     } catch (err) {
-      console.error('❌ Google Sign-In error:', err);
-      
       if (err instanceof Error) {
-        if (err.name === 'AbortError') {
-          setError('Request timeout. The server might be starting up. Please wait 30 seconds and try again.');
-        } else {
-          setError(err.message);
-        }
+        setError(err.name === 'AbortError'
+          ? 'Request timeout. The server might be starting up. Please wait 30 seconds and try again.'
+          : err.message);
       } else {
         setError('Google sign-in failed. Please try again.');
       }
@@ -332,16 +280,11 @@ function AuthPageContent() {
   };
 
   const handleSubmit = async (retryCount = 0) => {
-    if (loading || isSubmitting.current) {
-      console.log('⚠️ Already processing request');
-      return;
-    }
+    if (loading || isSubmitting.current) return;
 
     setError('');
 
     if (!validateForm()) return;
-
-    console.log(`🚀 ${mode.toUpperCase()} ATTEMPT`);
     
     setLoading(true);
     isSubmitting.current = true;
@@ -372,8 +315,6 @@ function AuthPageContent() {
             username: formData.email.split('@')[0],
           };
 
-      console.log('📤 Request to:', `${API_URL}${endpoint}`);
-
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000);
 
@@ -390,11 +331,9 @@ function AuthPageContent() {
       });
 
       clearTimeout(timeoutId);
-      console.log('📥 Response status:', response.status);
 
       if (response.status === 429 && retryCount < 3) {
         const waitTime = Math.pow(2, retryCount) * 2000;
-        console.log(`⏳ Rate limited, retrying in ${waitTime/1000}s...`);
         setError(`Server is busy. Retrying in ${waitTime/1000} seconds...`);
         
         setLoading(false);
@@ -413,7 +352,6 @@ function AuthPageContent() {
         
         try {
           const errorData = await response.json();
-          console.error('❌ Error data:', errorData);
           errorMessage = errorData.message || errorData.error || errorMessage;
         } catch {
           errorMessage = `Server error (${response.status})`;
@@ -423,45 +361,22 @@ function AuthPageContent() {
       }
 
       const data = await response.json();
-      console.log('✅ Authentication successful', data);
 
       if (data.token) {
-        // Use centralized setToken function
         setToken(data.token);
-        
-        if (data.user?.id) {
-          localStorage.setItem('userId', data.user.id.toString());
-          console.log('✅ User ID stored:', data.user.id);
-        }
-        
-        if (data.user) {
-          setUser(data.user);
-        }
-
-        console.log('🔑 Token stored successfully');
-        console.log('🔍 Verifying token storage...');
-        console.log('  - authToken:', localStorage.getItem('authToken') ? 'EXISTS' : 'MISSING');
-        console.log('  - ft_token:', localStorage.getItem('ft_token') ? 'EXISTS' : 'MISSING');
-
+        if (data.user?.id) localStorage.setItem('userId', data.user.id.toString());
+        if (data.user) setUser(data.user);
         setSuccess(true);
-        
-        setTimeout(() => {
-          console.log('🚀 Navigating to dashboard');
-          router.push('/dashboard');
-        }, 1000);
+        setTimeout(() => router.push('/dashboard'), 1000);
       } else {
         throw new Error('No authentication token received');
       }
 
     } catch (err) {
-      console.error('❌ Error:', err);
-      
       if (err instanceof Error) {
-        if (err.name === 'AbortError') {
-          setError('Request timeout. The server might be starting up. Please wait 30 seconds and try again.');
-        } else {
-          setError(err.message);
-        }
+        setError(err.name === 'AbortError'
+          ? 'Request timeout. The server might be starting up. Please wait 30 seconds and try again.'
+          : err.message);
       } else {
         setError('An unexpected error occurred');
       }

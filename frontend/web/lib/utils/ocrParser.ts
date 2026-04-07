@@ -18,16 +18,56 @@ export interface ReceiptItem {
 
 // Common merchant patterns
 const MERCHANT_PATTERNS = [
+  // Grocery / big box
   /walmart/i, /target/i, /costco/i, /safeway/i, /kroger/i,
-  /whole foods/i, /trader joe/i, /amazon/i, /starbucks/i,
-  /mcdonald/i, /subway/i, /best buy/i, /home depot/i, /lowes?/i,
-  /ikea/i, /cvs/i, /walgreens/i, /rite aid/i, /dollar tree/i,
-  /dollar general/i, /aldi/i, /publix/i, /wegmans/i, /sprouts/i,
-  /chipotle/i, /domino/i, /pizza hut/i, /taco bell/i, /wendy/i,
-  /chick.fil/i, /panera/i, /dunkin/i, /peet/i, /in.n.out/i,
+  /whole foods/i, /trader joe/i, /aldi/i, /publix/i, /wegmans/i,
+  /sprouts/i, /food lion/i, /stop.?&.?shop/i, /giant eagle/i,
+  /harris teeter/i, /meijer/i, /winn.?dixie/i, /save.?mart/i,
+  // Online / delivery
+  /amazon/i, /instacart/i, /doordash/i, /grubhub/i, /uber eats/i,
+  /postmates/i,
+  // Coffee
+  /starbucks/i, /dunkin/i, /peet/i, /dutch bros/i, /tim horton/i,
+  // Fast food / restaurants
+  /mcdonald/i, /subway/i, /chick.fil/i, /chipotle/i, /domino/i,
+  /pizza hut/i, /taco bell/i, /wendy/i, /panera/i, /in.n.out/i,
+  /burger king/i, /sonic drive/i, /popeyes/i, /five guys/i,
+  /shake shack/i, /jack in the box/i, /arby/i, /dairy queen/i,
+  /wingstop/i, /olive garden/i, /applebee/i, /denny/i, /ihop/i,
+  // Electronics / tech
+  /best buy/i, /apple store/i, /microsoft/i, /b&h photo/i,
+  /fry.s electronics/i,
+  // Home / hardware
+  /home depot/i, /lowes?/i, /ikea/i, /ace hardware/i, /true value/i,
+  /menards/i, /floor.?&.?decor/i,
+  // Pharmacy / health
+  /cvs/i, /walgreens/i, /rite aid/i, /duane reade/i, /bartell/i,
+  // Gas / auto
   /shell/i, /chevron/i, /exxon/i, /mobil/i, /bp\b/i, /circle k/i,
+  /speedway/i, /wawa\b/i, /raceway/i, /arco\b/i, /valero/i,
+  /sunoco/i, /marathon gas/i, /quiktrip/i, /casey.?s/i,
+  // Office / supplies
+  /staples/i, /office depot/i, /officemax/i,
+  // Retail / fashion
   /macy/i, /nordstrom/i, /gap\b/i, /old navy/i, /h&m/i, /zara/i,
-  /apple store/i, /microsoft/i, /staples/i, /office depot/i,
+  /dollar tree/i, /dollar general/i, /five below/i, /ross\b/i,
+  /t\.?j\.? max/i, /marshalls/i, /burlington/i, /bath.?&.?body/i,
+  /victoria.?s secret/i, /forever 21/i, /uniqlo/i,
+];
+
+/** Receipt boilerplate lines that are NOT merchant names */
+const BOILERPLATE = [
+  /^(receipt|invoice|ticket|bill|statement|transaction)$/i,
+  /^(thank you|thanks for shopping|welcome|have a (great|nice|good) day)$/i,
+  /^(customer (copy|receipt)|store (copy|receipt))$/i,
+  /^(cash register|register|cashier|clerk|operator|server)$/i,
+  /^(order|order #|order no|order number)$/i,
+  /^(visit us at|follow us|find us|like us)$/i,
+  /^(approved|declined|authorized|void)$/i,
+  /^(subtotal|sub-total|sub total|total|balance due|amount due|change|cash|credit|debit|tip|tax)$/i,
+  /^(save the receipt|keep this receipt|no refunds)$/i,
+  /^www\./i,        // websites
+  /^[#*=\-_]{3,}/, // divider lines
 ];
 
 // Price patterns
@@ -100,10 +140,10 @@ function cleanMerchantLine(line: string): string {
 
 /** Returns true if the line is plausibly a merchant name */
 function isLikelyMerchant(line: string): boolean {
-  if (line.length < 3) return false;
+  if (line.length < 3 || line.length > 60) return false;
   // Reject if more than half the chars are digits (prices, phone numbers)
   const digits = (line.match(/\d/g) || []).length;
-  if (digits / line.length > 0.5) return false;
+  if (digits / line.length > 0.4) return false;
   // Reject street addresses
   if (/\d+\s+\w+\s+(st|ave|rd|blvd|dr|ln|way|ct|pl|suite|ste)\b/i.test(line)) return false;
   // Reject phone numbers
@@ -112,44 +152,97 @@ function isLikelyMerchant(line: string): boolean {
   if (/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(line)) return false;
   // Must contain at least one letter
   if (!/[a-zA-Z]/.test(line)) return false;
+  // Reject single characters/symbols
+  const letters = line.replace(/[^a-zA-Z]/g, '');
+  if (letters.length < 2) return false;
+  // Reject common boilerplate
+  if (BOILERPLATE.some((p) => p.test(line.trim()))) return false;
   return true;
 }
 
-function extractMerchant(lines: string[]): string {
-  const searchLines = lines.slice(0, 7);
+/** Convert ALL CAPS text to Title Case for readability */
+function toTitleCase(str: string): string {
+  const lowers = new Set([
+    'a','an','the','and','but','or','for','nor','on','at','to','by','in','of','up','as',
+  ]);
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map((word, i) =>
+      i === 0 || !lowers.has(word)
+        ? word.charAt(0).toUpperCase() + word.slice(1)
+        : word
+    )
+    .join(' ');
+}
 
-  // 1. Known merchant match (highest confidence)
-  for (const line of searchLines) {
+function extractMerchant(lines: string[]): string {
+  // Search first 8 lines for merchant; first 3 lines get priority
+  const topLines  = lines.slice(0, 3);
+  const moreLines = lines.slice(3, 8);
+
+  // 1. Known merchant match in top 3 — best confidence
+  for (const line of topLines) {
     for (const pattern of MERCHANT_PATTERNS) {
       if (pattern.test(line)) {
-        return cleanMerchantLine(line);
+        const cleaned = cleanMerchantLine(line);
+        return formatMerchant(cleaned);
       }
     }
   }
 
-  // 2. All-caps line (store names are typically printed in all-caps on receipts)
-  let bestAllCaps = '';
-  for (const line of searchLines) {
+  // 2. Known merchant match in lines 4-8
+  for (const line of moreLines) {
+    for (const pattern of MERCHANT_PATTERNS) {
+      if (pattern.test(line)) {
+        const cleaned = cleanMerchantLine(line);
+        return formatMerchant(cleaned);
+      }
+    }
+  }
+
+  // 3. First all-caps line in top 3 (receipts always print store name in caps at top)
+  for (const line of topLines) {
     const cleaned = cleanMerchantLine(line);
     if (!isLikelyMerchant(cleaned)) continue;
     const letters = cleaned.replace(/[^a-zA-Z]/g, '');
-    if (letters.length >= 3 && letters === letters.toUpperCase() && cleaned.length > bestAllCaps.length) {
-      bestAllCaps = cleaned;
+    if (letters.length >= 3 && letters === letters.toUpperCase()) {
+      return formatMerchant(cleaned);
     }
   }
-  if (bestAllCaps) return bestAllCaps;
 
-  // 3. Longest valid line in first 7 lines
+  // 4. First all-caps line in lines 4-8
+  for (const line of moreLines) {
+    const cleaned = cleanMerchantLine(line);
+    if (!isLikelyMerchant(cleaned)) continue;
+    const letters = cleaned.replace(/[^a-zA-Z]/g, '');
+    if (letters.length >= 3 && letters === letters.toUpperCase()) {
+      return formatMerchant(cleaned);
+    }
+  }
+
+  // 5. Fallback: longest valid line in first 8
   let best = '';
-  for (const line of searchLines) {
+  for (const line of [...topLines, ...moreLines]) {
     const cleaned = cleanMerchantLine(line);
     if (isLikelyMerchant(cleaned) && cleaned.length > best.length) {
       best = cleaned;
     }
   }
-  if (best) return best;
+  if (best) return formatMerchant(best);
 
   return 'Unknown Merchant';
+}
+
+/** Final cleanup: trim, collapse spaces, Title-case if ALL CAPS */
+function formatMerchant(raw: string): string {
+  const trimmed = raw.replace(/\s+/g, ' ').trim();
+  const letters = trimmed.replace(/[^a-zA-Z]/g, '');
+  // If entirely upper-case letters, convert to Title Case
+  if (letters.length > 0 && letters === letters.toUpperCase()) {
+    return toTitleCase(trimmed);
+  }
+  return trimmed;
 }
 
 function extractDate(text: string): string {

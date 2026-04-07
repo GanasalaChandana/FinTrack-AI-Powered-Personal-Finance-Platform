@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useCallback } from "react";
+import Papa from "papaparse";
 import {
   Upload,
   FileText,
@@ -10,91 +11,83 @@ import {
   ArrowRight,
   Download,
   RefreshCw,
+  AlertCircle,
 } from "lucide-react";
+
+/* ---------- Auth helpers ---------- */
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+const getToken = (): string | null =>
+  typeof window !== "undefined"
+    ? localStorage.getItem("ft_token") || localStorage.getItem("authToken")
+    : null;
+
+const getUserId = (): string | null =>
+  typeof window !== "undefined" ? localStorage.getItem("userId") : null;
 
 /* ---------- Types ---------- */
 
-type DetectedColumn = "Date" | "Transaction" | "Merchant" | "Amount" | "Balance" | "Type";
-type ColumnKey = "date" | "description" | "amount" | "category";
-
-type RawRow = [string, string, string, string, string, string];
-
-interface ColumnMapping {
-  date: DetectedColumn | "";
-  description: DetectedColumn | "";
-  amount: DetectedColumn | "";
-  category: DetectedColumn | "";
+interface PreviewRow {
+  [key: string]: string;
 }
 
-type PreviewStatus = "valid" | "invalid";
+interface UploadResult {
+  totalRows: number;
+  successCount: number;
+  errorCount: number;
+  errors?: string[];
+}
 
-interface PreviewRow {
-  id: number;
-  date: string;
-  description: string;
-  amount: string;
-  category: string;
-  status: PreviewStatus;
+/* ---------- Sample CSV template ---------- */
+
+const SAMPLE_CSV = `date,description,amount,category,type
+2025-01-15,Starbucks Coffee,5.80,Food & Dining,EXPENSE
+2025-01-14,Amazon Purchase,89.99,Shopping,EXPENSE
+2025-01-13,Salary,3500.00,Income,INCOME
+2025-01-12,Uber Ride,15.50,Transportation,EXPENSE
+2025-01-11,Netflix,15.99,Entertainment,EXPENSE`;
+
+function downloadSample() {
+  const blob = new Blob([SAMPLE_CSV], { type: "text/csv" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = "fintrack-sample.csv";
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 /* ---------- Component ---------- */
 
 const CSVUploadSystem: React.FC = () => {
-  const [step, setStep] = useState<number>(1);
-  const [file, setFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [csvData, setCsvData] = useState<RawRow[]>([]);
-  const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
-    date: "",
-    description: "",
-    amount: "",
-    category: "",
-  });
-  const [preview, setPreview] = useState<PreviewRow[]>([]);
-  const [processing, setProcessing] = useState<boolean>(false);
-  const [uploadComplete, setUploadComplete] = useState<boolean>(false);
+  const [step,        setStep]        = useState<number>(1);
+  const [file,        setFile]        = useState<File | null>(null);
+  const [isDragging,  setIsDragging]  = useState<boolean>(false);
+  const [headers,     setHeaders]     = useState<string[]>([]);
+  const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
+  const [totalRows,   setTotalRows]   = useState<number>(0);
+  const [processing,  setProcessing]  = useState<boolean>(false);
+  const [result,      setResult]      = useState<UploadResult | null>(null);
+  const [error,       setError]       = useState<string>("");
 
-  const detectedColumns: DetectedColumn[] = [
-    "Date",
-    "Transaction",
-    "Merchant",
-    "Amount",
-    "Balance",
-    "Type",
-  ];
+  /* ---------- Drag & drop ---------- */
 
-  const targetColumns: Array<{ key: ColumnKey; label: string; required: boolean }> = [
-    { key: "date", label: "Date", required: true },
-    { key: "description", label: "Description", required: true },
-    { key: "amount", label: "Amount", required: true },
-    { key: "category", label: "Category", required: false },
-  ];
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
 
-  /* ---------- Handlers ---------- */
-
-  const handleDragOver = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      setIsDragging(true);
-    },
-    []
-  );
-
-  const handleDragLeave = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      setIsDragging(false);
-    },
-    []
-  );
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    const droppedFile = e.dataTransfer?.files?.[0];
-    if (droppedFile && droppedFile.type === "text/csv") {
-      handleFile(droppedFile);
-    }
+    const dropped = e.dataTransfer?.files?.[0];
+    if (dropped) handleFile(dropped);
   }, []);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,80 +95,100 @@ const CSVUploadSystem: React.FC = () => {
     if (selected) handleFile(selected);
   };
 
+  /* ---------- File processing ---------- */
+
   const handleFile = (selectedFile: File) => {
+    if (!selectedFile.name.endsWith(".csv")) {
+      setError("Please upload a CSV file (.csv)");
+      return;
+    }
     setFile(selectedFile);
+    setError("");
 
-    // Mock parsed CSV rows (6 columns to match DetectedColumn list)
-    const mockData: RawRow[] = [
-      ["2025-11-15", "Starbucks", "Coffee Shop", "-5.80", "1234.56", "Debit"],
-      ["2025-11-14", "Amazon", "Online Shopping", "-89.99", "1240.36", "Debit"],
-      ["2025-11-13", "Salary", "Employer Inc", "3500.00", "1330.35", "Credit"],
-      ["2025-11-12", "Uber", "Transportation", "-15.50", "-2169.65", "Debit"],
-    ];
+    // Count total rows + grab preview
+    let rowCount = 0;
+    Papa.parse<PreviewRow>(selectedFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        rowCount = results.data.length;
+        setTotalRows(rowCount);
+        setHeaders(results.meta.fields ?? []);
+        setPreviewRows(results.data.slice(0, 5));
+        setStep(2);
+      },
+      error: () => {
+        setError("Failed to parse CSV. Check that it's a valid CSV file.");
+      },
+    });
+  };
 
-    setCsvData(mockData);
-    setStep(2);
+  /* ---------- Import ---------- */
 
-    // Auto-detect likely mappings
-    setTimeout(() => {
-      setColumnMapping({
-        date: "Date",
-        description: "Merchant",
-        amount: "Amount",
-        category: "", // optional
+  const handleImport = async () => {
+    if (!file) return;
+    setProcessing(true);
+    setError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const token  = getToken();
+      const userId = getUserId();
+
+      const response = await fetch(`${API_BASE_URL}/api/transactions/upload`, {
+        method: "POST",
+        headers: {
+          ...(token  && { Authorization: `Bearer ${token}` }),
+          ...(userId && { "X-User-Id": userId }),
+        },
+        body: formData,
+        credentials: "include",
       });
-    }, 300);
-  };
 
-  const handleMappingChange = (targetKey: ColumnKey, sourceColumn: DetectedColumn | "") => {
-    setColumnMapping((prev) => ({ ...prev, [targetKey]: sourceColumn }));
-  };
+      if (response.status === 401) {
+        localStorage.removeItem("ft_token");
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("userId");
+        window.location.href = "/register?mode=signin";
+        return;
+      }
 
-  const safePick = (row: RawRow, column: DetectedColumn | ""): string => {
-    if (!column) return "";
-    const idx = detectedColumns.indexOf(column);
-    return idx >= 0 ? row[idx] : "";
-    // If you change detectedColumns order, adjust mapping accordingly
-  };
+      const data = await response.json().catch(() => ({}));
 
-  const handlePreview = () => {
-    setProcessing(true);
+      if (!response.ok) {
+        throw new Error(data.error || `Upload failed (${response.status})`);
+      }
 
-    setTimeout(() => {
-      const previewData: PreviewRow[] = csvData.slice(0, 5).map((row, i) => ({
-        id: i + 1,
-        date: safePick(row, columnMapping.date),
-        description: safePick(row, columnMapping.description),
-        amount: safePick(row, columnMapping.amount),
-        category: columnMapping.category ? safePick(row, columnMapping.category) : "Uncategorized",
-        status: "valid",
-      }));
-
-      setPreview(previewData);
-      setProcessing(false);
+      setResult({
+        totalRows:    data.totalRows    ?? totalRows,
+        successCount: data.successCount ?? 0,
+        errorCount:   data.errorCount   ?? 0,
+        errors:       data.errors,
+      });
       setStep(3);
-    }, 800);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Upload failed. Please try again.";
+      setError(msg);
+    } finally {
+      setProcessing(false);
+    }
   };
 
-  const handleImport = () => {
-    setProcessing(true);
-    setTimeout(() => {
-      setProcessing(false);
-      setUploadComplete(true);
-      setStep(4);
-    }, 1200);
-  };
+  /* ---------- Reset ---------- */
 
   const resetUpload = () => {
     setStep(1);
     setFile(null);
-    setCsvData([]);
-    setColumnMapping({ date: "", description: "", amount: "", category: "" });
-    setPreview([]);
-    setUploadComplete(false);
+    setHeaders([]);
+    setPreviewRows([]);
+    setTotalRows(0);
+    setResult(null);
+    setError("");
   };
 
-  /* ---------- UI Sections (unchanged structurally, typed) ---------- */
+  /* ---------- Step 1 — Upload ---------- */
 
   const renderUploadStep = () => (
     <div className="space-y-6">
@@ -183,6 +196,13 @@ const CSVUploadSystem: React.FC = () => {
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Upload Your Transactions</h2>
         <p className="text-gray-600">Import CSV files from your bank or financial institution</p>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          {error}
+        </div>
+      )}
 
       <div
         onDragOver={handleDragOver}
@@ -228,9 +248,10 @@ const CSVUploadSystem: React.FC = () => {
           Supported Formats
         </h4>
         <ul className="text-sm text-blue-800 space-y-1 ml-7">
-          <li>• CSV files (.csv)</li>
-          <li>• Maximum file size: 10MB</li>
-          <li>• Must include Date, Description, and Amount columns</li>
+          <li>• CSV files (.csv) — up to 10 MB</li>
+          <li>• Required columns: <strong>date</strong>, <strong>description</strong>, <strong>amount</strong></li>
+          <li>• Optional columns: category, type (INCOME / EXPENSE), merchant_name, notes</li>
+          <li>• Dates: YYYY-MM-DD, MM/DD/YYYY, DD/MM/YYYY</li>
         </ul>
       </div>
 
@@ -241,74 +262,90 @@ const CSVUploadSystem: React.FC = () => {
         </div>
         <div className="bg-gray-100 p-4 rounded-xl">
           <div className="text-3xl font-bold text-gray-400">2</div>
-          <div className="text-sm text-gray-500 font-medium">Map Columns</div>
+          <div className="text-sm text-gray-500 font-medium">Preview Data</div>
         </div>
         <div className="bg-gray-100 p-4 rounded-xl">
           <div className="text-3xl font-bold text-gray-400">3</div>
-          <div className="text-sm text-gray-500 font-medium">Review &amp; Import</div>
+          <div className="text-sm text-gray-500 font-medium">Import</div>
         </div>
       </div>
     </div>
   );
 
-  const renderMappingStep = () => (
+  /* ---------- Step 2 — Preview ---------- */
+
+  const renderPreviewStep = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Map Your Columns</h2>
-          <p className="text-gray-600">Match your CSV columns to our fields</p>
+          <h2 className="text-2xl font-bold text-gray-900">Preview Your Data</h2>
+          <p className="text-gray-600">
+            {totalRows} row{totalRows !== 1 ? "s" : ""} detected — review before importing
+          </p>
         </div>
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
           <FileText className="w-5 h-5 text-gray-400" />
           <span className="font-medium text-gray-700">{file?.name}</span>
-          <span className="text-gray-400">({csvData.length} rows)</span>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
-        <div className="space-y-4">
-          {targetColumns.map((target) => (
-            <div key={target.key} className="flex items-center gap-4">
-              <div className="w-1/3">
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  {target.label}
-                  {target.required && <span className="text-red-500 ml-1">*</span>}
-                </label>
-                <div className="text-xs text-gray-500">Target field</div>
-              </div>
+      {error && (
+        <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          {error}
+        </div>
+      )}
 
-              <div className="flex-1 flex items-center gap-3">
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-                <select
-                  value={columnMapping[target.key]}
-                  onChange={(e) =>
-                    handleMappingChange(target.key, e.target.value as DetectedColumn | "")
-                  }
-                  className="flex-1 px-4 py-2.5 bg-gray-50 border-2 border-gray-200 rounded-lg font-medium text-gray-700 focus:border-blue-500 focus:bg-white focus:outline-none transition-colors"
-                >
-                  <option value="">Select column...</option>
-                  {detectedColumns.map((col) => (
-                    <option key={col} value={col}>
-                      {col}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+      {/* Column chips */}
+      <div className="bg-gray-50 rounded-xl p-4">
+        <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Detected Columns</p>
+        <div className="flex flex-wrap gap-2">
+          {headers.map((h) => (
+            <span
+              key={h}
+              className="px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-700 shadow-sm"
+            >
+              {h}
+            </span>
           ))}
         </div>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-        <h4 className="font-semibold text-amber-900 mb-2 flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5" />
-          Smart Mapping Detected
-        </h4>
-        <p className="text-sm text-amber-800">
-          We&apos;ve automatically detected the most likely column matches. Please review and adjust
-          if needed.
-        </p>
-      </div>
+      {/* Preview table */}
+      {previewRows.length > 0 && (
+        <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b-2 border-gray-200">
+                <tr>
+                  {headers.map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {previewRows.map((row, i) => (
+                  <tr key={i} className="hover:bg-gray-50 transition-colors">
+                    {headers.map((h) => (
+                      <td key={h} className="px-4 py-3 text-gray-700 whitespace-nowrap max-w-[200px] truncate">
+                        {row[h] ?? "—"}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="bg-gray-50 px-4 py-2 border-t border-gray-200 text-xs text-gray-500 text-center">
+            Showing first {previewRows.length} of {totalRows} row{totalRows !== 1 ? "s" : ""}
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-3 pt-4">
         <button
@@ -318,85 +355,6 @@ const CSVUploadSystem: React.FC = () => {
           Cancel
         </button>
         <button
-          onClick={handlePreview}
-          disabled={!columnMapping.date || !columnMapping.description || !columnMapping.amount}
-          className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-        >
-          Preview Data
-          <ArrowRight className="w-5 h-5" />
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderPreviewStep = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Review Your Data</h2>
-          <p className="text-gray-600">Preview before importing {csvData.length} transactions</p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b-2 border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase">
-                  Date
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase">
-                  Description
-                </th>
-                <th className="px-6 py-4 text-right text-xs font-bold text-gray-600 uppercase">
-                  Amount
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase">
-                  Category
-                </th>
-                <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {preview.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-gray-900">{row.date}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    {row.description}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
-                    {row.amount}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                      {row.category}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mx-auto" />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-sm text-gray-600 text-center">
-          Showing first 5 of {csvData.length} transactions
-        </div>
-      </div>
-
-      <div className="flex gap-3 pt-4">
-        <button
-          onClick={() => setStep(2)}
-          className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
-        >
-          Back to Mapping
-        </button>
-        <button
           onClick={handleImport}
           disabled={processing}
           className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-400 transition-all shadow-lg"
@@ -404,12 +362,12 @@ const CSVUploadSystem: React.FC = () => {
           {processing ? (
             <>
               <RefreshCw className="w-5 h-5 animate-spin" />
-              Importing...
+              Importing…
             </>
           ) : (
             <>
               <CheckCircle className="w-5 h-5" />
-              Import {csvData.length} Transactions
+              Import {totalRows} Transaction{totalRows !== 1 ? "s" : ""}
             </>
           )}
         </button>
@@ -417,62 +375,106 @@ const CSVUploadSystem: React.FC = () => {
     </div>
   );
 
-  const renderSuccessStep = () => (
-    <div className="text-center space-y-6 py-12">
-      <div className="w-24 h-24 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto shadow-xl animate-bounce">
-        <CheckCircle className="w-12 h-12 text-white" />
-      </div>
+  /* ---------- Step 3 — Success / partial error ---------- */
 
-      <div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Import Successful!</h2>
-        <p className="text-lg text-gray-600">{csvData.length} transactions have been added</p>
-      </div>
+  const renderSuccessStep = () => {
+    if (!result) return null;
+    const hasErrors = result.errorCount > 0;
 
-      <div className="flex gap-3 justify-center pt-6">
-        <button
-          onClick={resetUpload}
-          className="flex items-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+    return (
+      <div className="text-center space-y-6 py-12">
+        <div
+          className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-xl ${
+            hasErrors
+              ? "bg-gradient-to-br from-amber-400 to-amber-500"
+              : "bg-gradient-to-br from-green-500 to-green-600 animate-bounce"
+          }`}
         >
-          <Upload className="w-5 h-5" />
-          Upload Another File
-        </button>
-        <button
-          onClick={() => (window.location.href = "/dashboard")}
-          className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-        >
-          Go to Dashboard
-          <ArrowRight className="w-5 h-5" />
-        </button>
+          {hasErrors ? (
+            <AlertTriangle className="w-12 h-12 text-white" />
+          ) : (
+            <CheckCircle className="w-12 h-12 text-white" />
+          )}
+        </div>
+
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            {hasErrors ? "Import Completed with Warnings" : "Import Successful!"}
+          </h2>
+          <p className="text-lg text-gray-600">
+            {result.successCount} transaction{result.successCount !== 1 ? "s" : ""} imported successfully
+            {hasErrors && `, ${result.errorCount} row${result.errorCount !== 1 ? "s" : ""} skipped`}
+          </p>
+        </div>
+
+        {/* Stats */}
+        <div className="flex justify-center gap-6">
+          <div className="bg-green-50 border border-green-200 rounded-xl px-6 py-4 text-center">
+            <div className="text-2xl font-bold text-green-700">{result.successCount}</div>
+            <div className="text-sm text-green-600">Imported</div>
+          </div>
+          {hasErrors && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-6 py-4 text-center">
+              <div className="text-2xl font-bold text-red-700">{result.errorCount}</div>
+              <div className="text-sm text-red-600">Skipped</div>
+            </div>
+          )}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl px-6 py-4 text-center">
+            <div className="text-2xl font-bold text-gray-700">{result.totalRows}</div>
+            <div className="text-sm text-gray-500">Total Rows</div>
+          </div>
+        </div>
+
+        {/* Row-level errors */}
+        {result.errors && result.errors.length > 0 && (
+          <div className="text-left bg-amber-50 border border-amber-200 rounded-xl p-4 max-w-lg mx-auto">
+            <p className="text-sm font-semibold text-amber-800 mb-2">Skipped rows:</p>
+            <ul className="text-xs text-amber-700 space-y-1 max-h-32 overflow-y-auto">
+              {result.errors.map((e, i) => (
+                <li key={i}>• {e}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="flex gap-3 justify-center pt-6">
+          <button
+            onClick={resetUpload}
+            className="flex items-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+          >
+            <Upload className="w-5 h-5" />
+            Upload Another File
+          </button>
+          <button
+            onClick={() => (window.location.href = "/transactions")}
+            className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+          >
+            View Transactions
+            <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  /* ---------- Render ---------- */
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
-          {processing && step !== 4 && (
-            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <RefreshCw className="w-5 h-5 text-blue-600 animate-spin" />
-                <div>
-                  <div className="font-semibold text-blue-900">Processing...</div>
-                  <div className="text-sm text-blue-700">Please wait while we process your data</div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {step === 1 && renderUploadStep()}
-          {step === 2 && renderMappingStep()}
-          {step === 3 && renderPreviewStep()}
-          {step === 4 && renderSuccessStep()}
+          {step === 2 && renderPreviewStep()}
+          {step === 3 && renderSuccessStep()}
         </div>
 
         {step === 1 && (
           <div className="mt-8 text-center">
             <p className="text-gray-600 mb-4">Need a sample CSV file?</p>
-            <button className="inline-flex items-center gap-2 text-blue-600 font-semibold hover:text-blue-700 transition-colors">
+            <button
+              onClick={downloadSample}
+              className="inline-flex items-center gap-2 text-blue-600 font-semibold hover:text-blue-700 transition-colors"
+            >
               <Download className="w-4 h-4" />
               Download Sample Template
             </button>

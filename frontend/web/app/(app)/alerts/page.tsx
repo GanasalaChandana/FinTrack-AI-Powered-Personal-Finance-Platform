@@ -29,6 +29,7 @@ type AlertType =
 
 interface SmartAlert {
   id: string;
+  backendId?: number;   // DB primary key — present once saved to backend
   type: AlertType;
   severity: Severity;
   title: string;
@@ -40,6 +41,85 @@ interface SmartAlert {
   createdAt: Date;
   icon: LucideIcon;
   actionLabel?: string;
+}
+
+// ── Backend API helpers ────────────────────────────────────────────────────────
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const token  = localStorage.getItem("ft_token") || localStorage.getItem("authToken");
+  const userId = localStorage.getItem("userId");
+  return {
+    "Content-Type": "application/json",
+    ...(token  && { Authorization: `Bearer ${token}` }),
+    ...(userId && { "X-User-Id": userId }),
+  };
+}
+
+interface BackendAlert {
+  id:        number;
+  title:     string;
+  message:   string;
+  type:      string;
+  severity:  string;
+  category?: string;
+  status:    string;
+  read:      boolean;
+  createdAt: string;
+}
+
+async function fetchBackendAlerts(): Promise<BackendAlert[]> {
+  const res = await fetch(`${API_BASE_URL}/api/alerts`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function saveAlertToBackend(alert: SmartAlert, userId: string): Promise<BackendAlert | null> {
+  try {
+    const body = {
+      userId,
+      title:    alert.title,
+      message:  alert.message,
+      type:     alert.type.toUpperCase(),
+      severity: alert.severity,
+      category: alert.category ?? null,
+      status:   "ACTIVE",
+      priority: alert.severity.toUpperCase(),
+      read:     false,
+    };
+    const res = await fetch(`${API_BASE_URL}/api/alerts`, {
+      method:  "POST",
+      headers: getAuthHeaders(),
+      body:    JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function acknowledgeBackendAlert(backendId: number): Promise<void> {
+  await fetch(`${API_BASE_URL}/api/alerts/${backendId}/acknowledge`, {
+    method:  "POST",
+    headers: getAuthHeaders(),
+  });
+}
+
+async function acknowledgeAllBackendAlerts(): Promise<void> {
+  await fetch(`${API_BASE_URL}/api/alerts/acknowledge-all`, {
+    method:  "POST",
+    headers: getAuthHeaders(),
+  });
+}
+
+async function deleteBackendAlert(backendId: number): Promise<void> {
+  await fetch(`${API_BASE_URL}/api/alerts/${backendId}`, {
+    method:  "DELETE",
+    headers: getAuthHeaders(),
+  });
 }
 
 interface AlertRule {
@@ -330,15 +410,68 @@ export default function AlertsPage() {
     }
   }, [router]);
 
-  // ── Fetch + generate ───────────────────────────────────────────────────────
+  // ── Fetch + generate + sync to backend ────────────────────────────────────
   const fetchAndGenerate = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const txns = await transactionsAPI.getAll();
+      const userId = typeof window !== "undefined" ? localStorage.getItem("userId") ?? "" : "";
+
+      // Fetch transactions and existing backend alerts in parallel
+      const [txns, backendAlerts] = await Promise.all([
+        transactionsAPI.getAll(),
+        fetchBackendAlerts().catch(() => [] as BackendAlert[]),
+      ]);
       setTransactions(txns);
+
+      // Generate client-side alerts from transactions
       const generated = generateAlertsFromTransactions(txns);
-      setAlerts(generated);
+
+      // Build a set of already-persisted alert titles to avoid duplicates
+      const existingTitles = new Set(backendAlerts.map((a) => a.title));
+
+      // Save only new alerts to backend (non-blocking, best-effort)
+      const savePromises = generated
+        .filter((a) => !existingTitles.has(a.title))
+        .map(async (a) => {
+          const saved = await saveAlertToBackend(a, userId);
+          return saved ? { ...a, backendId: saved.id } : a;
+        });
+      const savedResults = await Promise.all(savePromises);
+
+      // Merge: backend alerts (with persisted read state) + newly generated ones
+      const backendMapped: SmartAlert[] = backendAlerts.map((ba) => {
+        // Find matching generated alert to get the icon
+        const match = generated.find((g) => g.title === ba.title);
+        return {
+          id:        `backend-${ba.id}`,
+          backendId: ba.id,
+          type:      (ba.type?.toLowerCase() ?? "large_transaction") as AlertType,
+          severity:  (ba.severity?.toLowerCase() ?? "low") as Severity,
+          title:     ba.title,
+          message:   ba.message,
+          category:  ba.category ?? undefined,
+          read:      ba.read || ba.status === "READ",
+          createdAt: new Date(ba.createdAt ?? Date.now()),
+          icon:      match?.icon ?? Bell,
+          actionLabel: match?.actionLabel,
+          amount:    match?.amount,
+          merchant:  match?.merchant,
+        };
+      });
+
+      // New alerts just saved this session (not in backend list yet)
+      const newlySaved = savedResults.filter((a) => !existingTitles.has(a.title));
+
+      // Combine: backend (persistent) first, then new ones
+      const severityOrder: Record<Severity, number> = { high: 0, medium: 1, low: 2 };
+      const merged = [...backendMapped, ...newlySaved].sort((a, b) =>
+        severityOrder[a.severity] !== severityOrder[b.severity]
+          ? severityOrder[a.severity] - severityOrder[b.severity]
+          : b.createdAt.getTime() - a.createdAt.getTime()
+      );
+
+      setAlerts(merged.length > 0 ? merged : generated);
       setLastUpdated(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load transactions");
@@ -370,16 +503,35 @@ export default function AlertsPage() {
   }, [alerts, filter, severityFilter]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
-  const markRead = (id: string) =>
-    setAlerts(prev => prev.map(a => a.id === id ? { ...a, read: true } : a));
+  const markRead = useCallback((id: string) => {
+    setAlerts(prev => prev.map(a => {
+      if (a.id !== id) return a;
+      if (a.backendId) void acknowledgeBackendAlert(a.backendId).catch(() => {});
+      return { ...a, read: true };
+    }));
+  }, []);
 
-  const markAllRead = () =>
+  const markAllRead = useCallback(() => {
+    void acknowledgeAllBackendAlerts().catch(() => {});
     setAlerts(prev => prev.map(a => ({ ...a, read: true })));
+  }, []);
 
-  const dismiss = (id: string) =>
-    setAlerts(prev => prev.filter(a => a.id !== id));
+  const dismiss = useCallback((id: string) => {
+    setAlerts(prev => {
+      const alert = prev.find(a => a.id === id);
+      if (alert?.backendId) void deleteBackendAlert(alert.backendId).catch(() => {});
+      return prev.filter(a => a.id !== id);
+    });
+  }, []);
 
-  const dismissAll = () => setAlerts([]);
+  const dismissAll = useCallback(() => {
+    setAlerts(prev => {
+      prev.forEach(a => {
+        if (a.backendId) void deleteBackendAlert(a.backendId).catch(() => {});
+      });
+      return [];
+    });
+  }, []);
 
   const toggleRule = (id: string) =>
     setRules(prev => prev.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r));

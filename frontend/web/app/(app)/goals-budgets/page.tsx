@@ -724,7 +724,7 @@ function GoalsSection() {
 export default function GoalsBudgetsPage() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const tabParam     = searchParams.get("tab");
+  const tabParam     = searchParams?.get("tab");
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading,       setIsLoading]       = useState(true);

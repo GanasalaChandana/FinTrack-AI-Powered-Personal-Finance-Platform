@@ -31,6 +31,7 @@ export function TransactionNotesModal({
   const [tags, setTags] = useState<string[]>(transaction?.tags || []);
   const [tagInput, setTagInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   if (!isOpen || !transaction) return null;
 
@@ -41,7 +42,7 @@ export function TransactionNotesModal({
       onClose();
     } catch (error) {
       console.error('Failed to save notes:', error);
-      alert('Failed to save notes');
+      setSaveError('Failed to save notes. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -200,6 +201,14 @@ export function TransactionNotesModal({
             </div>
           </div>
         </div>
+
+        {/* Error */}
+        {saveError && (
+          <div className="mx-6 mb-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center justify-between">
+            {saveError}
+            <button onClick={() => setSaveError(null)} className="text-red-400 hover:text-red-600 ml-3 font-bold">✕</button>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex gap-3 p-6 border-t border-gray-200 dark:border-gray-700">

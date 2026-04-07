@@ -171,6 +171,7 @@ const EnhancedFinancialReports: React.FC = () => {
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryDetail, setCategoryDetail] = useState<CategoryDetail | null>(null);
   const [customConfig, setCustomConfig] = useState<CustomReportConfig>({
@@ -336,7 +337,7 @@ const EnhancedFinancialReports: React.FC = () => {
       a.href = url; a.download = `report-${dateRange}.pdf`;
       document.body.appendChild(a); a.click();
       window.URL.revokeObjectURL(url); document.body.removeChild(a);
-    } catch { alert("Export failed. Please try again."); }
+    } catch { setExportError("Export failed. Please try again."); }
     finally { setIsExporting(false); }
   };
 
@@ -609,7 +610,7 @@ const EnhancedFinancialReports: React.FC = () => {
         </div>
 
         <div className="flex gap-3 mt-6 pt-5 border-t border-gray-100">
-          <button onClick={() => alert("Custom report generated!")}
+          <button onClick={() => setExportError(null)}
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-200 hover:opacity-90 transition">
             <FileText className="w-4 h-4" /> Generate Report
           </button>
@@ -912,6 +913,9 @@ const EnhancedFinancialReports: React.FC = () => {
                   <option value="last-year">Last Year</option>
                 </select>
               </div>
+              {exportError && (
+                <span className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{exportError}</span>
+              )}
               <button onClick={handleExport} disabled={isExporting}
                 className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60">
                 {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}

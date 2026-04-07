@@ -16,6 +16,7 @@ export function ExportMenu({ data, type, dateRange }: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -27,7 +28,7 @@ export function ExportMenu({ data, type, dateRange }: ExportMenuProps) {
       showSuccessMessage();
     } catch (error) {
       console.error('PDF export failed:', error);
-      alert('Failed to export PDF');
+      setExportError('Failed to export PDF');
     } finally {
       setIsExporting(false);
       setIsOpen(false);
@@ -74,7 +75,7 @@ export function ExportMenu({ data, type, dateRange }: ExportMenuProps) {
       showSuccessMessage();
     } catch (error) {
       console.error('Excel export failed:', error);
-      alert('Failed to export Excel');
+      setExportError('Failed to export Excel');
     } finally {
       setIsExporting(false);
       setIsOpen(false);
@@ -127,7 +128,7 @@ export function ExportMenu({ data, type, dateRange }: ExportMenuProps) {
       showSuccessMessage();
     } catch (error) {
       console.error('CSV export failed:', error);
-      alert('Failed to export CSV');
+      setExportError('Failed to export CSV');
     } finally {
       setIsExporting(false);
       setIsOpen(false);
@@ -211,10 +212,21 @@ export function ExportMenu({ data, type, dateRange }: ExportMenuProps) {
             <CheckCircle className="w-5 h-5 text-green-500" />
             <div>
               <div className="font-medium text-sm">Export Successful!</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                Your file has been downloaded
-              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Your file has been downloaded</div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {exportError && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-red-200 p-4 flex items-center gap-3">
+            <span className="text-red-500 font-bold text-lg">✕</span>
+            <div className="flex-1">
+              <div className="font-medium text-sm text-red-700">{exportError}</div>
+            </div>
+            <button onClick={() => setExportError(null)} className="text-gray-400 hover:text-gray-600 ml-2">✕</button>
           </div>
         </div>
       )}

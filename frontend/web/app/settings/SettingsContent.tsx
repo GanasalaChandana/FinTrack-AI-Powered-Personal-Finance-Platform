@@ -126,6 +126,11 @@ export default function SettingsContent() {
     icon: '📦',
   });
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const currencies: Currency[] = [
     { code: 'USD', symbol: '$', name: 'US Dollar' },
@@ -134,18 +139,18 @@ export default function SettingsContent() {
   ];
 
   /* ----------------- Handlers ----------------- */
-  const handleProfileUpdate = () => alert('Profile saved!');
+  const handleProfileUpdate = () => showToast('Profile saved!');
   const handlePasswordChange = () => {
     if (passwordData.newPassword !== passwordData.confirmPassword)
-      return alert('Passwords do not match');
+      return showToast('Passwords do not match', 'error');
     if (passwordData.newPassword && passwordData.newPassword.length < 8)
-      return alert('Password must be at least 8 characters');
-    alert('Password changed!');
+      return showToast('Password must be at least 8 characters', 'error');
+    showToast('Password changed!');
     setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
   };
-  const handlePreferencesUpdate = () => alert('Preferences saved!');
+  const handlePreferencesUpdate = () => showToast('Preferences saved!');
   const handleAddCategory = () => {
-    if (!newCategory.name.trim()) return alert('Name required');
+    if (!newCategory.name.trim()) return showToast('Name required', 'error');
     setCategories((p) => [...p, { id: Date.now(), ...newCategory }]);
     setNewCategory({ name: '', color: '#3b82f6', icon: '📦' });
   };
@@ -156,10 +161,10 @@ export default function SettingsContent() {
   };
   const handleDeleteCategory = (id: number) =>
     setCategories((p) => p.filter((c) => c.id !== id));
-  const handleExportData = () => alert('Export started');
+  const handleExportData = () => showToast('Export started');
   const handleDeleteAccount = () => {
-    const ok = prompt('Type DELETE to confirm');
-    if (ok === 'DELETE') alert('Account deletion initiated');
+    const confirmed = window.confirm('Are you sure you want to delete your account? This cannot be undone.');
+    if (confirmed) showToast('Account deletion initiated');
   };
 
   /* Skeleton to prevent hydration mismatch */
@@ -176,6 +181,14 @@ export default function SettingsContent() {
   /* ===================== UI ===================== */
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold ${
+          toast.type === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+        }`}>
+          {toast.type === 'error' ? '✕' : '✓'} {toast.msg}
+        </div>
+      )}
       <div className="max-w-6xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm mb-6">
           <div className="p-6 border-b">

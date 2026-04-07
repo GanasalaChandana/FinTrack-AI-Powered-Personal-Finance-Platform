@@ -35,12 +35,14 @@ const MERCHANT_PATTERNS = [
 ];
 
 // Price patterns
-const PRICE_PATTERN = /\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/;
+const PRICE_PATTERN = /\$?\s*(-?\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/;
 const TOTAL_PATTERNS = [
-  /total[:\s]+\$?\s*(\d+\.?\d*)/i,
-  /amount[:\s]+\$?\s*(\d+\.?\d*)/i,
-  /balance[:\s]+\$?\s*(\d+\.?\d*)/i,
-  /grand total[:\s]+\$?\s*(\d+\.?\d*)/i,
+  /total[:\s]+\$?\s*(-?\d+\.?\d*)/i,
+  /amount[:\s]+\$?\s*(-?\d+\.?\d*)/i,
+  /balance[:\s]+\$?\s*(-?\d+\.?\d*)/i,
+  /grand total[:\s]+\$?\s*(-?\d+\.?\d*)/i,
+  /refund[:\s]+\$?\s*(-?\d+\.?\d*)/i,
+  /return[:\s]+\$?\s*(-?\d+\.?\d*)/i,
 ];
 
 // Date patterns
@@ -117,15 +119,38 @@ function extractDate(text: string): string {
   for (const pattern of DATE_PATTERNS) {
     const match = text.match(pattern);
     if (match) {
-      return match[1];
+      return normalizeDate(match[1]);
     }
   }
+  return new Date().toISOString().split('T')[0];
+}
 
+/** Convert any extracted date string to YYYY-MM-DD for the backend */
+function normalizeDate(raw: string): string {
+  try {
+    // Try MM/DD/YY or MM/DD/YYYY or MM-DD-YY etc.
+    const sep = raw.includes('/') ? '/' : '-';
+    const parts = raw.split(sep);
+    if (parts.length === 3) {
+      let [a, b, c] = parts;
+      // Two-digit year → four-digit
+      if (c.length === 2) c = `20${c}`;
+      // If first part looks like a 4-digit year: YYYY-MM-DD already
+      if (a.length === 4) return `${a}-${b.padStart(2,'0')}-${c.padStart(2,'0')}`;
+      // Otherwise assume MM/DD/YYYY
+      return `${c}-${a.padStart(2,'0')}-${b.padStart(2,'0')}`;
+    }
+    // Try parsing as a natural date string (e.g. "April 5, 2026")
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+  } catch {
+    // fall through
+  }
   return new Date().toISOString().split('T')[0];
 }
 
 function extractTotal(lines: string[]): number {
-  // Look for total in last 10 lines
+  // Look for total in last 10 lines (search from the bottom up)
   const relevantLines = lines.slice(-10);
 
   for (const line of relevantLines) {
@@ -133,20 +158,20 @@ function extractTotal(lines: string[]): number {
       const match = line.match(pattern);
       if (match) {
         const amount = parseFloat(match[1].replace(/,/g, ''));
-        if (amount > 0) {
-          return amount;
+        if (amount !== 0) {
+          return amount; // allow negative totals (refunds/returns)
         }
       }
     }
   }
 
-  // Fallback: find largest price in receipt
+  // Fallback: find largest absolute price in receipt
   let maxPrice = 0;
   for (const line of lines) {
     const match = line.match(PRICE_PATTERN);
     if (match) {
       const price = parseFloat(match[1].replace(/,/g, ''));
-      if (price > maxPrice) {
+      if (Math.abs(price) > Math.abs(maxPrice)) {
         maxPrice = price;
       }
     }

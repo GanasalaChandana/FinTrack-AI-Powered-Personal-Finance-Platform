@@ -264,9 +264,23 @@ function SavingsProjection({ insights }: { insights: SpendingInsight[] }) {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
+const DISMISSED_KEY = "fintrack:dismissed-insights";
+
+function loadDismissed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DISMISSED_KEY);
+    if (raw) return new Set(JSON.parse(raw) as string[]);
+  } catch { }
+  return new Set();
+}
+
+function saveDismissed(ids: Set<string>) {
+  try { localStorage.setItem(DISMISSED_KEY, JSON.stringify([...ids])); } catch { }
+}
+
 function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] }) {
   const insights   = useMemo(() => generateInsights(transactions), [transactions]);
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissed());
   const [filter, setFilter]       = useState<FilterVal>("all");
   const [expanded, setExpanded]   = useState<string | null>(null);
 
@@ -390,7 +404,7 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
                           {insight.impact}
                         </span>
                       </div>
-                      <button onClick={() => setDismissed((p) => new Set([...p, insight.id]))}
+                      <button onClick={() => setDismissed((p) => { const n = new Set([...p, insight.id]); saveDismissed(n); return n; })}
                         className="p-1.5 rounded-xl text-gray-300 hover:text-gray-500 hover:bg-slate-100 transition flex-shrink-0">
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -469,7 +483,7 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center">
             <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
             <p className="text-sm font-semibold text-gray-700">All insights dismissed!</p>
-            <button onClick={() => setDismissed(new Set())} className="mt-2 text-xs font-bold text-indigo-500 hover:underline">
+            <button onClick={() => { const empty = new Set<string>(); saveDismissed(empty); setDismissed(empty); }} className="mt-2 text-xs font-bold text-indigo-500 hover:underline">
               Restore all
             </button>
           </div>

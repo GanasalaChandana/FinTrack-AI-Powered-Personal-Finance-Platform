@@ -1,34 +1,20 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
-  User,
-  Lock,
-  Globe,
-  DollarSign,
-  Tag,
-  Download,
-  Trash2,
-  Save,
-  Eye,
-  EyeOff,
-  Shield,
+  User, Lock, Globe, Tag, Download, Trash2, Save,
+  Eye, EyeOff, Shield, Loader2, CheckCircle,
 } from 'lucide-react';
+import { apiRequest, getToken, getUser, removeToken } from '@/lib/api';
 
 /* ===================== Types ===================== */
-type TabKey = 'profile' | 'security' | 'preferences' | 'categories' | 'data';
+type TabKey = 'profile' | 'security' | 'preferences' | 'categories';
 
 interface ProfileData {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
-  dateOfBirth: string;
-  address: string;
-  city: string;
-  country: string;
-  postalCode: string;
 }
 
 interface PasswordData {
@@ -40,15 +26,7 @@ interface PasswordData {
 interface Preferences {
   currency: string;
   dateFormat: 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
-  timeZone: string;
   language: string;
-  theme: 'light' | 'dark' | 'auto';
-}
-
-interface Currency {
-  code: string;
-  symbol: string;
-  name: string;
 }
 
 interface Category {
@@ -58,21 +36,21 @@ interface Category {
   icon: string;
 }
 
-/* ===================== Helpers ===================== */
-const isTab = (v: string | null): v is TabKey =>
-  v === 'profile' || v === 'security' || v === 'preferences' || v === 'categories' || v === 'data';
+const PREFS_KEY = 'fintrack:settings-preferences';
+const CATS_KEY  = 'fintrack:settings-categories';
 
-/* ===================== Main Content Component ===================== */
+const isTab = (v: string | null): v is TabKey =>
+  v === 'profile' || v === 'security' || v === 'preferences' || v === 'categories';
+
+/* ===================== Main Component ===================== */
 export default function SettingsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // hydration-safe
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
-  // tab state + ?tab=
+  const [mounted, setMounted]     = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('profile');
+
+  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!mounted) return;
     const t = searchParams?.get('tab') ?? null;
@@ -81,460 +59,379 @@ export default function SettingsContent() {
 
   const goTab = (t: TabKey) => {
     setActiveTab(t);
-    const base = searchParams ?? new URLSearchParams();
-    const sp = new URLSearchParams(Array.from(base.entries()));
+    const sp = new URLSearchParams(Array.from((searchParams ?? new URLSearchParams()).entries()));
     sp.set('tab', t);
     router.replace(`/settings?${sp.toString()}`, { scroll: false });
   };
 
-  /* ----------------- State ----------------- */
-  const [showPassword, setShowPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // EMPTY defaults (user fills later)
-  const [profileData, setProfileData] = useState<ProfileData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    dateOfBirth: '',
-    address: '',
-    city: '',
-    country: '',
-    postalCode: '',
-  });
-
-  const [passwordData, setPasswordData] = useState<PasswordData>({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-
-  const [preferences, setPreferences] = useState<Preferences>({
-    currency: '',
-    dateFormat: 'MM/DD/YYYY',
-    timeZone: '',
-    language: 'en',
-    theme: 'light',
-  });
-
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [newCategory, setNewCategory] = useState<Omit<Category, 'id'>>({
-    name: '',
-    color: '#3b82f6',
-    icon: '📦',
-  });
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  /* ── Toast ─────────────────────────────────────────────────── */
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 3500);
   };
 
-  const currencies: Currency[] = [
-    { code: 'USD', symbol: '$', name: 'US Dollar' },
-    { code: 'EUR', symbol: '€', name: 'Euro' },
-    { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-  ];
+  /* ── Profile ────────────────────────────────────────────────── */
+  const [profile, setProfile]       = useState<ProfileData>({ firstName: '', lastName: '', email: '' });
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileSaving, setProfileSaving]   = useState(false);
 
-  /* ----------------- Handlers ----------------- */
-  const handleProfileUpdate = () => showToast('Profile saved!');
-  const handlePasswordChange = () => {
-    if (passwordData.newPassword !== passwordData.confirmPassword)
-      return showToast('Passwords do not match', 'error');
-    if (passwordData.newPassword && passwordData.newPassword.length < 8)
-      return showToast('Password must be at least 8 characters', 'error');
-    showToast('Password changed!');
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const loadProfile = useCallback(async () => {
+    setProfileLoading(true);
+    try {
+      const data = await apiRequest<any>('/api/users/profile');
+      setProfile({
+        firstName: data.firstName ?? '',
+        lastName:  data.lastName  ?? '',
+        email:     data.email     ?? '',
+      });
+    } catch { /* silently fail — user may not be logged in */ }
+    finally { setProfileLoading(false); }
+  }, []);
+
+  useEffect(() => { if (mounted) void loadProfile(); }, [mounted, loadProfile]);
+
+  const handleProfileSave = async () => {
+    setProfileSaving(true);
+    try {
+      const updated = await apiRequest<any>('/api/users/profile', {
+        method: 'PUT',
+        body: JSON.stringify({ firstName: profile.firstName, lastName: profile.lastName }),
+      });
+      setProfile((p) => ({ ...p, firstName: updated.firstName ?? p.firstName, lastName: updated.lastName ?? p.lastName }));
+      showToast('Profile saved!');
+    } catch (e: any) {
+      showToast(e?.message ?? 'Failed to save profile', 'error');
+    } finally { setProfileSaving(false); }
   };
-  const handlePreferencesUpdate = () => showToast('Preferences saved!');
+
+  /* ── Security ───────────────────────────────────────────────── */
+  const [pwData, setPwData]             = useState<PasswordData>({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [showPw,    setShowPw]          = useState(false);
+  const [showNewPw, setShowNewPw]       = useState(false);
+  const [showConfPw, setShowConfPw]     = useState(false);
+  const [pwSaving, setPwSaving]         = useState(false);
+
+  const handlePasswordChange = async () => {
+    if (!pwData.currentPassword) return showToast('Enter your current password', 'error');
+    if (pwData.newPassword !== pwData.confirmPassword) return showToast('Passwords do not match', 'error');
+    if (pwData.newPassword.length < 8) return showToast('New password must be at least 8 characters', 'error');
+    setPwSaving(true);
+    try {
+      await apiRequest('/api/users/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword: pwData.currentPassword, newPassword: pwData.newPassword }),
+      });
+      setPwData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      showToast('Password changed successfully!');
+    } catch (e: any) {
+      showToast(e?.message ?? 'Failed to change password', 'error');
+    } finally { setPwSaving(false); }
+  };
+
+  /* ── Preferences ────────────────────────────────────────────── */
+  const [prefs, setPrefs] = useState<Preferences>(() => {
+    try { return JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}'); } catch { return {}; }
+  });
+  const mergedPrefs: Preferences = Object.assign({ currency: 'USD', dateFormat: 'MM/DD/YYYY' as const, language: 'en' }, prefs);
+
+  const handlePrefsSave = () => {
+    try { localStorage.setItem(PREFS_KEY, JSON.stringify(mergedPrefs)); } catch { }
+    showToast('Preferences saved!');
+  };
+
+  /* ── Categories ─────────────────────────────────────────────── */
+  const [categories, setCategories] = useState<Category[]>(() => {
+    try { return JSON.parse(localStorage.getItem(CATS_KEY) ?? '[]'); } catch { return []; }
+  });
+  const [newCat, setNewCat]                 = useState<Omit<Category, 'id'>>({ name: '', color: '#3b82f6', icon: '📦' });
+  const [editingCat, setEditingCat]         = useState<Category | null>(null);
+
+  const persistCats = (cats: Category[]) => {
+    setCategories(cats);
+    try { localStorage.setItem(CATS_KEY, JSON.stringify(cats)); } catch { }
+  };
+
   const handleAddCategory = () => {
-    if (!newCategory.name.trim()) return showToast('Name required', 'error');
-    setCategories((p) => [...p, { id: Date.now(), ...newCategory }]);
-    setNewCategory({ name: '', color: '#3b82f6', icon: '📦' });
+    if (!newCat.name.trim()) return showToast('Name required', 'error');
+    persistCats([...categories, { id: Date.now(), ...newCat }]);
+    setNewCat({ name: '', color: '#3b82f6', icon: '📦' });
   };
   const handleUpdateCategory = () => {
-    if (!editingCategory) return;
-    setCategories((p) => p.map((c) => (c.id === editingCategory.id ? editingCategory : c)));
-    setEditingCategory(null);
+    if (!editingCat) return;
+    persistCats(categories.map((c) => (c.id === editingCat.id ? editingCat : c)));
+    setEditingCat(null);
   };
-  const handleDeleteCategory = (id: number) =>
-    setCategories((p) => p.filter((c) => c.id !== id));
-  const handleExportData = () => showToast('Export started');
-  const handleDeleteAccount = () => {
-    const confirmed = window.confirm('Are you sure you want to delete your account? This cannot be undone.');
-    if (confirmed) showToast('Account deletion initiated');
+  const handleDeleteCategory = (id: number) => persistCats(categories.filter((c) => c.id !== id));
+
+  /* ── Data export ────────────────────────────────────────────── */
+  const [exporting, setExporting] = useState(false);
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const transactions = await apiRequest<any[]>('/api/transactions');
+      const json = JSON.stringify(transactions, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `fintrack-export-${new Date().toISOString().split('T')[0]}.json`;
+      a.click(); URL.revokeObjectURL(url);
+      showToast('Export downloaded!');
+    } catch { showToast('Export failed', 'error'); }
+    finally { setExporting(false); }
   };
 
-  /* Skeleton to prevent hydration mismatch */
-  if (!mounted)
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-lg shadow-sm mb-6 h-16" />
-          <div className="bg-white rounded-lg shadow-sm h-[60vh]" />
-        </div>
+  /* ── Delete account ─────────────────────────────────────────── */
+  const [deleting, setDeleting] = useState(false);
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm('Delete your account? This cannot be undone.');
+    if (!confirmed) return;
+    setDeleting(true);
+    try {
+      await apiRequest('/api/users/me', { method: 'DELETE' });
+      removeToken();
+      router.replace('/register');
+    } catch { showToast('Failed to delete account', 'error'); setDeleting(false); }
+  };
+
+  /* ── Hydration guard ────────────────────────────────────────── */
+  if (!mounted) return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto space-y-4">
+        <div className="bg-white rounded-2xl h-16 animate-pulse" />
+        <div className="bg-white rounded-2xl h-64 animate-pulse" />
       </div>
-    );
+    </div>
+  );
+
+  const inputCls = 'w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white transition';
 
   /* ===================== UI ===================== */
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-6">
+
       {/* Toast */}
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold ${
-          toast.type === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold transition-all ${
+          toast.type === 'error'
+            ? 'bg-red-50 border-red-200 text-red-700'
+            : 'bg-emerald-50 border-emerald-200 text-emerald-700'
         }`}>
-          {toast.type === 'error' ? '✕' : '✓'} {toast.msg}
+          {toast.type === 'error' ? '✕' : <CheckCircle className="w-4 h-4" />} {toast.msg}
         </div>
       )}
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm mb-6">
-          <div className="p-6 border-b">
-            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-            <p className="text-gray-600 mt-1">Manage your account and preferences</p>
+
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header + Tabs */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100">
+            <h1 className="text-2xl font-extrabold text-gray-900">Settings</h1>
+            <p className="text-gray-400 text-sm mt-0.5">Manage your account and preferences</p>
           </div>
-          <div className="flex border-b overflow-x-auto">
-            {(
-              [
-                { key: 'profile', label: 'Profile', icon: <User className="w-4 h-4 inline mr-2" /> },
-                { key: 'security', label: 'Security', icon: <Lock className="w-4 h-4 inline mr-2" /> },
-                { key: 'preferences', label: 'Preferences', icon: <Globe className="w-4 h-4 inline mr-2" /> },
-                { key: 'categories', label: 'Categories', icon: <Tag className="w-4 h-4 inline mr-2" /> },
-                { key: 'data', label: 'Data & Privacy', icon: <Download className="w-4 h-4 inline mr-2" /> },
-              ] as { key: TabKey; label: string; icon: React.ReactNode }[]
-            ).map(({ key, label, icon }) => (
-              <button
-                key={key}
-                onClick={() => goTab(key)}
-                className={`px-6 py-3 font-medium whitespace-nowrap ${
+          <div className="flex overflow-x-auto px-2">
+            {([
+              { key: 'profile',     label: 'Profile',     Icon: User     },
+              { key: 'security',    label: 'Security',    Icon: Lock     },
+              { key: 'preferences', label: 'Preferences', Icon: Globe    },
+              { key: 'categories',  label: 'Categories',  Icon: Tag      },
+            ] as { key: TabKey; label: string; Icon: any }[]).map(({ key, label, Icon }) => (
+              <button key={key} onClick={() => goTab(key)}
+                className={`flex items-center gap-1.5 px-5 py-3.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-all ${
                   activeTab === key
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {icon}
-                {label}
+                    ? 'border-indigo-600 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-800'
+                }`}>
+                <Icon className="w-4 h-4" />{label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* PROFILE */}
+        {/* ── PROFILE ── */}
         {activeTab === 'profile' && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-6">Profile Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {(
-                [
-                  { key: 'firstName', label: 'First Name' },
-                  { key: 'lastName', label: 'Last Name' },
-                  { key: 'email', label: 'Email', type: 'email' },
-                  { key: 'phone', label: 'Phone', type: 'tel' },
-                  { key: 'dateOfBirth', label: 'Date of Birth', type: 'date' },
-                  { key: 'address', label: 'Address' },
-                  { key: 'city', label: 'City' },
-                  { key: 'country', label: 'Country' },
-                  { key: 'postalCode', label: 'Postal Code' },
-                ] as { key: keyof ProfileData; label: string; type?: string }[]
-              ).map(({ key, label, type }) => (
-                <div key={key}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
-                  <input
-                    type={type ?? 'text'}
-                    value={profileData[key]}
-                    onChange={(e) => setProfileData({ ...profileData, [key]: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-5">Profile Information</h2>
+            {profileLoading ? (
+              <div className="space-y-4">
+                {[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" />)}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">First Name</label>
+                    <input className={inputCls} value={profile.firstName}
+                      onChange={(e) => setProfile({ ...profile, firstName: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Last Name</label>
+                    <input className={inputCls} value={profile.lastName}
+                      onChange={(e) => setProfile({ ...profile, lastName: e.target.value })} />
+                  </div>
                 </div>
-              ))}
-            </div>
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={handleProfileUpdate}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" /> Save Changes
-              </button>
-            </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Email</label>
+                  <input className={`${inputCls} bg-slate-50 text-gray-400 cursor-not-allowed`}
+                    value={profile.email} readOnly />
+                  <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <button onClick={handleProfileSave} disabled={profileSaving}
+                    className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition disabled:opacity-60">
+                    {profileSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* SECURITY */}
+        {/* ── SECURITY ── */}
         {activeTab === 'security' && (
-          <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-            <h2 className="text-xl font-semibold">Security</h2>
-            {(['currentPassword', 'newPassword', 'confirmPassword'] as const).map((f) => (
-              <div key={f}>
-                <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
-                  {f.replace('Password', ' Password')}
-                </label>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
+            <h2 className="text-lg font-bold text-gray-900">Change Password</h2>
+            {([
+              { field: 'currentPassword' as const, label: 'Current Password', show: showPw,    toggle: () => setShowPw(s => !s) },
+              { field: 'newPassword'     as const, label: 'New Password',     show: showNewPw,  toggle: () => setShowNewPw(s => !s) },
+              { field: 'confirmPassword' as const, label: 'Confirm Password', show: showConfPw, toggle: () => setShowConfPw(s => !s) },
+            ]).map(({ field, label, show, toggle }) => (
+              <div key={field}>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">{label}</label>
                 <div className="relative">
-                  <input
-                    type={
-                      f === 'currentPassword'
-                        ? (showPassword ? 'text' : 'password')
-                        : f === 'newPassword'
-                        ? (showNewPassword ? 'text' : 'password')
-                        : (showConfirmPassword ? 'text' : 'password')
-                    }
-                    value={passwordData[f]}
-                    onChange={(e) => setPasswordData({ ...passwordData, [f]: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 pr-10"
-                  />
-                  <button
-                    onClick={() =>
-                      f === 'currentPassword'
-                        ? setShowPassword((s) => !s)
-                        : f === 'newPassword'
-                        ? setShowNewPassword((s) => !s)
-                        : setShowConfirmPassword((s) => !s)
-                    }
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                  >
-                    {(f === 'currentPassword' && showPassword) ||
-                    (f === 'newPassword' && showNewPassword) ||
-                    (f === 'confirmPassword' && showConfirmPassword) ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
+                  <input type={show ? 'text' : 'password'} className={`${inputCls} pr-10`}
+                    value={pwData[field]}
+                    onChange={(e) => setPwData({ ...pwData, [field]: e.target.value })} />
+                  <button type="button" onClick={toggle}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
             ))}
-            <div className="pt-4 border-t">
-              <div className="flex gap-3 p-4 bg-blue-50 rounded-lg">
-                <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div>
-                  <h4 className="font-semibold">Password Requirements</h4>
-                  <ul className="text-sm text-blue-700 mt-2 space-y-1">
-                    <li>• At least 8 characters</li>
-                    <li>• Include uppercase/lowercase</li>
-                    <li>• Include a number & special char</li>
-                  </ul>
-                </div>
-              </div>
+            <div className="flex items-start gap-3 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+              <Shield className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
+              <ul className="text-xs text-indigo-700 space-y-0.5">
+                <li>• At least 8 characters</li>
+                <li>• Use uppercase, lowercase, numbers, and special characters</li>
+              </ul>
             </div>
             <div className="flex justify-end">
-              <button
-                onClick={handlePasswordChange}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Lock className="w-4 h-4" /> Change Password
+              <button onClick={handlePasswordChange} disabled={pwSaving}
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition disabled:opacity-60">
+                {pwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                Change Password
               </button>
             </div>
           </div>
         )}
 
-        {/* PREFERENCES */}
+        {/* ── PREFERENCES ── */}
         {activeTab === 'preferences' && (
-          <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-            <h2 className="text-xl font-semibold">Preferences</h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
+            <h2 className="text-lg font-bold text-gray-900">Preferences</h2>
             <div>
-              <label className="block text-sm mb-2 font-medium">Currency</label>
-              <select
-                value={preferences.currency}
-                onChange={(e) => setPreferences({ ...preferences, currency: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select currency</option>
-                {[
-                  { code: 'USD', symbol: '$', name: 'US Dollar' },
-                  { code: 'EUR', symbol: '€', name: 'Euro' },
-                  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-                ].map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.symbol} - {c.name}
-                  </option>
-                ))}
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Currency</label>
+              <select className={inputCls} value={mergedPrefs.currency}
+                onChange={(e) => setPrefs({ ...mergedPrefs, currency: e.target.value })}>
+                {[{ code: 'USD', label: '$ — US Dollar' }, { code: 'EUR', label: '€ — Euro' }, { code: 'INR', label: '₹ — Indian Rupee' }, { code: 'GBP', label: '£ — British Pound' }]
+                  .map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
               </select>
             </div>
-
             <div>
-              <label className="block text-sm mb-2 font-medium">Date Format</label>
-              <select
-                value={preferences.dateFormat}
-                onChange={(e) =>
-                  setPreferences({
-                    ...preferences,
-                    dateFormat: e.target.value as Preferences['dateFormat'],
-                  })
-                }
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Date Format</label>
+              <select className={inputCls} value={mergedPrefs.dateFormat}
+                onChange={(e) => setPrefs({ ...mergedPrefs, dateFormat: e.target.value as any })}>
+                {(['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'] as const).map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             </div>
-
             <div>
-              <label className="block text-sm mb-2 font-medium">Time Zone</label>
-              <input
-                type="text"
-                placeholder="e.g. America/Los_Angeles"
-                value={preferences.timeZone}
-                onChange={(e) => setPreferences({ ...preferences, timeZone: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm mb-2 font-medium">Language</label>
-              <select
-                value={preferences.language}
-                onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="en">English</option>
-                <option value="es">Spanish</option>
-                <option value="fr">French</option>
-                <option value="de">German</option>
-                <option value="ja">Japanese</option>
-                <option value="zh">Chinese</option>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Language</label>
+              <select className={inputCls} value={mergedPrefs.language}
+                onChange={(e) => setPrefs({ ...mergedPrefs, language: e.target.value })}>
+                {[{ code: 'en', label: 'English' }, { code: 'es', label: 'Spanish' }, { code: 'fr', label: 'French' }, { code: 'de', label: 'German' }]
+                  .map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
               </select>
             </div>
-
             <div className="flex justify-end">
-              <button
-                onClick={handlePreferencesUpdate}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-              >
+              <button onClick={handlePrefsSave}
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition">
                 <Save className="w-4 h-4" /> Save Preferences
               </button>
             </div>
           </div>
         )}
 
-        {/* CATEGORIES */}
+        {/* ── CATEGORIES ── */}
         {activeTab === 'categories' && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">Custom Categories</h2>
-
-            <div className="flex gap-3 mb-6">
-              <input
-                type="text"
-                placeholder="Category name"
-                value={editingCategory ? editingCategory.name : newCategory.name}
-                onChange={(e) =>
-                  editingCategory
-                    ? setEditingCategory({ ...editingCategory, name: e.target.value })
-                    : setNewCategory({ ...newCategory, name: e.target.value })
-                }
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="text"
-                placeholder="Icon (emoji)"
-                value={editingCategory ? editingCategory.icon : newCategory.icon}
-                onChange={(e) =>
-                  editingCategory
-                    ? setEditingCategory({ ...editingCategory, icon: e.target.value })
-                    : setNewCategory({ ...newCategory, icon: e.target.value })
-                }
-                className="w-24 text-center border border-gray-300 rounded-lg px-2 py-2 focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="color"
-                value={editingCategory ? editingCategory.color : newCategory.color}
-                onChange={(e) =>
-                  editingCategory
-                    ? setEditingCategory({ ...editingCategory, color: e.target.value })
-                    : setNewCategory({ ...newCategory, color: e.target.value })
-                }
-                className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
-              />
-              {editingCategory ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-5">Custom Categories</h2>
+            <div className="flex gap-2 mb-6 flex-wrap">
+              <input placeholder="Category name"
+                value={editingCat ? editingCat.name : newCat.name}
+                onChange={(e) => editingCat ? setEditingCat({ ...editingCat, name: e.target.value }) : setNewCat({ ...newCat, name: e.target.value })}
+                className={`${inputCls} flex-1 min-w-32`} />
+              <input placeholder="Icon" title="Emoji icon"
+                value={editingCat ? editingCat.icon : newCat.icon}
+                onChange={(e) => editingCat ? setEditingCat({ ...editingCat, icon: e.target.value }) : setNewCat({ ...newCat, icon: e.target.value })}
+                className="w-16 text-center border border-gray-200 rounded-xl px-2 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+              <input type="color"
+                value={editingCat ? editingCat.color : newCat.color}
+                onChange={(e) => editingCat ? setEditingCat({ ...editingCat, color: e.target.value }) : setNewCat({ ...newCat, color: e.target.value })}
+                className="w-10 h-10 border border-gray-200 rounded-xl cursor-pointer p-0.5" />
+              {editingCat ? (
                 <>
-                  <button
-                    onClick={handleUpdateCategory}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    Update
-                  </button>
-                  <button
-                    onClick={() => setEditingCategory(null)}
-                    className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
+                  <button onClick={handleUpdateCategory} className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700">Update</button>
+                  <button onClick={() => setEditingCat(null)} className="px-4 py-2 border border-gray-200 text-sm font-bold rounded-xl hover:bg-slate-50">Cancel</button>
                 </>
               ) : (
-                <button
-                  onClick={handleAddCategory}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Add
-                </button>
+                <button onClick={handleAddCategory} className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700">Add</button>
               )}
             </div>
-
             {categories.length === 0 ? (
-              <p className="text-gray-500">No categories yet.</p>
+              <p className="text-sm text-gray-400 text-center py-8">No custom categories yet. Add one above.</p>
             ) : (
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-2 gap-3">
                 {categories.map((c) => (
-                  <div key={c.id} className="p-4 border rounded-lg flex justify-between items-center">
-                    <div className="flex gap-3 items-center">
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
-                        style={{ backgroundColor: `${c.color}20` }}
-                      >
-                        {c.icon}
-                      </div>
-                      <div>
-                        <p className="font-semibold">{c.name}</p>
-                        <p className="text-sm text-gray-500">{c.color}</p>
-                      </div>
+                  <div key={c.id} className="flex items-center justify-between p-3.5 border border-gray-100 rounded-xl hover:bg-slate-50 transition">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg" style={{ backgroundColor: `${c.color}20` }}>{c.icon}</div>
+                      <span className="text-sm font-semibold text-gray-800">{c.name}</span>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setEditingCategory(c)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                      >
-                        <Tag className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCategory(c.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <div className="flex gap-1">
+                      <button onClick={() => setEditingCat(c)} className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg"><Tag className="w-4 h-4" /></button>
+                      <button onClick={() => handleDeleteCategory(c.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
-        )}
 
-        {/* DATA */}
-        {activeTab === 'data' && (
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4">Data Export</h2>
-              <p className="text-gray-600 mb-4">Download your data as JSON.</p>
-              <button
-                onClick={handleExportData}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" /> Export All Data
-              </button>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm border-2 border-red-200">
-              <h2 className="text-xl font-semibold text-red-900 mb-4">Danger Zone</h2>
-              <p className="text-gray-600 mb-4">
-                Once you delete your account, there is no going back. This action is permanent and cannot be undone.
-              </p>
-              <button
-                onClick={handleDeleteAccount}
-                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" /> Delete Account
-              </button>
+            {/* Data & privacy section at bottom of categories */}
+            <div className="mt-8 pt-6 border-t border-gray-100 space-y-4">
+              <h3 className="text-lg font-bold text-gray-900">Data & Privacy</h3>
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-gray-100">
+                <div>
+                  <p className="text-sm font-semibold text-gray-700">Export Data</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Download all your transactions as JSON</p>
+                </div>
+                <button onClick={handleExport} disabled={exporting}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition disabled:opacity-60">
+                  {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  Export
+                </button>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-200">
+                <div>
+                  <p className="text-sm font-semibold text-red-800">Delete Account</p>
+                  <p className="text-xs text-red-600 mt-0.5">Permanently delete your account and all data</p>
+                </div>
+                <button onClick={handleDeleteAccount} disabled={deleting}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 transition disabled:opacity-60">
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         )}

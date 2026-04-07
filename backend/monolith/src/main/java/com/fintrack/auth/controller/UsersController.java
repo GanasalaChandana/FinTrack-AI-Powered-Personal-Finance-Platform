@@ -87,11 +87,15 @@ public class UsersController {
         User user = userService.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Update allowed fields
-        if (request.getName() != null) {
-            user.setName(request.getName());
+        if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
+        if (request.getLastName() != null) user.setLastName(request.getLastName());
+        if (request.getName() != null) user.setName(request.getName());
+        // Keep name in sync with first+last
+        if (request.getFirstName() != null || request.getLastName() != null) {
+            String full = ((user.getFirstName() != null ? user.getFirstName() : "") + " " +
+                          (user.getLastName()  != null ? user.getLastName()  : "")).trim();
+            if (!full.isEmpty()) user.setName(full);
         }
-        // Add other updatable fields as needed
 
         User updatedUser = userService.save(user);
         return ResponseEntity.ok(updatedUser);
@@ -113,16 +117,51 @@ public class UsersController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Change password (self only)
+     */
+    @PostMapping("/change-password")
+    public ResponseEntity<Map<String, String>> changePassword(
+            @RequestBody ChangePasswordRequest request,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userService.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!userService.checkPassword(user, request.getCurrentPassword())) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", "Current password is incorrect");
+            return ResponseEntity.status(400).body(err);
+        }
+
+        userService.updatePassword(user, request.getNewPassword());
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Password changed successfully");
+        return ResponseEntity.ok(response);
+    }
+
     // DTO for profile updates
     public static class UpdateProfileRequest {
         private String name;
+        private String firstName;
+        private String lastName;
 
-        public String getName() {
-            return name;
-        }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public String getFirstName() { return firstName; }
+        public void setFirstName(String firstName) { this.firstName = firstName; }
+        public String getLastName() { return lastName; }
+        public void setLastName(String lastName) { this.lastName = lastName; }
+    }
 
-        public void setName(String name) {
-            this.name = name;
-        }
+    public static class ChangePasswordRequest {
+        private String currentPassword;
+        private String newPassword;
+
+        public String getCurrentPassword() { return currentPassword; }
+        public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }
+        public String getNewPassword() { return newPassword; }
+        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
     }
 }

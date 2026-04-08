@@ -7,6 +7,11 @@ import {
   PiggyBank, AlertCircle, Loader2, Upload, BarChart3, Camera,
   Brain, RefreshCw, Activity, CreditCard, Lock, Zap, Plus, Calendar, X,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
+import { useToast } from "@/components/ui/Toast";
+import { PageContent, Section, Grid } from "@/components/layouts/PageHeader";
+import { CardSkeleton } from "@/components/ui/Skeleton";
 
 import { SpendingTrendChart } from "@/components/dashboard/SpendingTrendChart";
 import { BudgetComparisonChart } from "@/components/dashboard/BudgetComparisonChart";
@@ -27,43 +32,7 @@ import {
   type Goal,
 } from "@/lib/api";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Toast
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface ToastMessage { id: number; message: string; type: "success" | "error" }
-
-function ToastContainer({ toasts, onDismiss }: { toasts: ToastMessage[]; onDismiss: (id: number) => void }) {
-  return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold text-white pointer-events-auto transition-all ${
-            t.type === "success" ? "bg-emerald-600" : "bg-red-600"
-          }`}
-        >
-          <span>{t.type === "success" ? "✓" : "✕"}</span>
-          <span>{t.message}</span>
-          <button onClick={() => onDismiss(t.id)} className="ml-2 opacity-70 hover:opacity-100">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function useToast() {
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const show = useCallback((message: string, type: "success" | "error" = "success") => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
-  }, []);
-  const dismiss = useCallback((id: number) => setToasts((prev) => prev.filter((t) => t.id !== id)), []);
-  return { toasts, show, dismiss };
-}
+// Note: Toast is now provided by ToastProvider in app layout
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Date Range
@@ -76,49 +45,26 @@ const DATE_RANGE_LABELS: Record<DateRange, string> = {
 
 function DateRangePicker({ value, onChange }: { value: DateRange; onChange: (v: DateRange) => void }) {
   return (
-    <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
-      <Calendar className="w-4 h-4 text-gray-400 ml-2 flex-shrink-0" />
+    <div className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 rounded-md p-2 inline-flex">
+      <Calendar className="w-4 h-4 text-neutral-500 dark:text-neutral-400 ml-1 flex-shrink-0" />
       {(["30", "90", "180", "365"] as DateRange[]).map((range) => (
-        <button
+        <Button
           key={range}
+          variant={value === range ? "primary" : "ghost"}
+          size="sm"
           onClick={() => onChange(range)}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-            value === range ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-          }`}
+          className="text-xs"
         >
           {DATE_RANGE_LABELS[range]}
-        </button>
+        </Button>
       ))}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Skeleton loaders
-// ─────────────────────────────────────────────────────────────────────────────
-
-function SkeletonCard() {
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
-      <div className="flex items-start justify-between mb-4">
-        <div className="w-12 h-12 bg-gray-200 rounded-xl" />
-        <div className="w-16 h-6 bg-gray-100 rounded-lg" />
-      </div>
-      <div className="w-24 h-3 bg-gray-100 rounded mb-2" />
-      <div className="w-32 h-7 bg-gray-200 rounded mb-2" />
-      <div className="w-20 h-2 bg-gray-100 rounded mb-3" />
-      <div className="h-12 bg-gray-50 rounded" />
-    </div>
-  );
-}
-
+// Skeleton loaders are now imported from @/components/ui/Skeleton
 function SkeletonChart() {
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
-      <div className="w-40 h-5 bg-gray-200 rounded mb-6" />
-      <div className="h-48 bg-gray-100 rounded-lg" />
-    </div>
-  );
+  return <CardSkeleton />;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -270,12 +216,12 @@ const calculateStats = (transactions: Transaction[], days: number, goalsList: Go
 const EmptyStatCard = ({ title, description, action, actionLabel }: {
   title: string; description: string; action: () => void; actionLabel: string;
 }) => (
-  <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white p-6 text-center">
-    <p className="mb-1 font-semibold text-gray-400">{title}</p>
-    <p className="mb-3 text-sm text-gray-400">{description}</p>
-    <button onClick={action} className="mx-auto flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700">
-      <Plus className="h-3 w-3" /> {actionLabel}
-    </button>
+  <div className="rounded-md border-2 border-dashed border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-6 text-center">
+    <p className="mb-1 font-semibold text-neutral-400 dark:text-neutral-500">{title}</p>
+    <p className="mb-3 text-sm text-neutral-400 dark:text-neutral-500">{description}</p>
+    <Button variant="ghost" onClick={action} icon={<Plus className="h-3 w-3" />}>
+      {actionLabel}
+    </Button>
   </div>
 );
 
@@ -285,7 +231,7 @@ const EmptyStatCard = ({ title, description, action, actionLabel }: {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { toasts, show: showToast, dismiss } = useToast();
+  const { toast } = useToast();
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading]             = useState(true);
@@ -363,11 +309,11 @@ export default function DashboardPage() {
       setLastUpdated(new Date());
     } catch (err) {
       console.error("fetchDashboardData error:", err);
-      showToast("Failed to refresh data", "error");
+      toast.error("Failed to refresh data");
     } finally {
       setLoadingData(false);
     }
-  }, [showToast]);
+  }, [toast]);
 
   useEffect(() => { if (isAuthenticated) fetchDashboardData(); }, [isAuthenticated, fetchDashboardData]);
 
@@ -405,23 +351,23 @@ export default function DashboardPage() {
     });
     await Promise.all(requests);
     await fetchDashboardData();
-    showToast("Transactions imported successfully!");
+    toast.success("Transactions imported successfully!");
   };
 
   const handleSaveTransaction = async (transaction: any) => {
     try {
       if (editingTransaction) {
         await transactionsAPI.update(editingTransaction.id, transaction);
-        showToast("Transaction updated!");
+        toast.success("Transaction updated!");
       } else {
         await transactionsAPI.create(transaction);
-        showToast("Transaction added!");
+        toast.success("Transaction added!");
       }
       await fetchDashboardData();
       setShowTransactionModal(false);
       setEditingTransaction(null);
     } catch {
-      showToast("Failed to save transaction. Please try again.", "error");
+      toast.error("Failed to save transaction. Please try again.");
     }
   };
 
@@ -435,10 +381,10 @@ export default function DashboardPage() {
   // ── Loading screen ────────────────────────────────────────────────────────
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50 dark:bg-neutral-900">
         <div className="text-center">
-          <Loader2 className="mx-auto mb-4 h-16 w-16 animate-spin text-indigo-600" />
-          <p className="text-gray-600">Loading dashboard...</p>
+          <Loader2 className="mx-auto mb-4 h-16 w-16 animate-spin text-primary-600" />
+          <p className="text-neutral-600 dark:text-neutral-400">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -447,7 +393,6 @@ export default function DashboardPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-      <ToastContainer toasts={toasts} onDismiss={dismiss} />
       <KeyboardShortcuts isOpen={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
       <TransactionModal
         isOpen={showTransactionModal}
@@ -470,90 +415,93 @@ export default function DashboardPage() {
         ]}
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
         {/* ── Header ── */}
-        <header className="border-b border-gray-200 bg-white">
-          <div className="mx-auto max-w-7xl px-6 py-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <header className="border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="mb-1 text-3xl font-bold text-gray-900">
-                  {userName ? `Welcome back, ${userName} 👋` : "Dashboard"}
+                <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-50">
+                  {userName ? `Welcome back, ${userName}! 👋` : "Dashboard"}
                 </h1>
-                <div className="flex items-center gap-3">
-                  <p className="text-gray-600">Your financial overview at a glance</p>
-                  {lastUpdated && (
-                    <span className="text-xs text-gray-400">
-                      · Updated {lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  )}
-                </div>
+                <p className="mt-1 text-neutral-600 dark:text-neutral-400">
+                  Your financial overview at a glance
+                  {lastUpdated && ` · Updated ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+                </p>
               </div>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => router.push("/advanced-features")}
-                  className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-green-600 to-emerald-700 px-4 py-2 font-semibold text-white shadow-lg transition-all hover:from-green-700 hover:to-emerald-800"
+              <div className="flex flex-wrap gap-2 items-center">
+                <Button
+                  variant="secondary"
+                  size="md"
+                  icon={<RefreshCw className="w-4 h-4" />}
+                  onClick={fetchDashboardData}
+                  isLoading={loadingData}
                 >
-                  <Zap className="h-4 w-4" />
-                  <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">NEW</span>
-                  Advanced Features
-                </button>
-                <button
-                  onClick={() => router.push("/transactions")}
-                  className="rounded-lg border-2 border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                  Refresh
+                </Button>
+                <Button
+                  variant="primary"
+                  size="md"
+                  icon={<Plus className="w-4 h-4" />}
+                  onClick={handleAddTransaction}
                 >
-                  View Transactions
-                </button>
-                <button
-                  onClick={() => router.push("/goals-budgets")}
-                  className="rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 font-semibold text-white shadow-lg transition-all hover:from-blue-700 hover:to-blue-800"
-                >
-                  Goals & Budgets
-                </button>
+                  Add Transaction
+                </Button>
               </div>
             </div>
           </div>
         </header>
 
         {/* ── Main ── */}
-        <main className="mx-auto max-w-7xl px-6 py-8">
-          <div className="space-y-8">
+        <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <PageContent>
 
             {/* Onboarding banner */}
             {!hasTransactions && (
-              <div className="rounded-2xl border-2 border-indigo-100 bg-gradient-to-r from-indigo-50 to-blue-50 p-6">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <h2 className="mb-1 text-lg font-bold text-indigo-900">🎉 Welcome to FinTrack!</h2>
-                    <p className="text-sm text-indigo-700">Get started by adding your first transaction or importing from your bank.</p>
-                  </div>
-                  <div className="flex shrink-0 gap-3">
-                    <button onClick={handleAddTransaction} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-                      + Add Transaction
-                    </button>
-                    <button onClick={() => setShowCsvModal(true)} className="rounded-lg border-2 border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">
+              <Alert
+                variant="info"
+                title="🎉 Welcome to FinTrack!"
+                showIcon={false}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <p>Get started by adding your first transaction or importing from your bank.</p>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      icon={<Plus className="w-4 h-4" />}
+                      onClick={handleAddTransaction}
+                    >
+                      Add Transaction
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<Upload className="w-4 h-4" />}
+                      onClick={() => setShowCsvModal(true)}
+                    >
                       Import CSV
-                    </button>
+                    </Button>
                   </div>
                 </div>
-              </div>
+              </Alert>
             )}
 
             {/* Date range picker */}
             {hasTransactions && (
               <div className="flex items-center justify-between flex-wrap gap-3">
-                <h2 className="text-sm font-semibold text-gray-500">Showing data for</h2>
+                <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">Showing data for</span>
                 <DateRangePicker value={dateRange} onChange={setDateRange} />
               </div>
             )}
 
             {/* ── Stat Cards ── */}
             {loadingData ? (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {[0,1,2,3].map((i) => <SkeletonCard key={i} />)}
-              </div>
+              <Grid columns={3} gap="lg">
+                {[0,1,2,3].map((i) => <CardSkeleton key={i} />)}
+              </Grid>
             ) : (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <Grid columns={3} gap="lg">
                 {hasTransactions ? (
                   <>
                     <StatCard
@@ -561,12 +509,7 @@ export default function DashboardPage() {
                       value={formatCurrency(stats.totalIncome)}
                       change={stats.incomeChange}
                       icon={TrendingUp}
-                      color="from-green-500 to-green-600"
-                      description={
-                        stats.incomeChange === null
-                          ? "This period · No previous data"
-                          : `This period · ${stats.incomeChange >= 0 ? "+" : ""}${stats.incomeChange.toFixed(1)}% vs previous`
-                      }
+                      color="success"
                       sparklineData={incomeSparkline}
                       onClick={() => router.push("/transactions?type=income")}
                     />
@@ -575,12 +518,7 @@ export default function DashboardPage() {
                       value={formatCurrency(stats.totalExpenses)}
                       change={stats.expensesChange}
                       icon={TrendingDown}
-                      color="from-red-500 to-red-600"
-                      description={
-                        stats.expensesChange === null
-                          ? "This period · No previous data"
-                          : `This period · ${stats.expensesChange >= 0 ? "+" : ""}${stats.expensesChange.toFixed(1)}% vs previous`
-                      }
+                      color="error"
                       sparklineData={expensesSparkline}
                       onClick={() => router.push("/transactions?type=expense")}
                     />
@@ -588,16 +526,14 @@ export default function DashboardPage() {
                       title="Net Savings"
                       value={formatCurrency(stats.totalSavings)}
                       icon={PiggyBank}
-                      color="from-blue-500 to-blue-600"
-                      description="Income - Expenses"
+                      color="primary"
                       sparklineData={savingsSparkline}
                     />
                     <StatCard
                       title="Net Worth"
                       value={formatCurrency(stats.netWorth)}
                       icon={Wallet}
-                      color="from-purple-500 to-purple-600"
-                      description="Goals + Savings"
+                      color="accent"
                       onClick={() => router.push("/goals-budgets?tab=goals")}
                     />
                   </>
@@ -609,137 +545,106 @@ export default function DashboardPage() {
                     <EmptyStatCard title="Net Worth"      description="Set goals to track net worth"    action={() => router.push("/goals-budgets?tab=goals")} actionLabel="Create a goal" />
                   </>
                 )}
-              </div>
+              </Grid>
             )}
 
             {/* ── Charts row 1 ── */}
             {loadingData ? (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <SkeletonChart /><SkeletonChart />
-              </div>
+              <Grid columns={2} gap="lg">
+                <SkeletonChart />
+                <SkeletonChart />
+              </Grid>
             ) : (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <SpendingTrendChart data={spendingTrendData} />
-                <BudgetComparisonChart
-                  data={budgetComparisonData}
-                  onCategoryClick={(cat) => router.push(`/transactions?category=${encodeURIComponent(cat)}`)}
-                  onAddBudget={() => router.push("/goals-budgets?tab=budgets")}
-                />
-              </div>
+              <Grid columns={2} gap="lg">
+                <Section title="Spending Trend">
+                  <SpendingTrendChart data={spendingTrendData} />
+                </Section>
+                <Section title="Budget Overview">
+                  <BudgetComparisonChart
+                    data={budgetComparisonData}
+                    onCategoryClick={(cat) => router.push(`/transactions?category=${encodeURIComponent(cat)}`)}
+                    onAddBudget={() => router.push("/goals-budgets?tab=budgets")}
+                  />
+                </Section>
+              </Grid>
             )}
 
             {/* ── Charts row 2 ── */}
             {!loadingData && (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <Grid columns={2} gap="lg">
                 {categoryData.length > 0 ? (
-                  <CategoryPieChart data={categoryData} />
+                  <Section title="Spending by Category">
+                    <CategoryPieChart data={categoryData} />
+                  </Section>
                 ) : (
-                  <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-white p-8 text-center">
-                    <BarChart3 className="mb-3 h-10 w-10 text-gray-300" />
-                    <p className="font-semibold text-gray-400">Spending by Category</p>
-                    <p className="mt-1 text-sm text-gray-400">Add expense transactions to see your spending breakdown</p>
-                    <button onClick={handleAddTransaction} className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-                      + Add Expense
-                    </button>
+                  <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-8 text-center">
+                    <BarChart3 className="mb-3 h-10 w-10 text-neutral-300 dark:text-neutral-600" />
+                    <p className="font-semibold text-neutral-500 dark:text-neutral-400">Spending by Category</p>
+                    <p className="mt-1 text-sm text-neutral-400 dark:text-neutral-500">Add expense transactions to see breakdown</p>
+                    <Button onClick={handleAddTransaction} variant="primary" size="sm" className="mt-4" icon={<Plus className="w-4 h-4" />}>
+                      Add Expense
+                    </Button>
                   </div>
                 )}
 
                 {goals.length > 0 ? (
-                  <GoalProgressChart goals={goals.map((g, i) => ({ id: g.id || String(i), name: g.name, target: g.targetAmount ?? 0, current: g.currentAmount ?? 0, icon: g.icon || "🎯", color: g.color || "from-blue-500 to-blue-600", }))} />
+                  <Section title="Savings Goals Progress">
+                    <GoalProgressChart goals={goals.map((g, i) => ({ id: g.id || String(i), name: g.name, target: g.targetAmount ?? 0, current: g.currentAmount ?? 0, icon: g.icon || "🎯", color: g.color || "from-primary-500 to-primary-600", }))} />
+                  </Section>
                 ) : (
-                  <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-white p-8 text-center">
-                    <Target className="mb-3 h-10 w-10 text-gray-300" />
-                    <p className="font-semibold text-gray-400">Savings Goals Progress</p>
-                    <p className="mt-1 text-sm text-gray-400">No active goals yet.</p>
-                    <button onClick={() => router.push("/goals-budgets?tab=goals")} className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-                      + Create Goal
-                    </button>
+                  <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-8 text-center">
+                    <Target className="mb-3 h-10 w-10 text-neutral-300 dark:text-neutral-600" />
+                    <p className="font-semibold text-neutral-500 dark:text-neutral-400">Savings Goals Progress</p>
+                    <p className="mt-1 text-sm text-neutral-400 dark:text-neutral-500">No active goals yet.</p>
+                    <Button onClick={() => router.push("/goals-budgets?tab=goals")} variant="primary" size="sm" className="mt-4" icon={<Plus className="w-4 h-4" />}>
+                      Create Goal
+                    </Button>
                   </div>
                 )}
-              </div>
+              </Grid>
             )}
 
             {/* ── Quick Actions ── */}
-            <div className="rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 p-8 text-white shadow-xl">
-              <h3 className="mb-4 text-2xl font-bold">Quick Actions</h3>
-
-              <div className="mb-6">
-                <div className="mb-3 flex items-center gap-2">
-                  <span className="rounded-full bg-green-500 px-3 py-1 text-xs font-bold">NEW</span>
-                  <span className="text-sm font-semibold">Advanced Financial Tools</span>
-                </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {[
-                    { icon: TrendingUp, label: "Cash Flow Forecast", sub: "Predict future balance",  tab: "forecast"     },
-                    { icon: BarChart3,  label: "Investments",         sub: "Track your portfolio",   tab: "investments"  },
-                    { icon: CreditCard, label: "Debt Payoff",         sub: "Plan your debt freedom", tab: "debt"         },
-                    { icon: Lock,       label: "Bank Connect",         sub: "Link your accounts",    tab: "plaid"        },
-                  ].map(({ icon: Icon, label, sub, tab }) => (
-                    <button
-                      key={tab}
-                      onClick={() => router.push(`/advanced-features?tab=${tab}`)}
-                      className="rounded-xl border-2 border-green-300 bg-gradient-to-br from-green-500/40 to-emerald-500/40 p-4 text-left shadow-lg backdrop-blur-sm transition-all hover:from-green-500/50 hover:to-emerald-500/50"
-                    >
-                      <Icon className="mb-2 h-8 w-8" />
-                      <p className="font-semibold">{label}</p>
-                      <p className="text-sm text-blue-100">{sub}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="my-6 h-px bg-white/20" />
-
-              <div>
-                <div className="mb-3 text-sm font-semibold opacity-90">Essential Tools</div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {[
-                    { icon: DollarSign, label: "Add Transaction", sub: "Record income or expense", action: handleAddTransaction },
-                    { icon: Upload,     label: "Import CSV",       sub: "Upload from bank",        action: () => setShowCsvModal(true) },
-                    { icon: Wallet,     label: "Set Budget",       sub: "Update spending limits",  action: () => router.push("/goals-budgets?tab=budgets") },
-                    { icon: BarChart3,  label: "View Reports",     sub: "See insights",            action: () => router.push("/reports") },
-                    { icon: Camera,     label: "Scan Receipt",     sub: "Extract from photos",     action: () => router.push("/receipts") },
-                    { icon: Brain,      label: "AI Insights",      sub: "Smart analysis",          action: () => router.push("/insights") },
-                    { icon: Activity,   label: "Health Score",     sub: "Check wellness",          action: () => router.push("/health") },
-                    { icon: RefreshCw,  label: "Recurring",        sub: "Manage subscriptions",    action: () => router.push("/recurring") },
-                  ].map(({ icon: Icon, label, sub, action }) => (
-                    <button
-                      key={label}
-                      onClick={action}
-                      className="rounded-xl bg-white/20 p-4 text-left backdrop-blur-sm transition-all hover:bg-white/30"
-                    >
-                      <Icon className="mb-2 h-8 w-8" />
-                      <p className="font-semibold">{label}</p>
-                      <p className="text-sm text-blue-100">{sub}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <Section title="Quick Actions" description="Essential tools to manage your finances">
+              <Grid columns={4} gap="md">
+                {[
+                  { icon: DollarSign, label: "Add Transaction", action: handleAddTransaction },
+                  { icon: Upload,     label: "Import CSV",       action: () => setShowCsvModal(true) },
+                  { icon: Wallet,     label: "Set Budget",       action: () => router.push("/goals-budgets?tab=budgets") },
+                  { icon: BarChart3,  label: "View Reports",     action: () => router.push("/reports") },
+                  { icon: Camera,     label: "Scan Receipt",     action: () => router.push("/receipts") },
+                  { icon: Brain,      label: "AI Insights",      action: () => router.push("/insights") },
+                  { icon: Activity,   label: "Health Score",     action: () => router.push("/health") },
+                  { icon: RefreshCw,  label: "Recurring",        action: () => router.push("/recurring") },
+                ].map(({ icon: Icon, label, action }) => (
+                  <button
+                    key={label}
+                    onClick={action}
+                    className="flex flex-col items-center gap-2 p-4 rounded-md bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-neutral-900 dark:text-neutral-50"
+                  >
+                    <Icon className="w-6 h-6" />
+                    <span className="text-xs font-semibold text-center">{label}</span>
+                  </button>
+                ))}
+              </Grid>
+            </Section>
 
             {/* ── Financial Alerts ── */}
             {hasAlerts && (
-              <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-6">
-                <div className="flex items-start gap-4">
-                  <AlertCircle className="mt-1 h-6 w-6 flex-shrink-0 text-amber-600" />
-                  <div>
-                    <h3 className="mb-2 font-bold text-amber-900">Financial Alerts</h3>
-                    <ul className="space-y-2 text-sm text-amber-800">
-                      {budgetComparisonData.filter((b) => b.spent > b.budget).map((b, i) => (
-                        <li key={i}>
-                          • <span className="font-semibold">{b.category}</span> is over budget by {formatCurrency(b.spent - b.budget)}
-                        </li>
-                      ))}
-                      {stats.expensesChange !== null && stats.expensesChange > 20 && (
-                        <li>• Your expenses increased by {stats.expensesChange.toFixed(1)}% this period</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              </div>
+              <Alert variant="warning" title="Financial Alerts">
+                <ul className="space-y-2 text-sm">
+                  {budgetComparisonData.filter((b) => b.spent > b.budget).map((b, i) => (
+                    <li key={i}>
+                      <span className="font-semibold">{b.category}</span> is over budget by {formatCurrency(b.spent - b.budget)}
+                    </li>
+                  ))}
+                  {stats.expensesChange !== null && stats.expensesChange > 20 && (
+                    <li>Your expenses increased by {stats.expensesChange.toFixed(1)}% this period</li>
+                  )}
+                </ul>
+              </Alert>
             )}
-
-          </div>
+          </PageContent>
         </main>
       </div>
     </>

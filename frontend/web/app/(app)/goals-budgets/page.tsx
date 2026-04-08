@@ -8,6 +8,12 @@ import {
 } from "lucide-react";
 import { BudgetManager, type Budget } from "@/components/budgets/BudgetManager";
 import { apiRequest, getUser } from "@/lib/api";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
+import { useToast } from "@/components/ui/Toast";
+import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/PageHeader";
+import { BudgetProgressCard } from "@/components/budget/BudgetProgressCard";
+import { GoalProgressCard } from "@/components/goals/GoalProgressCard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -679,6 +685,7 @@ export default function GoalsBudgetsPage() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const tabParam     = searchParams?.get("tab");
+  const { toast }    = useToast();
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading,       setIsLoading]       = useState(true);
@@ -783,37 +790,34 @@ export default function GoalsBudgetsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {isFetching && (
-        <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-indigo-100 overflow-hidden">
-          <div className="h-full bg-indigo-500 animate-pulse w-full" />
+        <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-primary-100 overflow-hidden">
+          <div className="h-full bg-primary-500 animate-pulse w-full" />
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        {/* Page header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Goals & Budgets</h1>
-          <p className="text-sm text-gray-500 mt-1">Track your savings goals and monthly spending limits</p>
-        </div>
+      <PageContent>
+        <PageHeader
+          title="Goals & Budgets"
+          description="Track your savings goals and monthly spending limits"
+          actions={
+            <div className="flex gap-2">
+              {tabs.map((tab) => (
+                <Button
+                  key={tab.id}
+                  variant={activeTab === tab.id ? "primary" : "ghost"}
+                  size="sm"
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  <span>{tab.icon}</span>
+                  {tab.label}
+                </Button>
+              ))}
+            </div>
+          }
+        />
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 w-fit mb-8 shadow-sm">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === tab.id
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              <span>{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab content */}
+        <Section>
+          {/* Tab content */}
         {activeTab === "goals" && <GoalsSection />}
 
         {activeTab === "budgets" && (
@@ -824,7 +828,8 @@ export default function GoalsBudgetsPage() {
             onDeleteBudget={handleDeleteBudget}
           />
         )}
-      </div>
+        </Section>
+      </PageContent>
     </div>
   );
 }

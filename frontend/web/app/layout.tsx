@@ -2,6 +2,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { DarkModeProvider } from "@/components/providers/DarkModeProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 import { ClientLayout } from "@/components/ClientLayout";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -107,7 +108,9 @@ export default function RootLayout({
 
       <body className={inter.className}>
         <DarkModeProvider>
-          <ClientLayout>{children}</ClientLayout>
+          <ToastProvider>
+            <ClientLayout>{children}</ClientLayout>
+          </ToastProvider>
         </DarkModeProvider>
       </body>
     </html>

@@ -30,6 +30,11 @@ import {
 } from "@/lib/api";
 
 import { BulkActions } from "./BulkActions";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Alert } from "@/components/ui/Alert";
+import { useToast } from "@/components/ui/Toast";
+import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/PageHeader";
 
 /* =========================
    Types
@@ -202,46 +207,6 @@ const QUICK_DATE_FILTERS = [
   { label: "Last 90 days", days: 90 },
   { label: "This Year", days: 365 },
 ];
-
-/* =========================
-   Toast Component
-   ========================= */
-
-function ToastNotification({
-  toast,
-  onClose,
-}: {
-  toast: Toast;
-  onClose: (id: string) => void;
-}) {
-  React.useEffect(() => {
-    const timer = setTimeout(() => onClose(toast.id), 4000);
-    return () => clearTimeout(timer);
-  }, [toast.id, onClose]);
-
-  const icons = {
-    success: <CheckCircle2 className="w-5 h-5 text-green-600" />,
-    error: <AlertCircle className="w-5 h-5 text-red-600" />,
-    info: <Info className="w-5 h-5 text-blue-600" />,
-  };
-
-  const bgColors = {
-    success: "bg-green-50 border-green-200",
-    error: "bg-red-50 border-red-200",
-    info: "bg-blue-50 border-blue-200",
-  };
-
-  return (
-    <div className={`${bgColors[toast.type]} border-2 rounded-lg p-4 shadow-lg flex items-start gap-3 min-w-[320px] max-w-md animate-slide-in`}>
-      {icons[toast.type]}
-      <p className="flex-1 text-sm font-medium text-gray-900">{toast.message}</p>
-      <button onClick={() => onClose(toast.id)} className="text-gray-400 hover:text-gray-600">
-        <Close className="w-4 h-4" />
-      </button>
-    </div>
-  );
-}
-
 /* =========================
    Main Component
    ========================= */
@@ -277,16 +242,7 @@ export default function TransactionManager() {
     paymentMethod: "Credit Card •••• 4242",
   });
   const [formErrors, setFormErrors] = React.useState<Partial<Record<keyof NewTxForm, string>>>({});
-  const [toasts, setToasts] = React.useState<Toast[]>([]);
-
-  const showToast = React.useCallback((type: ToastType, message: string) => {
-    const id = Date.now().toString();
-    setToasts((prev) => [...prev, { id, type, message }]);
-  }, []);
-
-  const removeToast = React.useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
+  const { toast } = useToast();
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -380,9 +336,9 @@ export default function TransactionManager() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast("success", `Exported ${filteredTransactions.length} transactions as CSV`);
+      toast.success(`Exported ${filteredTransactions.length} transactions as CSV`);
     } catch (err: any) {
-      showToast("error", `Export failed: ${err.message}`);
+      toast.error(`Export failed: ${err.message}`);
     }
   };
 
@@ -420,9 +376,9 @@ export default function TransactionManager() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast("success", `Exported ${filteredTransactions.length} transactions as Excel`);
+      toast.success(`Exported ${filteredTransactions.length} transactions as Excel`);
     } catch (err: any) {
-      showToast("error", `Export failed: ${err.message}`);
+      toast.error(`Export failed: ${err.message}`);
     }
   };
 
@@ -452,9 +408,9 @@ export default function TransactionManager() {
         </body></html>`);
       printWindow.document.close();
       setTimeout(() => printWindow.print(), 500);
-      showToast("success", "PDF print dialog opened");
+      toast.success("PDF print dialog opened");
     } catch (err: any) {
-      showToast("error", `Export failed: ${err.message}`);
+      toast.error(`Export failed: ${err.message}`);
     }
   };
 
@@ -477,9 +433,9 @@ export default function TransactionManager() {
       setTransactions((prev) => prev.filter((t) => !selectedTransactions.includes(t.id!)));
       setFilteredTransactions((prev) => prev.filter((t) => !selectedTransactions.includes(t.id!)));
       setSelectedTransactions([]);
-      showToast("success", `Deleted ${selectedTransactions.length} transactions`);
+      toast.success(`Deleted ${selectedTransactions.length} transactions`);
     } catch (err) {
-      showToast("error", "Failed to delete transactions");
+      toast.error("Failed to delete transactions");
     }
   };
 
@@ -516,9 +472,9 @@ export default function TransactionManager() {
       setFilteredTransactions(updateFn);
       setEditingId(null);
       setEditForm({});
-      showToast("success", "Transaction updated successfully");
+      toast.success("Transaction updated successfully");
     } catch (err) {
-      showToast("error", "Failed to update transaction");
+      toast.error("Failed to update transaction");
     }
   };
 
@@ -529,9 +485,9 @@ export default function TransactionManager() {
       setTransactions((prev) => prev.filter((t) => t.id !== id));
       setFilteredTransactions((prev) => prev.filter((t) => t.id !== id));
       setSelectedTransactions((prev) => prev.filter((x) => x !== id));
-      showToast("success", "Transaction deleted");
+      toast.success("Transaction deleted");
     } catch (err) {
-      showToast("error", "Failed to delete transaction");
+      toast.error("Failed to delete transaction");
     }
   };
 
@@ -547,7 +503,7 @@ export default function TransactionManager() {
       paymentMethod: transaction.paymentMethod,
     });
     setShowAdd(true);
-    showToast("info", "Transaction duplicated — ready to save");
+    toast.info("Transaction duplicated — ready to save");
   };
 
   const validate = (f: NewTxForm) => {
@@ -583,9 +539,9 @@ export default function TransactionManager() {
       setShowAdd(false);
       setForm({ date: new Date().toISOString().slice(0, 10), merchant: "", description: "", amount: "", category: "food", type: "expense", status: "completed", paymentMethod: "Credit Card •••• 4242" });
       setFormErrors({});
-      showToast("success", "Transaction added successfully");
+      toast.success("Transaction added successfully");
     } catch (err: any) {
-      showToast("error", `Failed to create transaction: ${err?.message || "Unknown error"}`);
+      toast.error(`Failed to create transaction: ${err?.message || "Unknown error"}`);
     }
   };
 
@@ -689,88 +645,46 @@ export default function TransactionManager() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Toast Container */}
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        {toasts.map((toast) => (
-          <ToastNotification key={toast.id} toast={toast} onClose={removeToast} />
-        ))}
-      </div>
-
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-              <p className="text-sm text-gray-600">
-                {filteredTransactions.length} of {transactions.length} transactions
-                {activeFilterCount > 0 && (
-                  <span className="ml-2 text-blue-600 font-medium">
-                    ({activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} active)
-                  </span>
-                )}
-              </p>
-            </div>
-
+      <PageContent>
+        <PageHeader
+          title="Transactions"
+          description={`${filteredTransactions.length} of ${transactions.length} transactions${activeFilterCount > 0 ? ` (${activeFilterCount} active)` : ""}`}
+          actions={
             <div className="flex flex-wrap items-center gap-2">
-              {/* ✅ Persistent inline search bar */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="search"
-                  placeholder="Search transactions..."
-                  value={activeFilters.search || ""}
-                  onChange={(e) => setActiveFilters((prev) => ({ ...prev, search: e.target.value }))}
-                  className="pl-9 pr-4 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none w-44 md:w-56"
-                />
-              </div>
-
-              {/* Filters toggle */}
-              <button
+              <Input
+                placeholder="Search transactions..."
+                value={activeFilters.search || ""}
+                onChange={(e) => setActiveFilters((prev) => ({ ...prev, search: e.target.value }))}
+                size="sm"
+                icon={<Search className="w-4 h-4" />}
+              />
+              <Button
+                variant={showFilters || activeFilterCount > 0 ? "secondary" : "ghost"}
+                size="sm"
+                icon={<Filter className="w-4 h-4" />}
                 onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 px-3 py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
-                  showFilters || activeFilterCount > 0
-                    ? "bg-blue-50 border-blue-300 text-blue-700"
-                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
-                }`}
               >
-                <Filter className="w-4 h-4" />
                 <span className="hidden sm:inline">Filters</span>
-                {activeFilterCount > 0 && (
-                  <span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Export buttons */}
-              <button onClick={handleExportCSV} className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm" title="Export as CSV">
-                <Download className="w-4 h-4" />
-                <span>CSV</span>
-              </button>
-              <button onClick={handleExportExcel} className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm" title="Export as Excel">
-                <Download className="w-4 h-4" />
-                <span>Excel</span>
-              </button>
-              <button onClick={handleExportPDF} className="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors shadow-sm" title="Export as PDF">
-                <Download className="w-4 h-4" />
-                <span>PDF</span>
-              </button>
-
-              <button
-                onClick={() => setShowAdd(true)}
-                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg text-sm font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-md"
-              >
-                <Plus className="w-4 h-4" />
+                {activeFilterCount > 0 && ` (${activeFilterCount})`}
+              </Button>
+              <Button variant="primary" size="sm" icon={<Download className="w-4 h-4" />} onClick={handleExportCSV}>
+                CSV
+              </Button>
+              <Button variant="primary" size="sm" icon={<Download className="w-4 h-4" />} onClick={handleExportExcel}>
+                Excel
+              </Button>
+              <Button variant="primary" size="sm" icon={<Download className="w-4 h-4" />} onClick={handleExportPDF}>
+                PDF
+              </Button>
+              <Button variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setShowAdd(true)}>
                 <span className="hidden sm:inline">Add Transaction</span>
                 <span className="sm:hidden">Add</span>
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
-      </header>
+          }
+        />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+        <main>
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
@@ -830,9 +744,9 @@ export default function TransactionManager() {
                 );
                 await loadTransactions();
                 setSelectedTransactions([]);
-                showToast("success", `Updated category for ${selectedTxs.length} transaction${selectedTxs.length > 1 ? "s" : ""}`);
+                toast.success(`Updated category for ${selectedTxs.length} transaction${selectedTxs.length > 1 ? "s" : ""}`);
               } catch (err) {
-                showToast("error", "Failed to update categories");
+                toast.error("Failed to update categories");
               }
             }}
             onBulkExport={async (format) => {
@@ -854,11 +768,11 @@ export default function TransactionManager() {
                   a.click();
                   document.body.removeChild(a);
                   URL.revokeObjectURL(url);
-                  showToast("success", `Exported ${selectedTxs.length} selected transactions as CSV`);
+                  toast.success(`Exported ${selectedTxs.length} selected transactions as CSV`);
                   setSelectedTransactions([]);
                 }
               } catch (err: any) {
-                showToast("error", `Export failed: ${err.message}`);
+                toast.error(`Export failed: ${err.message}`);
               }
             }}
             onBulkDuplicate={() => {
@@ -866,7 +780,7 @@ export default function TransactionManager() {
                 const transaction = filteredTransactions.find((t) => t.id === selectedTransactions[0]);
                 if (transaction) handleDuplicate(transaction);
               } else {
-                showToast("info", "Please select exactly one transaction to duplicate");
+                toast.info("Please select exactly one transaction to duplicate");
               }
             }}
             onClearSelection={() => setSelectedTransactions([])}
@@ -1098,20 +1012,18 @@ export default function TransactionManager() {
           </div>
 
           {filteredTransactions.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="w-8 h-8 text-gray-400" />
+            <Alert variant="info" title="No transactions found">
+              <div className="space-y-3">
+                <p>
+                  {activeFilterCount > 0 ? "Try adjusting your filters or search query" : "Get started by adding your first transaction"}
+                </p>
+                {activeFilterCount > 0 && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    Clear all filters
+                  </Button>
+                )}
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No transactions found</h3>
-              <p className="text-gray-600 mb-4">
-                {activeFilterCount > 0 ? "Try adjusting your filters or search query" : "Get started by adding your first transaction"}
-              </p>
-              {activeFilterCount > 0 && (
-                <button onClick={clearFilters} className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-                  Clear all filters
-                </button>
-              )}
-            </div>
+            </Alert>
           ) : (
             /* ✅ Pagination footer */
             <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
@@ -1170,6 +1082,7 @@ export default function TransactionManager() {
           )}
         </div>
       </main>
+      </PageContent>
 
       {/* Add Transaction Modal */}
       {showAdd && (

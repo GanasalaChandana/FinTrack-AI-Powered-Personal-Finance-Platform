@@ -15,6 +15,11 @@ import {
 import { isAuthenticated } from "@/lib/api";
 import { reportsService, type ReportsData, type ReportsRange } from "@/lib/api/services/reports.service";
 import { IncomeExpenseComparison } from "@/components/charts/AdvancedCharts";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Alert } from "@/components/ui/Alert";
+import { useToast } from "@/components/ui/Toast";
+import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/PageHeader";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -159,6 +164,7 @@ function ErrorMessage({ message, onRetry }: { message: string; onRetry?: () => v
 
 const EnhancedFinancialReports: React.FC = () => {
   const router = useRouter();
+  const { toast } = useToast();
   const [isAuth, setIsAuth] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [selectedReport, setSelectedReport] = useState<ReportTab>("overview");
@@ -887,58 +893,57 @@ const EnhancedFinancialReports: React.FC = () => {
       `}</style>
 
       <div className="min-h-screen bg-slate-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-7">
-
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Sparkles className="w-4 h-4 text-indigo-500" />
-                <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Analytics</span>
-              </div>
-              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Financial Reports</h1>
-              <p className="text-gray-400 text-sm mt-1">
-                Comprehensive analysis and insights into your financial health.
-              </p>
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-2 bg-white rounded-2xl px-3 py-2 border border-gray-100 shadow-sm">
-                <Calendar className="w-4 h-4 text-indigo-400" />
-                <select value={dateRange} onChange={(e) => setDateRange(e.target.value as DateRange)}
-                  className="text-sm font-semibold text-gray-700 bg-transparent outline-none cursor-pointer">
+        <PageContent>
+          <PageHeader
+            title="Financial Reports"
+            description="Comprehensive analysis and insights into your financial health."
+            actions={
+              <div className="flex items-center gap-3 flex-wrap">
+                <select
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value as DateRange)}
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-primary-500 outline-none"
+                >
                   <option value="last-7-days">Last 7 Days</option>
                   <option value="last-30-days">Last 30 Days</option>
                   <option value="last-3-months">Last 3 Months</option>
                   <option value="last-6-months">Last 6 Months</option>
                   <option value="last-year">Last Year</option>
                 </select>
+                {exportError && (
+                  <Alert variant="error" onDismiss={() => setExportError(null)}>
+                    {exportError}
+                  </Alert>
+                )}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  icon={isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                >
+                  Export PDF
+                </Button>
               </div>
-              {exportError && (
-                <span className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{exportError}</span>
-              )}
-              <button onClick={handleExport} disabled={isExporting}
-                className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60">
-                {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                Export PDF
-              </button>
-            </div>
-          </div>
+            }
+          />
 
-          {/* Tabs */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 flex gap-1 overflow-x-auto">
-            {TABS.map((tab) => (
-              <button key={tab.id}
-                onClick={() => setSelectedReport(tab.id as ReportTab)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
-                  selectedReport === tab.id
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-800 hover:bg-slate-50"
-                }`}>
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <Section>
+            {/* Tabs */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {TABS.map((tab) => (
+                <Button
+                  key={tab.id}
+                  variant={selectedReport === tab.id ? "primary" : "ghost"}
+                  size="sm"
+                  onClick={() => setSelectedReport(tab.id as ReportTab)}
+                  icon={<tab.icon className="w-4 h-4" />}
+                >
+                  {tab.label}
+                </Button>
+              ))}
+            </div>
+          </Section>
 
           {/* Content — key includes dateRange so chart re-animates on range change */}
           <div className="tab-content" key={`${selectedReport}-${dateRange}`}>
@@ -948,7 +953,7 @@ const EnhancedFinancialReports: React.FC = () => {
             {selectedReport === "comparison" && renderComparison()}
             {selectedReport === "forecast"   && renderForecast()}
           </div>
-        </div>
+        </PageContent>
       </div>
 
       <CategoryModal />

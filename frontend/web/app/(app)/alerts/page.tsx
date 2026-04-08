@@ -6,10 +6,13 @@ import {
   Bell, BellOff, TrendingUp, AlertTriangle, CheckCircle2,
   Info, Zap, ShoppingBag, Coffee, Home, Car, Utensils,
   CreditCard, Target, Sparkles, RefreshCw, Settings,
-  ChevronRight, Trash2, Check, X, Filter,
+  ChevronRight, Trash2, Check, X, Filter, Loader2,
   DollarSign, ArrowUpRight, ArrowDownRight, Clock,
   type LucideIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
+import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/PageHeader";
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -549,53 +552,50 @@ export default function AlertsPage() {
   // ── Loading / Auth ─────────────────────────────────────────────────────────
   if (isCheckingAuth || !isAuth) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
       </div>
     );
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <PageContent>
+      <div className="space-y-6">
 
-        {/* ── Header ──────────────────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Bell className="w-4 h-4 text-indigo-500" />
-              <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Smart Alerts</span>
+        <PageHeader
+          icon={Bell}
+          title="Financial Alerts"
+          subtitle="Smart Alerts"
+          description={
+            loading
+              ? "Analysing your transactions..."
+              : counts.unread > 0
+                ? `${counts.unread} unread alert${counts.unread !== 1 ? "s" : ""} · Updated ${lastUpdated ? timeAgo(lastUpdated) : "—"}`
+                : `All caught up! 🎉 · Updated ${lastUpdated ? timeAgo(lastUpdated) : "—"}`
+          }
+          actions={
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => void fetchAndGenerate()}
+                disabled={loading}
+                variant="secondary"
+                size="sm"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+              <Button
+                onClick={() => setShowRules(r => !r)}
+                variant={showRules ? "primary" : "secondary"}
+                size="sm"
+              >
+                <Settings className="w-4 h-4" />
+                Alert Rules
+              </Button>
             </div>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Financial Alerts</h1>
-            <p className="text-sm text-gray-400 mt-1">
-              {loading
-                ? "Analysing your transactions..."
-                : counts.unread > 0
-                  ? `${counts.unread} unread alert${counts.unread !== 1 ? "s" : ""} · Updated ${lastUpdated ? timeAgo(lastUpdated) : "—"}`
-                  : `All caught up! 🎉 · Updated ${lastUpdated ? timeAgo(lastUpdated) : "—"}`
-              }
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => void fetchAndGenerate()}
-              disabled={loading}
-              className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 shadow-sm hover:bg-gray-50 transition disabled:opacity-50">
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </button>
-            <button
-              onClick={() => setShowRules(r => !r)}
-              className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold shadow-sm transition ${
-                showRules ? "bg-indigo-600 text-white" : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-              }`}>
-              <Settings className="w-4 h-4" />
-              Alert Rules
-            </button>
-          </div>
-        </div>
+          }
+        />
 
         {/* ── Severity Summary Cards ───────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-3">
@@ -714,15 +714,11 @@ export default function AlertsPage() {
             <p className="text-sm text-gray-400 font-semibold">Analysing transactions…</p>
           </div>
         ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-3xl p-8 text-center">
-            <AlertTriangle className="w-8 h-8 text-red-400 mx-auto mb-3" />
-            <p className="text-sm font-bold text-red-700 mb-1">Failed to load alerts</p>
-            <p className="text-xs text-red-500 mb-4">{error}</p>
-            <button onClick={() => void fetchAndGenerate()}
-              className="px-5 py-2 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition">
+          <Alert variant="error" title="Failed to load alerts" message={error}>
+            <Button onClick={() => void fetchAndGenerate()} variant="danger" size="sm">
               Try Again
-            </button>
-          </div>
+            </Button>
+          </Alert>
         ) : transactions.length === 0 ? (
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
             <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
@@ -862,6 +858,6 @@ export default function AlertsPage() {
           </div>
         )}
       </div>
-    </div>
+    </PageContent>
   );
 }

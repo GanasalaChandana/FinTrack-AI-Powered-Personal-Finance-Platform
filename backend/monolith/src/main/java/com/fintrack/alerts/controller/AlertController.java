@@ -82,8 +82,19 @@ public class AlertController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Alert> updateAlert(@PathVariable Long id, @RequestBody Alert alert) {
+    public ResponseEntity<Alert> updateAlert(
+            @PathVariable Long id,
+            @RequestBody Alert alert,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
         try {
+            if (userId == null || userId.isBlank()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            Alert existing = alertService.getAlertById(id);
+            if (!userId.equals(existing.getUserId())) {
+                log.warn("PUT /api/alerts/{} forbidden: userId={} does not own alert", id, userId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
             return ResponseEntity.ok(alertService.updateAlert(id, alert));
         } catch (RuntimeException e) {
             log.warn("Alert not found for update: {}", id);
@@ -95,10 +106,25 @@ public class AlertController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAlert(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteAlert(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
         try {
+            if (userId == null || userId.isBlank()) {
+                log.warn("DELETE /api/alerts/{} rejected: missing X-User-Id", id);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            Alert alert = alertService.getAlertById(id);
+            if (!userId.equals(alert.getUserId())) {
+                log.warn("DELETE /api/alerts/{} forbidden: userId={} does not own alert (owner={})",
+                        id, userId, alert.getUserId());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
             alertService.deleteAlert(id);
             return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            log.warn("Alert not found for delete: {}", id);
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             log.error("Error deleting alert {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -120,6 +146,14 @@ public class AlertController {
             @PathVariable Long id,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
         try {
+            if (userId == null || userId.isBlank()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            Alert alert = alertService.getAlertById(id);
+            if (!userId.equals(alert.getUserId())) {
+                log.warn("POST /api/alerts/{}/acknowledge forbidden: userId={} does not own alert", id, userId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
             return ResponseEntity.ok(alertService.acknowledgeAlert(id));
         } catch (RuntimeException e) {
             log.warn("Alert not found for acknowledge: {}", id);

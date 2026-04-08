@@ -41,16 +41,29 @@ public class TransactionUploadController {
             DateTimeFormatter.ofPattern("d/M/yyyy")
     };
 
+    private static final long MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+
     @PostMapping("/upload")
     public ResponseEntity<?> uploadTransactions(
             @RequestParam("file") MultipartFile file,
-            @RequestHeader("X-User-Id") String userId) {
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+
+        if (userId == null || userId.isBlank()) {
+            log.warn("POST /api/transactions/upload rejected: missing X-User-Id");
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
 
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "File is empty"));
         }
 
-        if (!file.getOriginalFilename().endsWith(".csv")) {
+        if (file.getSize() > MAX_FILE_SIZE_BYTES) {
+            log.warn("CSV upload rejected: file size {} bytes exceeds 5 MB limit", file.getSize());
+            return ResponseEntity.status(413).body(Map.of("error", "File exceeds maximum allowed size of 5 MB"));
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".csv")) {
             return ResponseEntity.badRequest().body(Map.of("error", "Only CSV files are allowed"));
         }
 

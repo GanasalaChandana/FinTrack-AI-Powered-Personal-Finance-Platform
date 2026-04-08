@@ -3,6 +3,8 @@ package com.fintrack.reports.controller;
 import com.fintrack.reports.service.PdfGeneratorService;
 import com.fintrack.reports.service.ReportsService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +15,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/reports")
 @RequiredArgsConstructor
+@Slf4j
 public class ReportsController {
 
     private final ReportsService reportsService;
@@ -24,7 +27,8 @@ public class ReportsController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             Authentication authentication) {
 
-        String finalUserId = userId != null ? userId : getUserIdFromAuth(authentication);
+        String finalUserId = resolveUserId(userId, authentication);
+        if (finalUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         Map<String, Object> reports = reportsService.getFinancialReports(finalUserId, range);
         return ResponseEntity.ok(reports);
     }
@@ -35,7 +39,8 @@ public class ReportsController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             Authentication authentication) {
 
-        String finalUserId = userId != null ? userId : getUserIdFromAuth(authentication);
+        String finalUserId = resolveUserId(userId, authentication);
+        if (finalUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         List<Map<String, Object>> summary = reportsService.getMonthlySummary(finalUserId, range);
         return ResponseEntity.ok(summary);
     }
@@ -46,7 +51,8 @@ public class ReportsController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             Authentication authentication) {
 
-        String finalUserId = userId != null ? userId : getUserIdFromAuth(authentication);
+        String finalUserId = resolveUserId(userId, authentication);
+        if (finalUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         java.time.LocalDate[] dateRange = parseDateRange(range);
         List<Map<String, Object>> breakdown = reportsService.getCategoryBreakdown(
                 finalUserId, dateRange[0], dateRange[1]);
@@ -58,7 +64,8 @@ public class ReportsController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             Authentication authentication) {
 
-        String finalUserId = userId != null ? userId : getUserIdFromAuth(authentication);
+        String finalUserId = resolveUserId(userId, authentication);
+        if (finalUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         List<Map<String, Object>> goals = reportsService.getSavingsGoals(finalUserId);
         return ResponseEntity.ok(goals);
     }
@@ -70,7 +77,8 @@ public class ReportsController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             Authentication authentication) {
 
-        String finalUserId = userId != null ? userId : getUserIdFromAuth(authentication);
+        String finalUserId = resolveUserId(userId, authentication);
+        if (finalUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         java.time.LocalDate[] dateRange = parseDateRange(range);
         List<Map<String, Object>> expenses = reportsService.getTopExpenses(
                 finalUserId, dateRange[0], dateRange[1], limit);
@@ -83,7 +91,8 @@ public class ReportsController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             Authentication authentication) {
 
-        String finalUserId = userId != null ? userId : getUserIdFromAuth(authentication);
+        String finalUserId = resolveUserId(userId, authentication);
+        if (finalUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         java.time.LocalDate[] dateRange = parseDateRange(range);
         List<String> insights = reportsService.generateInsights(
                 finalUserId, dateRange[0], dateRange[1]);
@@ -96,7 +105,8 @@ public class ReportsController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             Authentication authentication) {
 
-        String finalUserId = userId != null ? userId : getUserIdFromAuth(authentication);
+        String finalUserId = resolveUserId(userId, authentication);
+        if (finalUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
         // Fetch the same report data shown in the Overview tab
         Map<String, Object> reportData = reportsService.getFinancialReports(finalUserId, range);
@@ -104,7 +114,9 @@ public class ReportsController {
         // Generate real PDF bytes
         byte[] pdfBytes = pdfGeneratorService.generateFinancialReport(reportData, range);
 
-        String filename = "financial-report-" + range + ".pdf";
+        // Sanitize range parameter for use in filename
+        String safeRange = range.replaceAll("[^a-zA-Z0-9\\-]", "");
+        String filename = "financial-report-" + safeRange + ".pdf";
 
         return ResponseEntity.ok()
                 .header("Content-Type", "application/pdf")
@@ -120,9 +132,9 @@ public class ReportsController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             Authentication authentication) {
 
-        return ResponseEntity.ok(Map.of(
-                "period1", Map.of(),
-                "period2", Map.of()));
+        String finalUserId = resolveUserId(userId, authentication);
+        if (finalUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok(Map.of("period1", Map.of(), "period2", Map.of()));
     }
 
     @GetMapping("/forecast")
@@ -131,15 +143,25 @@ public class ReportsController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             Authentication authentication) {
 
-        return ResponseEntity.ok(Map.of(
-                "forecast", List.of()));
+        String finalUserId = resolveUserId(userId, authentication);
+        if (finalUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok(Map.of("forecast", List.of()));
     }
 
-    private String getUserIdFromAuth(Authentication authentication) {
-        if (authentication == null || authentication.getPrincipal() == null) {
-            return "1";
+    /**
+     * Resolves userId from the X-User-Id header (injected by JwtAuthenticationFilter from JWT)
+     * or falls back to the authenticated principal name. Returns null if neither is available,
+     * which callers should treat as a 401.
+     */
+    private String resolveUserId(String headerUserId, Authentication authentication) {
+        if (headerUserId != null && !headerUserId.isBlank()) {
+            return headerUserId;
         }
-        return authentication.getName();
+        if (authentication != null && authentication.getPrincipal() != null) {
+            return authentication.getName();
+        }
+        log.warn("Could not resolve userId: no X-User-Id header and no authenticated principal");
+        return null;
     }
 
     private java.time.LocalDate[] parseDateRange(String dateRange) {

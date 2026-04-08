@@ -195,6 +195,41 @@ export function isAuthenticated(): boolean {
 
 const pendingRequests = new Map<string, Promise<any>>();
 
+// Prevents multiple simultaneous refresh attempts
+let isRefreshingToken = false;
+let tokenRefreshPromise: Promise<boolean> | null = null;
+
+/** Tries to silently refresh the JWT. Returns true on success, false on failure. */
+async function tryRefreshToken(): Promise<boolean> {
+  if (isRefreshingToken && tokenRefreshPromise) return tokenRefreshPromise;
+
+  isRefreshingToken = true;
+  tokenRefreshPromise = (async () => {
+    try {
+      const res = await fetch(`${getBaseUrl()}/api/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.token) {
+          setToken(data.token);
+          return true;
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      isRefreshingToken = false;
+      tokenRefreshPromise = null;
+    }
+  })();
+
+  return tokenRefreshPromise;
+}
+
 export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestInit = {},
@@ -260,11 +295,17 @@ export async function apiRequest<T = any>(
 
       if (!response.ok) {
         if (response.status === 401) {
+          // Attempt a silent token refresh before giving up
+          const refreshed = await tryRefreshToken();
+          if (refreshed) {
+            // Token renewed — retry the original request once with the new token
+            pendingRequests.delete(requestKey);
+            return apiRequest<T>(endpoint, options, useTransactionsService);
+          }
+          // Refresh failed or backend has no /refresh endpoint → log out
           removeToken();
           if (typeof window !== "undefined") {
-            setTimeout(() => {
-              window.location.href = "/login";
-            }, 100);
+            setTimeout(() => { window.location.href = "/login"; }, 100);
           }
         }
 

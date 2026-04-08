@@ -67,10 +67,8 @@ public class RecurringTransactionController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/process")
-    public ResponseEntity<String> processRecurringTransactions() {
-        log.info("Manually triggering recurring transactions processing");
-        recurringTransactionService.processRecurringTransactions();
-        return ResponseEntity.ok("Recurring transactions processed successfully");
-    }
+    // NOTE: /process was removed — recurring transaction processing is handled
+    // exclusively by the scheduled job (@Scheduled in RecurringTransactionService).
+    // Exposing it as a public endpoint allowed any authenticated user to trigger
+    // global processing for all users, which is both a security and resource risk.
 }

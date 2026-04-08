@@ -9,6 +9,7 @@ import Navigation from "@/components/Navigation";
 import { MobileBottomNav } from "@/components/navigation/MobileBottomNav";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { BudgetAlerts } from "@/components/BudgetAlerts";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 /**
  * Helper to check if route is public/auth
@@ -70,25 +71,29 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const isAuthPage = isPublicRoute(pathname);
 
   return (
-    <>
-      {/* Theme Switcher - Only show on protected pages */}
-      {!isAuthPage && isAuthenticated && (
-        <div className="fixed right-4 top-4 z-50">
-          <ThemeSwitcher />
-        </div>
-      )}
+    <ErrorBoundary onError={(error, info) => {
+      console.error('Application error:', error, info);
+    }}>
+      <>
+        {/* Theme Switcher - Only show on protected pages */}
+        {!isAuthPage && isAuthenticated && (
+          <div className="fixed right-4 top-4 z-50">
+            <ThemeSwitcher />
+          </div>
+        )}
 
-      {/* Top Navigation */}
-      {!isAuthPage && isAuthenticated && <Navigation />}
+        {/* Top Navigation */}
+        {!isAuthPage && isAuthenticated && <Navigation />}
 
-      {/* Budget Alerts */}
-      {!isAuthPage && isAuthenticated && <BudgetAlerts />}
+        {/* Budget Alerts */}
+        {!isAuthPage && isAuthenticated && <BudgetAlerts />}
 
-      {/* Page Content */}
-      <main suppressHydrationWarning>{children}</main>
+        {/* Page Content */}
+        <main suppressHydrationWarning>{children}</main>
 
-      {/* Bottom Mobile Navigation */}
-      {!isAuthPage && isAuthenticated && <MobileBottomNav />}
-    </>
+        {/* Bottom Mobile Navigation */}
+        {!isAuthPage && isAuthenticated && <MobileBottomNav />}
+      </>
+    </ErrorBoundary>
   );
 }

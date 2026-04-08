@@ -26,6 +26,9 @@ export { BudgetProgressCard } from './budget/BudgetProgressCard';
 // ========== Goal Components (Phase 3) ==========
 export { GoalProgressCard } from './goals/GoalProgressCard';
 
+// ========== Error Handling (Phase 3) ==========
+export { ErrorBoundary } from './ErrorBoundary';
+
 // ========== Re-exports of common utilities ==========
 export type { default as ButtonProps } from './ui/Button';
 export type { default as CardProps } from './ui/Card';

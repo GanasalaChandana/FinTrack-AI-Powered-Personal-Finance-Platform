@@ -1,38 +1,13 @@
-"use client";
+'use client';
 
-/**
- * ErrorBoundary
- *
- * Catches runtime errors in any child component tree and shows a
- * graceful fallback instead of a blank page.
- *
- * Usage — wrap individual page sections:
- *
- *   <ErrorBoundary label="Dashboard">
- *     <DashboardContent />
- *   </ErrorBoundary>
- *
- *   <ErrorBoundary label="Reports" compact>
- *     <ReportsChart />
- *   </ErrorBoundary>
- *
- * For full-page protection, wrap the page in layout:
- *
- *   <ErrorBoundary label="Page">
- *     {children}
- *   </ErrorBoundary>
- */
-
-import { Component, ReactNode, ErrorInfo } from "react";
+import React, { ReactNode, Component, ErrorInfo } from 'react';
+import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { Button } from './ui/Button';
 
 interface Props {
   children: ReactNode;
-  /** Short name shown in the error card, e.g. "Dashboard", "Reports" */
-  label?: string;
-  /** Compact mode — smaller card, good for widget-level errors */
-  compact?: boolean;
-  /** Custom fallback to render instead of the default card */
   fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 interface State {
@@ -50,150 +25,50 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo) {
-    // Replace with your error tracking SDK (Sentry, etc.) if needed
-    console.error(`[ErrorBoundary: ${this.props.label ?? "unknown"}]`, error, info);
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Error Boundary caught:', error, errorInfo);
+    this.props.onError?.(error, errorInfo);
   }
 
-  handleRetry = () => {
-    this.setState({ hasError: false, error: null });
-  };
-
   render() {
-    const { hasError, error } = this.state;
-    const { children, label, compact, fallback } = this.props;
-
-    if (!hasError) return children;
-
-    if (fallback) return fallback;
-
-    if (compact) {
+    if (this.state.hasError) {
       return (
-        <div
-          style={{
-            background: "rgba(239,68,68,0.08)",
-            border: "1px solid rgba(239,68,68,0.2)",
-            borderRadius: 12,
-            padding: "16px 20px",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
-          <span style={{ fontSize: 20 }}>⚠️</span>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, color: "#fca5a5", margin: 0 }}>
-              {label ? `${label} failed to load` : "Something went wrong"}
-            </p>
-            <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0" }}>
-              {error?.message || "An unexpected error occurred"}
-            </p>
+        this.props.fallback || (
+          <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800 p-4">
+            <div className="max-w-md w-full bg-white dark:bg-neutral-800 rounded-2xl shadow-lg p-8 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-error-100 dark:bg-error-900 flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-error-600 dark:text-error-400" />
+              </div>
+              <h1 className="text-xl font-bold text-neutral-900 dark:text-neutral-50 mb-2">
+                Something went wrong
+              </h1>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
+                An unexpected error has occurred. Please try refreshing the page.
+              </p>
+              {process.env.NODE_ENV === 'development' && (
+                <details className="text-left mb-4 p-3 bg-neutral-50 dark:bg-neutral-700 rounded-lg">
+                  <summary className="cursor-pointer font-semibold text-xs text-neutral-700 dark:text-neutral-300">
+                    Error Details
+                  </summary>
+                  <pre className="text-xs text-error-600 dark:text-error-400 mt-2 overflow-auto max-h-32">
+                    {this.state.error?.message}
+                  </pre>
+                </details>
+              )}
+              <Button
+                onClick={() => window.location.reload()}
+                variant="primary"
+                className="w-full"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Refresh Page
+              </Button>
+            </div>
           </div>
-          <button
-            onClick={this.handleRetry}
-            style={{
-              background: "rgba(239,68,68,0.15)",
-              border: "1px solid rgba(239,68,68,0.3)",
-              color: "#fca5a5",
-              borderRadius: 8,
-              padding: "6px 12px",
-              fontSize: 12,
-              cursor: "pointer",
-              flexShrink: 0,
-            }}
-          >
-            Retry
-          </button>
-        </div>
+        )
       );
     }
 
-    return (
-      <div
-        style={{
-          minHeight: 300,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 40,
-        }}
-      >
-        <div
-          style={{
-            background: "rgba(15,23,42,0.8)",
-            border: "1px solid rgba(239,68,68,0.2)",
-            borderRadius: 20,
-            padding: "40px 48px",
-            textAlign: "center",
-            maxWidth: 480,
-          }}
-        >
-          <div style={{ fontSize: 40, marginBottom: 16 }}>💥</div>
-          <h3
-            style={{
-              fontFamily: "Fraunces, serif",
-              fontSize: 22,
-              fontWeight: 700,
-              color: "#f1f5f9",
-              marginBottom: 10,
-            }}
-          >
-            {label ? `${label} crashed` : "Something went wrong"}
-          </h3>
-          <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6, marginBottom: 8 }}>
-            This section encountered an unexpected error. The rest of the app is unaffected.
-          </p>
-          {error?.message && (
-            <p
-              style={{
-                fontSize: 12,
-                color: "#ef4444",
-                fontFamily: "monospace",
-                background: "rgba(239,68,68,0.08)",
-                borderRadius: 8,
-                padding: "8px 12px",
-                marginBottom: 24,
-                wordBreak: "break-word",
-              }}
-            >
-              {error.message}
-            </p>
-          )}
-          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-            <button
-              onClick={this.handleRetry}
-              style={{
-                background: "linear-gradient(135deg, #6366f1, #4f46e5)",
-                border: "none",
-                color: "white",
-                borderRadius: 10,
-                padding: "10px 20px",
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              Try again
-            </button>
-            <button
-              onClick={() => window.location.reload()}
-              style={{
-                background: "transparent",
-                border: "1px solid rgba(148,163,184,0.2)",
-                color: "#94a3b8",
-                borderRadius: 10,
-                padding: "10px 20px",
-                fontSize: 14,
-                cursor: "pointer",
-              }}
-            >
-              Reload page
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return this.props.children;
   }
 }
-
-export default ErrorBoundary;

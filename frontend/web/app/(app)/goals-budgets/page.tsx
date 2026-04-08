@@ -7,53 +7,7 @@ import {
   CheckCircle2, Circle, CalendarDays, X, ChevronRight,
 } from "lucide-react";
 import { BudgetManager, type Budget } from "@/components/budgets/BudgetManager";
-
-// ── API helpers ────────────────────────────────────────────────────────────────
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-
-const getToken = (): string | null => {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("ft_token") || localStorage.getItem("authToken");
-};
-
-const getUserId = (): string | null => {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("userId");
-};
-
-const apiRequest = async <T,>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> => {
-  const token  = getToken();
-  const userId = getUserId();
-
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token  && { Authorization: `Bearer ${token}` }),
-      ...(userId && { "X-User-Id": userId }),
-      ...options.headers,
-    },
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    if (response.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("ft_token");
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("userId");
-      window.location.href = "/register?mode=signin";
-    }
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  if (response.status === 204) return {} as T;
-  const text = await response.text();
-  return text ? JSON.parse(text) : ({} as T);
-};
+import { apiRequest, getUser } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -737,10 +691,9 @@ export default function GoalsBudgetsPage() {
   // Auth check
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const token  = getToken();
-      const userId = getUserId();
-      if (!token || !userId) {
-        router.replace("/register?mode=signin");
+      const user = getUser();
+      if (!user?.id) {
+        router.replace("/login");
       } else {
         setIsAuthenticated(true);
       }

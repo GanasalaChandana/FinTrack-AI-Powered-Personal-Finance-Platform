@@ -90,8 +90,7 @@ public class SecurityConfig {
 
                 configuration.setAllowedOriginPatterns(Arrays.asList(
                                 "https://fintrack-liart.vercel.app",
-                                "https://fintrack-liart-*.vercel.app",
-                                "https://*.vercel.app"));
+                                "https://fintrack-liart-*.vercel.app"));
 
                 configuration.setAllowedMethods(Arrays.asList(
                                 "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));

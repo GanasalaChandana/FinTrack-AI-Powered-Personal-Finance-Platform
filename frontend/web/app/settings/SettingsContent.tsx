@@ -169,9 +169,19 @@ export default function SettingsContent() {
   const handleExport = async () => {
     setExporting(true);
     try {
+      const currentUser = getUser();
+      if (!currentUser?.id) { showToast('Not authenticated', 'error'); return; }
+
       const transactions = await apiRequest<any[]>('/api/transactions');
-      const json = JSON.stringify(transactions, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
+
+      // Belt-and-suspenders: filter to only rows that belong to the current user
+      // (the backend enforces this via JWT, but we verify on the client too)
+      const owned = Array.isArray(transactions)
+        ? transactions.filter((t) => !t.userId || t.userId === currentUser.id)
+        : [];
+
+      const exportData = { exportedAt: new Date().toISOString(), userId: currentUser.id, transactions: owned };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = `fintrack-export-${new Date().toISOString().split('T')[0]}.json`;

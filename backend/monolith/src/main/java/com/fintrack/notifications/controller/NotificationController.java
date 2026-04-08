@@ -42,13 +42,17 @@ public class NotificationController {
     public ResponseEntity<NotificationResponse> createNotification(
             @Valid @RequestBody NotificationRequest req,
             @RequestHeader(value = "X-User-Id", required = false) String requestingUserId) {
-        // Stamp userId from the verified JWT header — ignore whatever userId is in the body
-        ResponseEntity<?> check = ownershipDenied(requestingUserId, req.userId(), "POST /api/notifications");
-        if (check != null) return check.hasBody()
-                ? ResponseEntity.status(check.getStatusCode()).build()
-                : ResponseEntity.status(check.getStatusCode()).build();
+        if (requestingUserId == null || requestingUserId.isBlank()) {
+            log.warn("POST /api/notifications rejected: missing X-User-Id");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        // Always use the JWT-verified userId — ignore whatever userId is in the body
+        if (!requestingUserId.equals(req.userId())) {
+            log.warn("POST /api/notifications: overriding body userId={} with verified userId={}",
+                    req.userId(), requestingUserId);
+        }
         log.debug("Creating notification for userId={}", requestingUserId);
-        return ResponseEntity.ok(notifications.create(req));
+        return ResponseEntity.ok(notifications.createForUser(requestingUserId, req));
     }
 
     @GetMapping("/user/{userId}")

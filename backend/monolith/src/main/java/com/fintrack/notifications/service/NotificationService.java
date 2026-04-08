@@ -21,8 +21,13 @@ public class NotificationService {
     private final NotificationRepository repo;
 
     public NotificationResponse create(NotificationRequest req) {
+        return createForUser(req.userId(), req);
+    }
+
+    /** Creates a notification, always using the supplied verifiedUserId regardless of what is in the request body. */
+    public NotificationResponse createForUser(String verifiedUserId, NotificationRequest req) {
         Notification n = Notification.builder()
-                .userId(req.userId())
+                .userId(verifiedUserId)
                 .title(req.title())
                 .message(req.message())
                 .type(req.type())

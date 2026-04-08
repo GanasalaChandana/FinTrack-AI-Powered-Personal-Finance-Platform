@@ -19,7 +19,9 @@ public class MLController {
     private final MLClassifierService mlClassifierService;
 
     @PostMapping("/predict")
-    public ResponseEntity<?> predict(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<?> predict(
+            @RequestBody Map<String, Object> request,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
         try {
             String description = (String) request.get("description");
             if (description == null || description.isBlank()) {
@@ -34,6 +36,8 @@ public class MLController {
             }
 
             Map<String, Object> result = mlClassifierService.predictCategory(description, amount);
+            log.debug("ML predict userId={} description='{}' -> category={} confidence={}",
+                    userId, description, result.get("category"), result.get("confidence"));
             return ResponseEntity.ok(result);
         } catch (ClassCastException e) {
             log.warn("ML predict - invalid request body: {}", e.getMessage());

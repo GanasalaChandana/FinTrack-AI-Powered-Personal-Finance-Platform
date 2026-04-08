@@ -218,11 +218,29 @@ public class TransactionUploadController {
             throw new IllegalArgumentException("Amount is required");
         }
 
-        // Remove currency symbols and whitespace
-        String cleaned = amountStr.replaceAll("[^0-9.-]", "");
+        String s = amountStr.trim();
+
+        // Accounting notation: (100.00) means negative
+        boolean accountingNegative = s.startsWith("(") && s.endsWith(")");
+        if (accountingNegative) {
+            s = s.substring(1, s.length() - 1);
+        }
+
+        // Strip everything except digits, dot, and leading minus
+        boolean hasLeadingMinus = s.startsWith("-");
+        String cleaned = s.replaceAll("[^0-9.]", "");
+
+        if (cleaned.isEmpty()) {
+            throw new IllegalArgumentException("Invalid amount: " + amountStr);
+        }
 
         try {
-            return new BigDecimal(cleaned).abs(); // Always use absolute value
+            BigDecimal value = new BigDecimal(cleaned);
+            // Preserve sign from original: leading minus OR accounting notation
+            if (hasLeadingMinus || accountingNegative) {
+                value = value.negate();
+            }
+            return value.abs(); // Transaction amounts are always stored positive; type column drives sign
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Invalid amount: " + amountStr);
         }

@@ -24,6 +24,19 @@ interface SpendingInsight {
   savingsEstimate?: number; // annual savings if user acts
 }
 
+// ── Insight thresholds (centralised so they're easy to adjust) ───────────────
+const THRESHOLDS = {
+  largeExpense:        500,   // single transaction flagged as large
+  microSpendMax:        25,   // transactions under this are "micro"
+  microSpendMinCount:    8,   // need at least this many micro-txns to warn
+  weekendSpendPct:      45,   // weekend % above this triggers a tip
+  categoryDominancePct: 30,   // category % above this triggers a warning
+  categorySpikePct:     50,   // month-over-month growth % to flag a spike
+  categorySpikeMini:    50,   // min $ amount for category spike to matter
+  lowSavingsRate:       10,   // savings rate below this is "low"
+  goodSavingsRate:      20,   // savings rate above this is "excellent"
+};
+
 // ── Insight engine ────────────────────────────────────────────────────────────
 
 function generateInsights(transactions: ApiTransaction[]): SpendingInsight[] {
@@ -73,7 +86,7 @@ function generateInsights(transactions: ApiTransaction[]): SpendingInsight[] {
     const [topCat, topAmt] = sorted[0];
     const total = expenses.reduce((s, t) => s + Math.abs(t.amount), 0);
     const pct   = total > 0 ? (topAmt / total) * 100 : 0;
-    if (pct > 30) {
+    if (pct > THRESHOLDS.categoryDominancePct) {
       insights.push({
         id: "top-category", type: "info", priority: 2,
         title: `${topCat} Dominates Your Spending`,
@@ -94,7 +107,7 @@ function generateInsights(transactions: ApiTransaction[]): SpendingInsight[] {
 
   Object.entries(thisMonthByCategory).forEach(([cat, amt]) => {
     const prev = lastMonthByCategory[cat] ?? 0;
-    if (prev > 0 && (amt - prev) / prev > 0.5 && amt > 50) {
+    if (prev > 0 && (amt - prev) / prev > THRESHOLDS.categorySpikePct / 100 && amt > THRESHOLDS.categorySpikeMini) {
       insights.push({
         id: `cat-spike-${cat}`, type: "warning", priority: 2,
         title: `${cat} Spending Jumped ${(((amt - prev) / prev) * 100).toFixed(0)}%`,
@@ -106,13 +119,13 @@ function generateInsights(transactions: ApiTransaction[]): SpendingInsight[] {
   });
 
   // ── 4. Impulse buying (many small transactions) ───────────────────────────
-  const small     = expenses.filter((t) => Math.abs(t.amount) < 25);
+  const small     = expenses.filter((t) => Math.abs(t.amount) < THRESHOLDS.microSpendMax);
   const smallTotal = small.reduce((s, t) => s + Math.abs(t.amount), 0);
-  if (small.length > 8) {
+  if (small.length > THRESHOLDS.microSpendMinCount) {
     insights.push({
       id: "impulse", type: "warning", priority: 2,
       title: "Micro-Spending Adding Up",
-      message: `${small.length} transactions under $25 totalled $${smallTotal.toFixed(2)}. Small buys compound fast.`,
+      message: `${small.length} transactions under $${THRESHOLDS.microSpendMax} totalled $${smallTotal.toFixed(2)}. Small buys compound fast.`,
       impact: "medium", amount: smallTotal, actionable: true,
       actions: ["Apply the 24-hour rule before small purchases", "Set a daily cash allowance", "Delete shopping apps"],
       savingsEstimate: smallTotal * 0.3 * 12,
@@ -144,7 +157,7 @@ function generateInsights(transactions: ApiTransaction[]): SpendingInsight[] {
     (d === 0 || d === 6) ? (weekend += Math.abs(t.amount)) : (weekday += Math.abs(t.amount));
   });
   const wkPct = weekend + weekday > 0 ? (weekend / (weekend + weekday)) * 100 : 0;
-  if (wkPct > 45) {
+  if (wkPct > THRESHOLDS.weekendSpendPct) {
     insights.push({
       id: "weekend", type: "tip", priority: 4,
       title: "Weekend Spending Pattern",
@@ -161,7 +174,7 @@ function generateInsights(transactions: ApiTransaction[]): SpendingInsight[] {
 
   if (incomeThisMonth > 0 && thisTotal > 0) {
     const savingsRate = ((incomeThisMonth - thisTotal) / incomeThisMonth) * 100;
-    if (savingsRate < 10 && savingsRate >= 0) {
+    if (savingsRate < THRESHOLDS.lowSavingsRate && savingsRate >= 0) {
       insights.push({
         id: "savings-rate", type: "warning", priority: 1,
         title: `Low Savings Rate: ${savingsRate.toFixed(0)}%`,
@@ -170,7 +183,7 @@ function generateInsights(transactions: ApiTransaction[]): SpendingInsight[] {
         actions: ["Set up auto-transfer to savings on payday", "Track daily spending", "Find one expense to cut"],
         savingsEstimate: incomeThisMonth * 0.1 * 12,
       });
-    } else if (savingsRate >= 20) {
+    } else if (savingsRate >= THRESHOLDS.goodSavingsRate) {
       insights.push({
         id: "good-savings", type: "success", priority: 5,
         title: `Excellent Savings Rate: ${savingsRate.toFixed(0)}%`,

@@ -22,6 +22,9 @@ public class TransactionController {
 
     private final TransactionService transactionService;
 
+    private static final int DEFAULT_TRANSACTION_LIMIT = 500;
+    private static final int MAX_TRANSACTION_LIMIT     = 2000;
+
     @GetMapping
     public ResponseEntity<List<TransactionResponse>> getAllTransactions(
             @RequestParam(required = false) Integer limit,
@@ -31,12 +34,17 @@ public class TransactionController {
             log.warn("GET /api/transactions rejected: missing X-User-Id");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        log.debug("Getting transactions for user: {} (limit: {})", userId, limit);
+
+        int effectiveLimit = (limit != null && limit > 0)
+                ? Math.min(limit, MAX_TRANSACTION_LIMIT)
+                : DEFAULT_TRANSACTION_LIMIT;
+
+        log.debug("Getting transactions for user: {} (limit: {})", userId, effectiveLimit);
 
         List<TransactionResponse> transactions = transactionService.getAllTransactions(userId);
 
-        if (limit != null && limit > 0 && transactions.size() > limit) {
-            transactions = transactions.subList(0, limit);
+        if (transactions.size() > effectiveLimit) {
+            transactions = transactions.subList(0, effectiveLimit);
         }
 
         return ResponseEntity.ok(transactions);

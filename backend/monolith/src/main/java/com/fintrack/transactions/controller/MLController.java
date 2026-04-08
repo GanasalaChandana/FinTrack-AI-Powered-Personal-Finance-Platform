@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.HashMap;
 
 @Slf4j
 @RestController
@@ -32,8 +33,8 @@ public class MLController {
                 amount = ((Number) amountRaw).doubleValue();
             }
 
-            String category = mlClassifierService.predictCategory(description, amount);
-            return ResponseEntity.ok(Map.of("category", category, "confidence", 0.85));
+            Map<String, Object> result = mlClassifierService.predictCategory(description, amount);
+            return ResponseEntity.ok(result);
         } catch (ClassCastException e) {
             log.warn("ML predict - invalid request body: {}", e.getMessage());
             return ResponseEntity.badRequest()

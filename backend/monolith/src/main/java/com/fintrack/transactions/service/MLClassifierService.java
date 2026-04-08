@@ -24,9 +24,11 @@ public class MLClassifierService {
     private String mlClassifierUrl;
 
     /**
-     * Predict category for a transaction
+     * Predict category for a transaction.
+     * Returns a map with "category" and "confidence" keys.
+     * Falls back to UNCATEGORIZED with confidence 0.0 when the ML service is unavailable.
      */
-    public String predictCategory(String description, Double amount) {
+    public Map<String, Object> predictCategory(String description, Double amount) {
         try {
             String url = mlClassifierUrl + "/predict";
 
@@ -46,20 +48,16 @@ public class MLClassifierService {
                 String category = jsonNode.get("category").asText();
                 double confidence = jsonNode.get("confidence").asDouble();
 
-                log.info("ML Prediction: {} (confidence: {}) for description: {}",
-                        category, confidence, description);
+                log.debug("ML Prediction: {} (confidence: {}) for: {}", category, confidence, description);
 
-                // Only return prediction if confidence is above threshold
                 if (confidence > 0.5) {
-                    return category;
+                    return Map.of("category", category, "confidence", confidence);
                 }
             }
-
-            return "UNCATEGORIZED";
         } catch (Exception e) {
-            log.error("Error calling ML classifier service", e);
-            return "UNCATEGORIZED";
+            log.debug("ML classifier unavailable, falling back to UNCATEGORIZED: {}", e.getMessage());
         }
+        return Map.of("category", "UNCATEGORIZED", "confidence", 0.0);
     }
 
     /**

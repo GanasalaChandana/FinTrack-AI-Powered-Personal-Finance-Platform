@@ -166,13 +166,14 @@ function AddRuleForm({ onSave, onClose }: AddRuleFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description.trim()) return setError("Description is required");
-    if (!form.amount || +form.amount <= 0) return setError("Amount must be positive");
+    const parsedAmount = parseFloat(form.amount);
+    if (!form.amount || isNaN(parsedAmount) || parsedAmount <= 0) return setError("Amount must be a positive number");
     setSaving(true);
     setError("");
     try {
       await onSave({
         description: form.description.trim(),
-        amount:      +form.amount,
+        amount:      parsedAmount,
         category:    form.category,
         type:        form.type,
         frequency:   form.frequency,

@@ -4,6 +4,7 @@ import com.fintrack.budgets.dto.GoalDTO;
 import com.fintrack.budgets.service.GoalService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/goals")
 @RequiredArgsConstructor
+@Slf4j
 public class GoalController {
 
     private final GoalService goalService;
@@ -23,7 +25,7 @@ public class GoalController {
     public ResponseEntity<List<GoalDTO>> getAllGoals(
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
 
-        if (userId == null || userId.isEmpty()) {
+        if (userId == null || userId.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -36,7 +38,7 @@ public class GoalController {
             @PathVariable String id,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
 
-        if (userId == null || userId.isEmpty()) {
+        if (userId == null || userId.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -49,7 +51,7 @@ public class GoalController {
             @Valid @RequestBody GoalDTO goalDTO,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
 
-        if (userId == null || userId.isEmpty()) {
+        if (userId == null || userId.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -64,7 +66,7 @@ public class GoalController {
             @Valid @RequestBody GoalDTO goalDTO,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
 
-        if (userId == null || userId.isEmpty()) {
+        if (userId == null || userId.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -78,12 +80,17 @@ public class GoalController {
             @RequestBody Map<String, BigDecimal> payload,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
 
-        if (userId == null || userId.isEmpty()) {
+        if (userId == null || userId.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         BigDecimal amount = payload.get("amount");
         if (amount == null) {
+            log.warn("PATCH /api/goals/{}/contribute rejected: missing amount", id);
+            return ResponseEntity.badRequest().build();
+        }
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("PATCH /api/goals/{}/contribute rejected: amount {} must be positive", id, amount);
             return ResponseEntity.badRequest().build();
         }
 
@@ -96,7 +103,7 @@ public class GoalController {
             @PathVariable String id,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
 
-        if (userId == null || userId.isEmpty()) {
+        if (userId == null || userId.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -108,7 +115,7 @@ public class GoalController {
     public ResponseEntity<Map<String, Object>> getGoalsSummary(
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
 
-        if (userId == null || userId.isEmpty()) {
+        if (userId == null || userId.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 

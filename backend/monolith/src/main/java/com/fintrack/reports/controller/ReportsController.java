@@ -127,25 +127,81 @@ public class ReportsController {
 
     @GetMapping("/comparison")
     public ResponseEntity<Map<String, Object>> getComparisonData(
-            @RequestParam String period1,
-            @RequestParam String period2,
+            @RequestParam(defaultValue = "last-30-days") String period1,
+            @RequestParam(defaultValue = "last-30-days") String period2,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             Authentication authentication) {
 
         String finalUserId = resolveUserId(userId, authentication);
         if (finalUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        return ResponseEntity.ok(Map.of("period1", Map.of(), "period2", Map.of()));
+
+        try {
+            java.time.LocalDate[] range1 = parseDateRange(period1);
+            java.time.LocalDate[] range2 = parseDateRange(period2);
+
+            Map<String, Object> summary1 = reportsService.getFinancialSummary(
+                    finalUserId, range1[0], range1[1], period1);
+            Map<String, Object> summary2 = reportsService.getFinancialSummary(
+                    finalUserId, range2[0], range2[1], period2);
+
+            return ResponseEntity.ok(Map.of(
+                    "period1", Map.of("range", period1, "data", summary1),
+                    "period2", Map.of("range", period2, "data", summary2)));
+        } catch (Exception e) {
+            log.error("Error generating comparison for userId={}: {}", finalUserId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @GetMapping("/forecast")
     public ResponseEntity<Map<String, Object>> getForecastData(
-            @RequestParam(defaultValue = "6") int months,
+            @RequestParam(defaultValue = "3") int months,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             Authentication authentication) {
 
         String finalUserId = resolveUserId(userId, authentication);
         if (finalUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        return ResponseEntity.ok(Map.of("forecast", List.of()));
+
+        try {
+            // Use last-6-months of history to project forward
+            List<Map<String, Object>> history = reportsService.getMonthlySummary(finalUserId, "last-6-months");
+
+            // Calculate average monthly income and expenses from history
+            double avgIncome   = history.stream()
+                    .mapToDouble(m -> toDouble(m.get("income"))).average().orElse(0);
+            double avgExpenses = history.stream()
+                    .mapToDouble(m -> toDouble(m.get("expenses"))).average().orElse(0);
+            double avgSavings  = avgIncome - avgExpenses;
+
+            // Build projected months
+            List<Map<String, Object>> projected = new java.util.ArrayList<>();
+            java.time.LocalDate next = java.time.LocalDate.now().withDayOfMonth(1);
+            for (int i = 1; i <= Math.max(1, Math.min(months, 12)); i++) {
+                next = next.plusMonths(1);
+                projected.add(Map.of(
+                        "month",    next.toString().substring(0, 7),
+                        "income",   Math.round(avgIncome   * 100.0) / 100.0,
+                        "expenses", Math.round(avgExpenses * 100.0) / 100.0,
+                        "savings",  Math.round(avgSavings  * 100.0) / 100.0));
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "forecast",        projected,
+                    "basedOnMonths",   history.size(),
+                    "averageIncome",   Math.round(avgIncome   * 100.0) / 100.0,
+                    "averageExpenses", Math.round(avgExpenses * 100.0) / 100.0,
+                    "averageSavings",  Math.round(avgSavings  * 100.0) / 100.0));
+        } catch (Exception e) {
+            log.error("Error generating forecast for userId={}: {}", finalUserId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /** Safely converts a value from report maps to double. */
+    private double toDouble(Object val) {
+        if (val == null) return 0;
+        if (val instanceof Number) return ((Number) val).doubleValue();
+        try { return Double.parseDouble(val.toString()); } catch (NumberFormatException e) { return 0; }
     }
 
     /**

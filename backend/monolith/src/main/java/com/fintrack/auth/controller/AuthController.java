@@ -53,17 +53,19 @@ public class AuthController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            log.error("❌ Registration failed: {}", e.getMessage());
+            log.error("Registration failed for {}: {}", request.getEmail(), e.getMessage());
 
-            // ✅ Better error status codes
-            HttpStatus status = HttpStatus.BAD_REQUEST;
+            // Return 409 for duplicate email but with a generic message to prevent
+            // account enumeration — callers cannot tell whether the email exists
             if (e.getMessage() != null && e.getMessage().contains("already registered")) {
-                status = HttpStatus.CONFLICT; // 409
+                return ResponseEntity
+                        .status(HttpStatus.CONFLICT)
+                        .body(Map.of("error", "Registration failed", "message", "Unable to create account. Please check your details and try again."));
             }
 
             return ResponseEntity
-                    .status(status)
-                    .body(Map.of("error", e.getMessage(), "message", e.getMessage()));
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Registration failed", "message", "Unable to create account. Please check your details and try again."));
         }
     }
 
@@ -87,10 +89,10 @@ public class AuthController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            log.error("❌ Login failed: {}", e.getMessage());
+            log.error("Login failed for {}: {}", request.getEmail(), e.getMessage());
             return ResponseEntity
                     .status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", e.getMessage(), "message", e.getMessage()));
+                    .body(Map.of("error", "Login failed", "message", "Invalid email or password."));
         }
     }
 

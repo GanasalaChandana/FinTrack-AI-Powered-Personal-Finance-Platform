@@ -14,12 +14,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/budgets")
 @RequiredArgsConstructor
 @Slf4j
 public class BudgetController {
+
+    private static final Set<String> VALID_PERIODS = Set.of("daily", "weekly", "monthly", "yearly");
 
     private final BudgetsService budgetsService;
 
@@ -132,21 +135,24 @@ public class BudgetController {
             // Set userId from header
             budget.setUserId(userId);
 
-            // Ensure month is set - default to current month if not provided
+            // Default month to current if not provided
             if (budget.getMonth() == null || budget.getMonth().trim().isEmpty()) {
-                String currentMonth = YearMonth.now().toString(); // Format: YYYY-MM
-                budget.setMonth(currentMonth);
-                log.info("Month not provided, defaulting to: {}", currentMonth);
+                budget.setMonth(YearMonth.now().toString());
             }
 
-            // Ensure period is set - default to "monthly" if not provided
-            if (budget.getPeriod() == null || budget.getPeriod().trim().isEmpty()) {
+            // Validate period — accept daily/weekly/monthly/yearly, default to monthly
+            String period = budget.getPeriod();
+            if (period == null || period.trim().isEmpty()) {
                 budget.setPeriod("monthly");
-                log.info("Period not provided, defaulting to: monthly");
+            } else if (!VALID_PERIODS.contains(period.trim().toLowerCase())) {
+                log.warn("Invalid period '{}' for budget creation by userId={}", period, userId);
+                return ResponseEntity.badRequest().build();
+            } else {
+                budget.setPeriod(period.trim().toLowerCase());
             }
 
             Budget createdBudget = budgetsService.createBudget(budget);
-            log.info("Budget created successfully: {}", createdBudget.getId());
+            log.debug("Budget created id={} for userId={}", createdBudget.getId(), userId);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdBudget);
         } catch (Exception e) {
             log.error("Error creating budget: {}", e.getMessage(), e);
@@ -168,24 +174,24 @@ public class BudgetController {
         }
 
         try {
-            // Ensure userId is set from header
             budget.setUserId(userId);
 
-            // Ensure month is set if not provided
             if (budget.getMonth() == null || budget.getMonth().trim().isEmpty()) {
-                String currentMonth = YearMonth.now().toString();
-                budget.setMonth(currentMonth);
-                log.info("Month not provided in update, defaulting to: {}", currentMonth);
+                budget.setMonth(YearMonth.now().toString());
             }
 
-            // Ensure period is set if not provided
-            if (budget.getPeriod() == null || budget.getPeriod().trim().isEmpty()) {
+            String period = budget.getPeriod();
+            if (period == null || period.trim().isEmpty()) {
                 budget.setPeriod("monthly");
-                log.info("Period not provided in update, defaulting to: monthly");
+            } else if (!VALID_PERIODS.contains(period.trim().toLowerCase())) {
+                log.warn("Invalid period '{}' for budget update id={} userId={}", period, id, userId);
+                return ResponseEntity.badRequest().build();
+            } else {
+                budget.setPeriod(period.trim().toLowerCase());
             }
 
             Budget updatedBudget = budgetsService.updateBudget(String.valueOf(id), budget, userId);
-            log.info("Budget {} updated successfully", id);
+            log.debug("Budget {} updated for userId={}", id, userId);
             return ResponseEntity.ok(updatedBudget);
         } catch (Exception e) {
             log.error("Error updating budget {}: {}", id, e.getMessage(), e);
@@ -207,8 +213,8 @@ public class BudgetController {
         }
 
         Double spent = payload.get("spent");
-        if (spent == null) {
-            log.warn("Missing 'spent' field in request body");
+        if (spent == null || spent < 0) {
+            log.warn("Invalid 'spent' value {} for budget {} userId={}", spent, id, userId);
             return ResponseEntity.badRequest().build();
         }
 

@@ -151,7 +151,9 @@ export function setToken(token: string): void {
   localStorage.setItem(PRIMARY_TOKEN_KEY, token);
   localStorage.setItem(LEGACY_TOKEN_KEY, token);
   sessionStorage.setItem(PRIMARY_TOKEN_KEY, token);
-  document.cookie = `${PRIMARY_TOKEN_KEY}=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+  // Add Secure flag on HTTPS (production). SameSite=Lax prevents CSRF.
+  const isSecure = window.location.protocol === "https:";
+  document.cookie = `${PRIMARY_TOKEN_KEY}=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax${isSecure ? "; Secure" : ""}`;
 }
 
 export function removeToken(): void {
@@ -261,7 +263,7 @@ export async function apiRequest<T = any>(
           removeToken();
           if (typeof window !== "undefined") {
             setTimeout(() => {
-              window.location.href = "/register?mode=signin&reason=session_expired";
+              window.location.href = "/login";
             }, 100);
           }
         }

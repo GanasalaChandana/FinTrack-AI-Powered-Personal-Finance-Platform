@@ -38,15 +38,9 @@ export default function ReceiptsPage() {
     }
   }, [router]);
 
-  // Called when Tesseract finishes parsing — just used for logging/debugging
-  const handleReceiptParsed = (receipt: ParsedReceipt) => {
-    console.log("✅ Receipt parsed:", {
-      merchant:   receipt.merchant,
-      total:      receipt.total,
-      category:   receipt.category,
-      confidence: `${Math.round(receipt.confidence * 100)}%`,
-      items:      receipt.items.length,
-    });
+  // Called when Tesseract finishes parsing
+  const handleReceiptParsed = (_receipt: ParsedReceipt) => {
+    // Parse result is handled by the scanner component directly
   };
 
   // Called when user clicks "Save Transaction" inside the scanner

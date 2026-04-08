@@ -87,11 +87,8 @@ public class BudgetController {
                 return ResponseEntity.ok(result);
             }
 
-            Map<String, Object> defaultBudget = new HashMap<>();
-            defaultBudget.put("amount", 1000);
-            defaultBudget.put("category", category);
-            log.info("No budget found for category {}, returning default", category);
-            return ResponseEntity.ok(defaultBudget);
+            log.debug("No budget found for userId={} category={}", userId, category);
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             log.error("Error fetching budget by category: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

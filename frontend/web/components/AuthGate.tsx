@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { GoogleCredentialResponse } from '@/types/google';
+import { getToken } from '@/lib/api';
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -14,24 +14,18 @@ export default function AuthGate({ children }: AuthGateProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Public routes that don't require authentication
     const publicRoutes = ['/login', '/register', '/'];
-    
+
     if (pathname && publicRoutes.includes(pathname)) {
-      setIsAuthenticated(true); // Allow access to public routes
+      setIsAuthenticated(true);
       return;
     }
 
-    // Check if user is authenticated
-    const token = localStorage.getItem('authToken') || localStorage.getItem('ft_token');
-    
-    if (!token) {
-      console.log('🔒 No auth token found, redirecting to login');
+    if (!getToken()) {
       router.push('/login');
       return;
     }
 
-    // If authenticated, allow access
     setIsAuthenticated(true);
   }, [pathname, router]);
 

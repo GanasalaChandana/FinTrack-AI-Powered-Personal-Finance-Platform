@@ -1,7 +1,9 @@
 // app/demo/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getToken } from '@/lib/api';
 import { showToast } from '@/lib/toast';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { CSVImportModal } from '@/components/CSVImportModal';
@@ -23,12 +25,20 @@ import {
 } from 'lucide-react';
 
 export default function ComponentDemoPage() {
+  const router = useRouter();
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showClearAllModal, setShowClearAllModal] = useState(false);
   const [loadingState, setLoadingState] = useState<string | null>(null);
+
+  // Require authentication
+  useEffect(() => {
+    if (!getToken()) {
+      router.replace('/login');
+    }
+  }, [router]);
 
   // Simulate loading states
   const simulateLoading = (type: string, duration = 3000) => {
@@ -38,7 +48,6 @@ export default function ComponentDemoPage() {
 
   // CSV Import handler
   const handleCSVImport = async (data: any[]) => {
-    console.log('Importing data:', data);
     await new Promise(resolve => setTimeout(resolve, 2000));
     showToast.success(`Successfully imported ${data.length} records`);
   };

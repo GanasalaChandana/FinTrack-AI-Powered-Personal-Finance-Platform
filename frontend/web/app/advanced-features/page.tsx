@@ -661,16 +661,10 @@ function AdvancedFeaturesContent() {
   const [activeTab, setActiveTab] = useState<'forecast' | 'investments' | 'debt' | 'plaid'>(tabParam as any || 'forecast');
 
   useEffect(() => {
-    console.log('🔍 Advanced Features page mounted');
     if (typeof window !== "undefined") {
-      const authenticated = checkAuth();
-      console.log('🔐 Authentication status:', authenticated ? 'AUTHENTICATED' : 'NOT AUTHENTICATED');
-      
-      if (!authenticated) {
-        console.log('❌ No valid token, redirecting to login...');
-        router.replace("/register?mode=signin&reason=session_required");
+      if (!checkAuth()) {
+        router.replace("/login");
       } else {
-        console.log('✅ User is authenticated');
         setIsAuth(true);
         setIsLoading(false);
       }
@@ -680,13 +674,10 @@ function AdvancedFeaturesContent() {
   useEffect(() => {
     const loadData = async () => {
       if (isAuth) {
-        console.log('📊 Loading transactions from API...');
         try {
           const txs = await transactionsAPI.getAll();
-          console.log('✅ Loaded', txs.length, 'transactions');
           setTransactions(txs || []);
-        } catch (err) {
-          console.error('❌ Failed to load transactions:', err);
+        } catch {
           setTransactions([]);
         }
       }

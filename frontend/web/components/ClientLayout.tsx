@@ -7,7 +7,6 @@ import { getToken } from "@/lib/api";
 
 import Navigation from "@/components/Navigation";
 import { MobileBottomNav } from "@/components/navigation/MobileBottomNav";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { BudgetAlerts } from "@/components/BudgetAlerts";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -75,13 +74,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       console.error('Application error:', error, info);
     }}>
       <>
-        {/* Theme Switcher - Only show on protected pages */}
-        {!isAuthPage && isAuthenticated && (
-          <div className="fixed right-4 top-4 z-50">
-            <ThemeSwitcher />
-          </div>
-        )}
-
         {/* Top Navigation */}
         {!isAuthPage && isAuthenticated && <Navigation />}
 

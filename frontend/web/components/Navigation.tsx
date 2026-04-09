@@ -4,8 +4,9 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Bell, Mail, LogOut, Menu, X, Check, AlertTriangle, Camera, Brain, RefreshCw, Activity } from "lucide-react";
+import { Bell, Mail, LogOut, Menu, X, Check, AlertTriangle, Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor } from "lucide-react";
 import { getToken, removeToken } from "@/lib/api";
+import { useThemePreference } from "@/lib/hooks/useThemePreference";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -34,6 +35,15 @@ export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasToken, setHasToken] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useThemePreference();
+
+  const cycleTheme = () => {
+    if (theme === 'light') setTheme('dark');
+    else if (theme === 'dark') setTheme('system');
+    else setTheme('light');
+  };
+
+  const ThemeIcon = theme === 'dark' ? Moon : theme === 'system' ? Monitor : Sun;
 
   const [isAlertsOpen, setIsAlertsOpen] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -422,6 +432,9 @@ export default function Navigation() {
                       </div>
                     )}
                   </div>
+                  <button onClick={cycleTheme} className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-300 dark:hover:text-indigo-400 dark:hover:bg-indigo-950 rounded-lg transition" title={`Theme: ${theme} (click to cycle)`}>
+                    <ThemeIcon className="w-5 h-5" />
+                  </button>
                   <button onClick={handleLogout} className="px-4 py-2 text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"><LogOut className="w-4 h-4" /> Logout</button>
                 </div>
               </>
@@ -450,7 +463,13 @@ export default function Navigation() {
                 <Link href="/recurring" onClick={() => setIsMenuOpen(false)} className={`block px-4 py-3 rounded-lg ${isActive("/recurring") ? "bg-indigo-100" : ""} flex items-center gap-2`}><RefreshCw className="w-4 h-4" />Recurring</Link>
                 <Link href="/alerts" onClick={() => setIsMenuOpen(false)} className={`block px-4 py-3 rounded-lg ${isActive("/alerts") ? "bg-indigo-100" : ""} flex items-center gap-2`}><Bell className="w-4 h-4" />Financial Alerts{alertsUnreadCount > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{alertsUnreadCount}</span>}</Link>
                 <Link href="/notifications" onClick={() => setIsMenuOpen(false)} className={`block px-4 py-3 rounded-lg ${isActive("/notifications") ? "bg-indigo-100" : ""} flex items-center gap-2`}><Mail className="w-4 h-4" />Notifications{notificationsUnreadCount > 0 && <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">{notificationsUnreadCount}</span>}</Link>
-                <div className="pt-2 border-t border-gray-300"><button onClick={() => { handleLogout(); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"><LogOut className="w-4 h-4" /> Logout</button></div>
+                <div className="pt-2 border-t border-gray-300 space-y-1">
+                  <button onClick={cycleTheme} className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-2">
+                    <ThemeIcon className="w-4 h-4" />
+                    Theme: {theme.charAt(0).toUpperCase() + theme.slice(1)}
+                  </button>
+                  <button onClick={() => { handleLogout(); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"><LogOut className="w-4 h-4" /> Logout</button>
+                </div>
               </>
             ) : (
               <>

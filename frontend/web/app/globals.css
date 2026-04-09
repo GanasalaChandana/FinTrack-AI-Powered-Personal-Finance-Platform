@@ -823,29 +823,41 @@ button {
    so we don't need to touch every page file individually.
    ======================================================= */
 
+/* Root — make the whole page dark so any uncovered area is dark too */
+.dark,
+.dark body                         { background-color: #0f1117 !important;
+                                     color: #f3f4f6 !important; }
+
+/* Full-screen page wrappers */
+.dark .min-h-screen                { background-color: #0f1117 !important; }
+
 /* Page / section backgrounds */
-.dark .bg-white                    { background-color: #1e2535 !important; }
-.dark .bg-gray-50                  { background-color: #111827 !important; }
-.dark .bg-gray-100                 { background-color: #1f2937 !important; }
-.dark .bg-gray-200                 { background-color: #374151 !important; }
+.dark .bg-white                    { background-color: #1a2236 !important; }
+.dark .bg-gray-50                  { background-color: #0f1117 !important; }
+.dark .bg-gray-100                 { background-color: #1a2236 !important; }
+.dark .bg-gray-200                 { background-color: #283347 !important; }
+.dark .bg-slate-50                 { background-color: #0f1117 !important; }
+.dark .bg-slate-100                { background-color: #1a2236 !important; }
 
 /* Gradient page wrappers */
-.dark .from-gray-50                { --tw-gradient-from: #111827 !important; }
-.dark .to-gray-100                 { --tw-gradient-to:   #1f2937 !important; }
-.dark .from-slate-50               { --tw-gradient-from: #111827 !important; }
-.dark .to-slate-100                { --tw-gradient-to:   #1f2937 !important; }
+.dark .from-gray-50                { --tw-gradient-from: #0f1117 !important; }
+.dark .to-gray-100                 { --tw-gradient-to:   #1a2236 !important; }
+.dark .from-slate-50               { --tw-gradient-from: #0f1117 !important; }
+.dark .to-slate-100                { --tw-gradient-to:   #1a2236 !important; }
+.dark .bg-gradient-to-br           { background-color: #0f1117 !important; }
 
-/* Card backgrounds */
-.dark .rounded-xl.shadow-sm,
-.dark .rounded-xl.shadow,
-.dark .rounded-lg.shadow-sm,
-.dark .rounded-lg.shadow           { background-color: #1e2535 !important;
-                                     border-color: #374151 !important; }
+/* Card / surface backgrounds */
+.dark .rounded-xl                  { background-color: #1a2236; border-color: #283347; }
+.dark .rounded-lg                  { background-color: #1a2236; border-color: #283347; }
+.dark .shadow-sm                   { box-shadow: 0 1px 3px rgba(0,0,0,0.5) !important; }
+.dark .shadow                      { box-shadow: 0 2px 6px rgba(0,0,0,0.5) !important; }
+.dark .shadow-lg                   { box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important; }
 
 /* Table & list rows */
-.dark .divide-y > * + *            { border-color: #374151 !important; }
-.dark thead                        { background-color: #1f2937 !important; }
-.dark tbody tr:hover               { background-color: #263044 !important; }
+.dark .divide-y > * + *            { border-color: #283347 !important; }
+.dark thead, .dark thead tr        { background-color: #1a2236 !important; }
+.dark tbody tr:hover               { background-color: #1f2d42 !important; }
+.dark table                        { background-color: #1a2236 !important; }
 
 /* Text overrides */
 .dark .text-gray-900               { color: #f9fafb !important; }
@@ -853,32 +865,37 @@ button {
 .dark .text-gray-700               { color: #e5e7eb !important; }
 .dark .text-gray-600               { color: #d1d5db !important; }
 .dark .text-gray-500               { color: #9ca3af !important; }
+.dark .text-gray-400               { color: #6b7280 !important; }
 
 /* Border overrides */
-.dark .border-gray-200             { border-color: #374151 !important; }
-.dark .border-gray-100             { border-color: #2d3748 !important; }
-.dark .border-gray-300             { border-color: #4b5563 !important; }
+.dark .border                      { border-color: #283347 !important; }
+.dark .border-gray-200             { border-color: #283347 !important; }
+.dark .border-gray-100             { border-color: #1f2937 !important; }
+.dark .border-gray-300             { border-color: #374151 !important; }
 
 /* Input / select fields */
 .dark input:not([type='checkbox']):not([type='radio']),
 .dark textarea,
-.dark select                       { background-color: #1f2937 !important;
-                                     border-color:      #374151 !important;
+.dark select                       { background-color: #1a2236 !important;
+                                     border-color:      #283347 !important;
                                      color:             #f9fafb !important; }
 
-/* Badges / pills with light gray bg */
-.dark .bg-gray-100.text-gray-800   { background-color: #374151 !important;
+/* Badges / pills */
+.dark .bg-gray-100                 { background-color: #283347 !important;
                                      color: #e5e7eb !important; }
 
-/* Dashed/empty-state cards */
+/* Dashed/empty-state borders */
 .dark .border-dashed               { border-color: #374151 !important; }
 
 /* Hover states on rows/cards */
-.dark .hover\:bg-gray-50:hover     { background-color: #263044 !important; }
-.dark .hover\:bg-gray-100:hover    { background-color: #2d3748 !important; }
+.dark .hover\:bg-gray-50:hover     { background-color: #1f2d42 !important; }
+.dark .hover\:bg-gray-100:hover    { background-color: #283347 !important; }
 
-/* Stat card mini sparkline area */
-.dark [class*='bg-gradient-to-br'].rounded-xl { background-color: #1e2535 !important; }
+/* Progress bars & colored backgrounds keep their colors */
+.dark .bg-indigo-600               { background-color: #4f46e5 !important; }
+.dark .bg-green-500                { background-color: #10b981 !important; }
+.dark .bg-red-500                  { background-color: #ef4444 !important; }
+.dark .bg-yellow-500               { background-color: #f59e0b !important; }
 
 /* ========== PRINT STYLES ==========  */
 @media print {

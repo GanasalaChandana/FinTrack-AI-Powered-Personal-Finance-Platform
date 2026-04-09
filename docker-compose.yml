@@ -1,0 +1,186 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: fintrack-postgres
+    environment:
+      POSTGRES_DB: fintrack
+      POSTGRES_USER: ${DB_USER:-fintrack}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-fintrack}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - fintrack-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fintrack}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (Optional)
+  redis:
+    image: redis:7-alpine
+    container_name: fintrack-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - fintrack-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: fintrack-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      USERS_SERVICE_URL: http://users-service:8081
+      TRANSACTIONS_SERVICE_URL: http://transactions-service:8082
+      ALERTS_SERVICE_URL: http://alerts-service:8083
+      REPORTS_SERVICE_URL: http://reports-service:8084
+      BUDGETS_SERVICE_URL: http://budgets-service:8085
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - fintrack-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Budgets Service
+  budgets-service:
+    build:
+      context: ./backend/budgets-service
+      dockerfile: Dockerfile
+    container_name: fintrack-budgets-service
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/fintrack
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-fintrack}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-fintrack}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fintrack-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Transactions Service
+  transactions-service:
+    build:
+      context: ./backend/transactions-service
+      dockerfile: Dockerfile
+    container_name: fintrack-transactions-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/fintrack
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-fintrack}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-fintrack}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fintrack-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Reports Service
+  reports-service:
+    build:
+      context: ./backend/reports-service
+      dockerfile: Dockerfile
+    container_name: fintrack-reports-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/fintrack
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-fintrack}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-fintrack}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fintrack-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Alerts Service
+  alerts-service:
+    build:
+      context: ./backend/alerts-service
+      dockerfile: Dockerfile
+    container_name: fintrack-alerts-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/fintrack
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-fintrack}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-fintrack}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fintrack-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend (Optional - for serving with Node)
+  frontend:
+    build:
+      context: ./frontend/web
+      dockerfile: Dockerfile
+    container_name: fintrack-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+      NODE_ENV: production
+    depends_on:
+      - api-gateway
+    networks:
+      - fintrack-network
+
+volumes:
+  postgres_data:
+
+networks:
+  fintrack-network:
+    driver: bridge

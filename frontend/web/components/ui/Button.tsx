@@ -5,7 +5,7 @@ import React from 'react';
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLElement>, 'size'> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   isLoading?: boolean;

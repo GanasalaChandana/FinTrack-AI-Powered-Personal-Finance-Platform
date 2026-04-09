@@ -5,7 +5,7 @@ import React from 'react';
 type InputSize = 'sm' | 'md' | 'lg';
 type InputVariant = 'default' | 'error' | 'success';
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label?: string;
   description?: string;
   error?: string;
@@ -184,7 +184,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
 Textarea.displayName = 'Textarea';
 
 // Select Component
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
   label?: string;
   description?: string;
   error?: string;

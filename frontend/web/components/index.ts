@@ -30,11 +30,3 @@ export { GoalProgressCard } from './goals/GoalProgressCard';
 export { ErrorBoundary } from './ErrorBoundary';
 
 // ========== Re-exports of common utilities ==========
-export type { default as ButtonProps } from './ui/Button';
-export type { default as CardProps } from './ui/Card';
-export type { default as InputProps } from './ui/Input';
-export type { default as ModalProps } from './ui/Modal';
-export type { default as BadgeProps } from './ui/Badge';
-export type { default as ToggleProps } from './ui/Toggle';
-export type { default as SkeletonProps } from './ui/Skeleton';
-export type { default as AlertProps } from './ui/Alert';

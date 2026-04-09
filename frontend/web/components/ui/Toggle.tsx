@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-interface ToggleProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface ToggleProps extends Omit<React.InputHTMLAttributes<HTMLElement>, 'size'> {
   label?: string;
   description?: string;
   disabled?: boolean;

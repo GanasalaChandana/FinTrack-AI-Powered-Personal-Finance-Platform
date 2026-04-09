@@ -1,6 +1,7 @@
 package com.fintrack.config;
 
 import com.fintrack.auth.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -59,6 +60,15 @@ public class SecurityConfig {
 
                                                 // Everything else requires authentication
                                                 .anyRequest().authenticated())
+
+                                // Return 401 for unauthenticated requests (not 403)
+                                .exceptionHandling(ex -> ex
+                                        .authenticationEntryPoint((request, response, authException) -> {
+                                                log.warn("⛔ Unauthenticated: {} - {}", request.getRequestURI(), authException.getMessage());
+                                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                                response.setContentType("application/json");
+                                                response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"Valid JWT token required\"}");
+                                        }))
 
                                 // Disable default login mechanisms
                                 .httpBasic(AbstractHttpConfigurer::disable)

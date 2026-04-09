@@ -817,6 +817,69 @@ button {
   }
 }
 
+/* ========== DARK MODE GLOBAL OVERRIDES ==========
+   Pages use hardcoded Tailwind bg-white / bg-gray-* classes.
+   These rules flip them automatically when .dark is on <html>,
+   so we don't need to touch every page file individually.
+   ======================================================= */
+
+/* Page / section backgrounds */
+.dark .bg-white                    { background-color: #1e2535 !important; }
+.dark .bg-gray-50                  { background-color: #111827 !important; }
+.dark .bg-gray-100                 { background-color: #1f2937 !important; }
+.dark .bg-gray-200                 { background-color: #374151 !important; }
+
+/* Gradient page wrappers */
+.dark .from-gray-50                { --tw-gradient-from: #111827 !important; }
+.dark .to-gray-100                 { --tw-gradient-to:   #1f2937 !important; }
+.dark .from-slate-50               { --tw-gradient-from: #111827 !important; }
+.dark .to-slate-100                { --tw-gradient-to:   #1f2937 !important; }
+
+/* Card backgrounds */
+.dark .rounded-xl.shadow-sm,
+.dark .rounded-xl.shadow,
+.dark .rounded-lg.shadow-sm,
+.dark .rounded-lg.shadow           { background-color: #1e2535 !important;
+                                     border-color: #374151 !important; }
+
+/* Table & list rows */
+.dark .divide-y > * + *            { border-color: #374151 !important; }
+.dark thead                        { background-color: #1f2937 !important; }
+.dark tbody tr:hover               { background-color: #263044 !important; }
+
+/* Text overrides */
+.dark .text-gray-900               { color: #f9fafb !important; }
+.dark .text-gray-800               { color: #f3f4f6 !important; }
+.dark .text-gray-700               { color: #e5e7eb !important; }
+.dark .text-gray-600               { color: #d1d5db !important; }
+.dark .text-gray-500               { color: #9ca3af !important; }
+
+/* Border overrides */
+.dark .border-gray-200             { border-color: #374151 !important; }
+.dark .border-gray-100             { border-color: #2d3748 !important; }
+.dark .border-gray-300             { border-color: #4b5563 !important; }
+
+/* Input / select fields */
+.dark input:not([type='checkbox']):not([type='radio']),
+.dark textarea,
+.dark select                       { background-color: #1f2937 !important;
+                                     border-color:      #374151 !important;
+                                     color:             #f9fafb !important; }
+
+/* Badges / pills with light gray bg */
+.dark .bg-gray-100.text-gray-800   { background-color: #374151 !important;
+                                     color: #e5e7eb !important; }
+
+/* Dashed/empty-state cards */
+.dark .border-dashed               { border-color: #374151 !important; }
+
+/* Hover states on rows/cards */
+.dark .hover\:bg-gray-50:hover     { background-color: #263044 !important; }
+.dark .hover\:bg-gray-100:hover    { background-color: #2d3748 !important; }
+
+/* Stat card mini sparkline area */
+.dark [class*='bg-gradient-to-br'].rounded-xl { background-color: #1e2535 !important; }
+
 /* ========== PRINT STYLES ==========  */
 @media print {
   .no-print {

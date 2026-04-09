@@ -564,9 +564,9 @@ export default function AlertsPage() {
       <div className="space-y-6">
 
         <PageHeader
-          icon={Bell}
+          
           title="Financial Alerts"
-          subtitle="Smart Alerts"
+          
           description={
             loading
               ? "Analysing your transactions..."
@@ -714,7 +714,7 @@ export default function AlertsPage() {
             <p className="text-sm text-gray-400 font-semibold">Analysing transactions…</p>
           </div>
         ) : error ? (
-          <Alert variant="error" title="Failed to load alerts" message={error}>
+          <Alert variant="error" title="Failed to load alerts">
             <Button onClick={() => void fetchAndGenerate()} variant="danger" size="sm">
               Try Again
             </Button>

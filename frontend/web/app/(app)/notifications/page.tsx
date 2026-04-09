@@ -355,9 +355,9 @@ export default function NotificationsPage() {
       <div className="space-y-6">
 
         <PageHeader
-          icon={Mail}
+          
           title="Notifications"
-          subtitle="Inbox"
+          
           description={
             loading
               ? "Loading your notifications…"
@@ -468,7 +468,7 @@ export default function NotificationsPage() {
             <p className="text-sm text-gray-400 font-semibold">Generating notifications…</p>
           </div>
         ) : error ? (
-          <Alert variant="error" title="Failed to load" message={error}>
+          <Alert variant="error" title="Failed to load">
             <Button onClick={() => void fetchAndGenerate()} variant="danger" size="sm">
               Retry
             </Button>

@@ -237,6 +237,7 @@ export async function apiRequest<T = any>(
 ): Promise<T> {
   const url = buildApiUrl(endpoint, useTransactionsService);
   const token = getToken();
+  const user = getUser();
 
   const requestKey = `${options.method || "GET"}-${endpoint}-${JSON.stringify(options.body || "")}`;
 
@@ -252,6 +253,10 @@ export async function apiRequest<T = any>(
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (user?.id) {
+    headers["X-User-Id"] = user.id.toString();
   }
 
   if (options.headers) {

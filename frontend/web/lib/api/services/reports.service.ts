@@ -383,9 +383,9 @@ class ReportsService {
         console.log("✅ Reports: using microservice data");
         return data;
       }
-      console.warn("⚠️ Microservice returned empty — falling back to transactions");
+      console.log("ℹ️ Reports API empty — computing from transactions");
     } catch (err) {
-      console.warn("⚠️ Microservice unreachable:", err instanceof Error ? err.message : err);
+      console.log("ℹ️ Reports API unavailable — computing from transactions");
     }
     return this._computeFromTransactions(dateRange);
   }

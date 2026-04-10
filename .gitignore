@@ -17,3 +17,6 @@ target/
 *.log
 logs/
 .env*
+
+# Claude AI session data (local only)
+.claude/

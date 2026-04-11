@@ -54,26 +54,6 @@ function keywordMatch(text: string): string | null {
   return null;
 }
 
-async function classifyMerchant(merchant: string, description: string): Promise<{ category: string; confidence: number } | null> {
-  const text = [merchant, description].filter(Boolean).join(" ").trim();
-  if (text.length < 2) return null;
-
-  // 1. Try local keyword lookup first (instant, no network)
-  const local = keywordMatch(text);
-  if (local) return { category: local, confidence: 1 };
-
-  // 2. Fall back to backend ML
-  try {
-    const result = await apiRequest<{ category: string; confidence: number }>(
-      "/api/transactions/classify",
-      { method: "POST", body: JSON.stringify({ description: text }) }
-    );
-    if (result?.category && result.category !== "Uncategorized" && result.category !== "Other") return result;
-    return null;
-  } catch {
-    return null;
-  }
-}
 
 export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = "add" }: TransactionModalProps) {
   const [formData, setFormData] = useState<Transaction>({
@@ -108,29 +88,43 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
   useEffect(() => {
     if (mode === "edit") return;
     if (formData.type !== "expense") return;
-    if (!formData.merchant && !formData.description) return;
 
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    const text = [formData.merchant, formData.description].filter(Boolean).join(" ").trim();
+    if (text.length < 2) return;
 
-    debounceTimer.current = setTimeout(async () => {
-      setPredicting(true);
-      const result = await classifyMerchant(formData.merchant, formData.description);
-      setPredicting(false);
-      if (!result) return;
-
-      // Map backend category to our list (case-insensitive)
-      const normalized = result.category.toLowerCase();
-      const matched = EXPENSE_CATEGORIES.find(
-        (c) => c.toLowerCase() === normalized || c.toLowerCase().includes(normalized) || normalized.includes(c.toLowerCase())
-      );
-      const finalCategory = matched || result.category;
-
+    // Step 1: instant local keyword match — no debounce, no API call
+    const local = keywordMatch(text);
+    if (local) {
       setFormData((prev) => {
-        // Only auto-fill if user hasn't manually selected a category
         if (prev.category && !aiSuggested) return prev;
-        return { ...prev, category: finalCategory };
+        return { ...prev, category: local };
       });
       setAiSuggested(true);
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      return;
+    }
+
+    // Step 2: unknown merchant — debounce then call ML API
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(async () => {
+      setPredicting(true);
+      try {
+        const result = await apiRequest<{ category: string; confidence: number }>(
+          "/api/transactions/classify",
+          { method: "POST", body: JSON.stringify({ description: text }) }
+        );
+        if (result?.category && result.category !== "Uncategorized" && result.category !== "Other") {
+          const normalized = result.category.toLowerCase();
+          const matched = EXPENSE_CATEGORIES.find((c) => c.toLowerCase() === normalized);
+          const finalCategory = matched || result.category;
+          setFormData((prev) => {
+            if (prev.category && !aiSuggested) return prev;
+            return { ...prev, category: finalCategory };
+          });
+          setAiSuggested(true);
+        }
+      } catch { /* silent */ }
+      setPredicting(false);
     }, 700);
 
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };

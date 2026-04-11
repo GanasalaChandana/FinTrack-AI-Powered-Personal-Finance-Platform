@@ -30,15 +30,45 @@ const EXPENSE_CATEGORIES = [
 
 const INCOME_CATEGORIES = ["Salary", "Freelance", "Investment", "Business", "Gift", "Other"];
 
+// Local keyword lookup — runs first before hitting the ML API
+const MERCHANT_KEYWORDS: { keywords: string[]; category: string }[] = [
+  { keywords: ["starbucks", "coffee", "cafe", "dunkin", "tim hortons", "peet", "panera", "chipotle", "mcdonald", "burger", "pizza", "subway", "kfc", "taco", "wendys", "domino", "sushi", "restaurant", "diner", "grill", "bistro", "bakery", "donut", "smoothie", "juice", "instacart", "doordash", "ubereats", "grubhub", "postmates", "whole foods", "trader joe", "walmart grocery", "kroger", "safeway", "aldi", "publix", "costco food"], category: "Food & Dining" },
+  { keywords: ["uber", "lyft", "taxi", "shell", "bp", "chevron", "exxon", "mobil", "gas", "fuel", "parking", "metro", "transit", "bus", "train", "airline", "delta", "united", "southwest", "american air"], category: "Transportation" },
+  { keywords: ["netflix", "spotify", "hulu", "disney", "hbo", "apple tv", "youtube premium", "twitch", "cinema", "amc", "movie", "concert", "ticket", "steam", "playstation", "xbox", "nintendo", "gaming"], category: "Entertainment" },
+  { keywords: ["amazon", "walmart", "target", "ebay", "etsy", "zara", "h&m", "nike", "adidas", "apple store", "best buy", "costco", "ikea", "home depot", "lowes", "tj maxx", "nordstrom", "macys"], category: "Shopping" },
+  { keywords: ["at&t", "verizon", "t-mobile", "comcast", "xfinity", "spectrum", "electric", "water bill", "gas bill", "internet", "isp", "utility", "pg&e", "duke energy", "con ed"], category: "Bills & Utilities" },
+  { keywords: ["cvs", "walgreens", "pharmacy", "hospital", "clinic", "doctor", "dental", "optometry", "medical", "health center", "urgent care", "lab"], category: "Healthcare" },
+  { keywords: ["planet fitness", "gym", "anytime fitness", "24 hour fitness", "yoga", "crossfit", "equinox", "la fitness", "peloton"], category: "Health & Fitness" },
+  { keywords: ["rent", "mortgage", "apartment", "property", "landlord", "hoa"], category: "Housing" },
+  { keywords: ["udemy", "coursera", "skillshare", "linkedin learning", "book", "barnes", "tuition", "school", "university", "college"], category: "Education" },
+  { keywords: ["hotel", "marriott", "hilton", "airbnb", "expedia", "booking.com", "flight", "travel", "vacation", "resort"], category: "Travel" },
+  { keywords: ["state farm", "geico", "allstate", "progressive", "insurance", "premium"], category: "Insurance" },
+  { keywords: ["haircut", "salon", "spa", "beauty", "barber", "nail"], category: "Personal Care" },
+];
+
+function keywordMatch(text: string): string | null {
+  const lower = text.toLowerCase();
+  for (const { keywords, category } of MERCHANT_KEYWORDS) {
+    if (keywords.some((k) => lower.includes(k))) return category;
+  }
+  return null;
+}
+
 async function classifyMerchant(merchant: string, description: string): Promise<{ category: string; confidence: number } | null> {
   const text = [merchant, description].filter(Boolean).join(" ").trim();
   if (text.length < 2) return null;
+
+  // 1. Try local keyword lookup first (instant, no network)
+  const local = keywordMatch(text);
+  if (local) return { category: local, confidence: 1 };
+
+  // 2. Fall back to backend ML
   try {
     const result = await apiRequest<{ category: string; confidence: number }>(
       "/api/transactions/classify",
       { method: "POST", body: JSON.stringify({ description: text }) }
     );
-    if (result?.category && result.category !== "Uncategorized") return result;
+    if (result?.category && result.category !== "Uncategorized" && result.category !== "Other") return result;
     return null;
   } catch {
     return null;

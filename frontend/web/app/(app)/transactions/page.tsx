@@ -450,8 +450,8 @@ export default function TransactionManager() {
         description: editForm.description!,
         category: backendCategory,
         amount: editForm.amount!,
-        type: uiType,
-        ...(editForm.status ? { status: editForm.status } : {}),
+        type: uiType.toUpperCase(),
+        status: editForm.status ?? "completed",
       } as any);
       const normalized = normalizeTransaction(updated);
       const updateFn = (list: Transaction[]) =>

@@ -495,7 +495,7 @@ export default function TransactionManager() {
     toast.info("Transaction duplicated — ready to save");
   };
 
-  const handleAddSave = async (tx: { type: string; category: string; amount: number; date: string; merchant: string; description: string }) => {
+  const handleAddSave = async (tx: { type: string; category: string; amount: number; date: string; merchant: string; description: string; status?: string }) => {
     const created = await transactionsAPI.create({
       date: tx.date,
       description: tx.description.trim() || tx.merchant.trim(),

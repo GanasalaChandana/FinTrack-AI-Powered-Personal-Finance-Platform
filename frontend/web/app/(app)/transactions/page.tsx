@@ -451,7 +451,8 @@ export default function TransactionManager() {
         category: backendCategory,
         amount: editForm.amount!,
         type: uiType,
-      });
+        ...(editForm.status ? { status: editForm.status } : {}),
+      } as any);
       const normalized = normalizeTransaction(updated);
       const updateFn = (list: Transaction[]) =>
         list.map((t) =>
@@ -942,9 +943,26 @@ export default function TransactionManager() {
                       </td>
 
                       <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${t.status === "completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
-                          {t.status === "completed" ? "Completed" : "Pending"}
-                        </span>
+                        {isEditing ? (
+                          <div className="flex gap-1 justify-center">
+                            <button
+                              onClick={() => setEditForm((prev) => ({ ...prev, status: "completed" }))}
+                              className={`px-2 py-1 rounded-full text-xs font-semibold transition-colors ${editForm.status === "completed" ? "bg-green-100 text-green-700 ring-1 ring-green-400" : "bg-gray-100 text-gray-500 hover:bg-green-50"}`}
+                            >
+                              ✓ Completed
+                            </button>
+                            <button
+                              onClick={() => setEditForm((prev) => ({ ...prev, status: "pending" }))}
+                              className={`px-2 py-1 rounded-full text-xs font-semibold transition-colors ${editForm.status === "pending" ? "bg-yellow-100 text-yellow-700 ring-1 ring-yellow-400" : "bg-gray-100 text-gray-500 hover:bg-yellow-50"}`}
+                            >
+                              ⏱ Pending
+                            </button>
+                          </div>
+                        ) : (
+                          <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${t.status === "completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+                            {t.status === "completed" ? "Completed" : "Pending"}
+                          </span>
+                        )}
                       </td>
 
                       <td className="px-6 py-4">

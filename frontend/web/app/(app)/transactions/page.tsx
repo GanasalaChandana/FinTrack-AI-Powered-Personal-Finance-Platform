@@ -35,6 +35,7 @@ import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useToast } from "@/components/ui/Toast";
 import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/PageHeader";
+import { TransactionModal } from "@/components/modals/TransactionModal";
 
 /* =========================
    Types
@@ -76,7 +77,7 @@ interface NewTxForm {
   date: string;
   merchant: string;
   description: string;
-  amount: string;
+  amount: string; // kept for edit form only
   category: Exclude<CategoryId, "all">;
   type: TxType;
   status: TxStatus;
@@ -231,17 +232,7 @@ export default function TransactionManager() {
   // ✅ Pagination state
   const [currentPage, setCurrentPage] = React.useState(1);
 
-  const [form, setForm] = React.useState<NewTxForm>({
-    date: new Date().toISOString().slice(0, 10),
-    merchant: "",
-    description: "",
-    amount: "",
-    category: "food",
-    type: "expense",
-    status: "completed",
-    paymentMethod: "Credit Card •••• 4242",
-  });
-  const [formErrors, setFormErrors] = React.useState<Partial<Record<keyof NewTxForm, string>>>({});
+  const [prefillTx, setPrefillTx] = React.useState<any>(null);
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -492,57 +483,32 @@ export default function TransactionManager() {
   };
 
   const handleDuplicate = (transaction: Transaction) => {
-    setForm({
-      date: new Date().toISOString().slice(0, 10),
+    setPrefillTx({
+      type: transaction.type,
+      category: mapCategoryToBackend(transaction.category, transaction.type),
+      amount: Math.abs(transaction.amount),
+      date: new Date().toISOString().split("T")[0],
       merchant: transaction.merchant || "",
       description: transaction.description,
-      amount: Math.abs(transaction.amount).toString(),
-      category: transaction.category,
-      type: transaction.type,
-      status: "completed",
-      paymentMethod: transaction.paymentMethod,
     });
     setShowAdd(true);
     toast.info("Transaction duplicated — ready to save");
   };
 
-  const validate = (f: NewTxForm) => {
-    const e: Partial<Record<keyof NewTxForm, string>> = {};
-    if (!f.date) e.date = "Date is required";
-    if (!f.merchant.trim()) e.merchant = "Merchant is required";
-    if (!f.description.trim()) e.description = "Description is required";
-    if (f.amount.trim() === "" || isNaN(Number(f.amount))) e.amount = "Enter a valid amount";
-    if (!f.category) e.category = "Category is required";
-    if (!f.type) e.type = "Type is required";
-    return e;
-  };
-
-  const submitNewTx = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const eMap = validate(form);
-    setFormErrors(eMap);
-    if (Object.keys(eMap).length) return;
-    const normalizedAmount = Math.abs(Number(form.amount));
-    const backendCategory = mapCategoryToBackend(form.category, form.type);
-    const backendType = toBackendType(form.type);
-    try {
-      const created = await transactionsAPI.create({
-        date: form.date,
-        description: form.description.trim(),
-        amount: normalizedAmount,
-        category: backendCategory,
-        type: backendType,
-      });
-      const newTx: Transaction = { ...normalizeTransaction(created), merchant: form.merchant.trim(), status: form.status, paymentMethod: form.paymentMethod.trim() };
-      setTransactions((prev) => [newTx, ...prev]);
-      setFilteredTransactions((prev) => [newTx, ...prev]);
-      setShowAdd(false);
-      setForm({ date: new Date().toISOString().slice(0, 10), merchant: "", description: "", amount: "", category: "food", type: "expense", status: "completed", paymentMethod: "Credit Card •••• 4242" });
-      setFormErrors({});
-      toast.success("Transaction added successfully");
-    } catch (err: any) {
-      toast.error(`Failed to create transaction: ${err?.message || "Unknown error"}`);
-    }
+  const handleAddSave = async (tx: { type: string; category: string; amount: number; date: string; merchant: string; description: string }) => {
+    const created = await transactionsAPI.create({
+      date: tx.date,
+      description: tx.description.trim() || tx.merchant.trim(),
+      amount: Math.abs(tx.amount),
+      category: tx.category,
+      type: tx.type.toUpperCase() as "INCOME" | "EXPENSE",
+      merchant: tx.merchant.trim(),
+    });
+    const newTx: Transaction = { ...normalizeTransaction(created), merchant: tx.merchant.trim() };
+    setTransactions((prev) => [newTx, ...prev]);
+    setFilteredTransactions((prev) => [newTx, ...prev]);
+    setPrefillTx(null);
+    toast.success("Transaction added successfully");
   };
 
   const applyQuickDateFilter = (days: number) => {
@@ -1084,86 +1050,14 @@ export default function TransactionManager() {
       </main>
       </PageContent>
 
-      {/* Add Transaction Modal */}
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
-          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
-              <h3 className="text-lg font-bold text-gray-900">Add Transaction</h3>
-              <button onClick={() => setShowAdd(false)} className="p-2 rounded-lg hover:bg-gray-100" aria-label="Close">
-                <Close className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-
-            <form onSubmit={submitNewTx} className="px-6 py-5 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none" />
-                  {formErrors.date && <p className="text-xs text-red-600 mt-1">{formErrors.date}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                  <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as TxType })} className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none">
-                    <option value="expense">Expense</option>
-                    <option value="income">Income</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Merchant</label>
-                  <input type="text" placeholder="e.g., Starbucks" value={form.merchant} onChange={(e) => setForm({ ...form, merchant: e.target.value })} className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none" />
-                  {formErrors.merchant && <p className="text-xs text-red-600 mt-1">{formErrors.merchant}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                  <input type="number" step="0.01" placeholder="e.g., 12.99" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none" />
-                  {formErrors.amount && <p className="text-xs text-red-600 mt-1">{formErrors.amount}</p>}
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <input type="text" placeholder="e.g., Morning coffee" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none" />
-                  {formErrors.description && <p className="text-xs text-red-600 mt-1">{formErrors.description}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as Exclude<CategoryId, "all"> })} className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none">
-                    {CATEGORIES.filter((c) => c.id !== "all").map((c) => (
-                      <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as TxStatus })} className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none">
-                    <option value="completed">Completed</option>
-                    <option value="pending">Pending</option>
-                  </select>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                  <input type="text" placeholder="e.g., Credit Card •••• 4242" value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })} className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none" />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
-                  Cancel
-                </button>
-                <button type="submit" className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg">
-                  Save Transaction
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Add Transaction Modal — unified with AI auto-categorization */}
+      <TransactionModal
+        isOpen={showAdd}
+        onClose={() => { setShowAdd(false); setPrefillTx(null); }}
+        onSave={handleAddSave}
+        transaction={prefillTx}
+        mode="add"
+      />
 
       <style jsx global>{`
         @keyframes slide-in {

@@ -65,7 +65,11 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
       setFormData(transaction);
       setAiSuggested(false);
     } else if (mode === "add") {
-      setFormData({ type: "expense", category: "", amount: 0, date: new Date().toISOString().split("T")[0], merchant: "", description: "" });
+      // Support prefill for duplicate — strip the id
+      setFormData(transaction
+        ? { ...transaction, id: undefined }
+        : { type: "expense", category: "", amount: 0, date: new Date().toISOString().split("T")[0], merchant: "", description: "" }
+      );
       setAiSuggested(false);
     }
   }, [transaction, mode, isOpen]);

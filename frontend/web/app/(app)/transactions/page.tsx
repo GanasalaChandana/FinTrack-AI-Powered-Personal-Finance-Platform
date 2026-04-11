@@ -257,7 +257,7 @@ export default function TransactionManager() {
     recurring: t.recurring,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
-    status: "completed",
+    status: ((t as any).status === "pending" ? "pending" : "completed") as TxStatus,
     paymentMethod: "Credit Card •••• 4242",
     tags: [],
     aiSuggested: false,
@@ -503,7 +503,8 @@ export default function TransactionManager() {
       category: tx.category,
       type: tx.type.toUpperCase() as "INCOME" | "EXPENSE",
       merchant: tx.merchant.trim(),
-    });
+      ...(tx.status ? { status: tx.status } : {}),
+    } as any);
     const newTx: Transaction = { ...normalizeTransaction(created), merchant: tx.merchant.trim() };
     setTransactions((prev) => [newTx, ...prev]);
     setFilteredTransactions((prev) => [newTx, ...prev]);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, DollarSign, Calendar, Tag, FileText, TrendingUp, TrendingDown, Sparkles, Loader2 } from "lucide-react";
+import { X, DollarSign, Calendar, Tag, FileText, TrendingUp, TrendingDown, Sparkles, Loader2, Clock, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
 interface Transaction {
@@ -12,6 +12,7 @@ interface Transaction {
   date: string;
   merchant: string;
   description: string;
+  status?: "completed" | "pending";
 }
 
 interface TransactionModalProps {
@@ -63,6 +64,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
     date: new Date().toISOString().split("T")[0],
     merchant: "",
     description: "",
+    status: "completed",
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -78,7 +80,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
       // Support prefill for duplicate — strip the id
       setFormData(transaction
         ? { ...transaction, id: undefined }
-        : { type: "expense", category: "", amount: 0, date: new Date().toISOString().split("T")[0], merchant: "", description: "" }
+        : { type: "expense", category: "", amount: 0, date: new Date().toISOString().split("T")[0], merchant: "", description: "", status: "completed" }
       );
       setAiSuggested(false);
     }
@@ -304,6 +306,40 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
                 />
               </div>
               {errors.date && <p className="mt-1 text-sm text-red-600">{errors.date}</p>}
+            </div>
+
+
+            {/* Status */}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Status
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, status: "completed" })}
+                  className={`flex items-center justify-center gap-2 rounded-lg p-3 text-sm font-semibold transition-all ${
+                    formData.status === "completed"
+                      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-2 ring-green-500"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  }`}
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Completed
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, status: "pending" })}
+                  className={`flex items-center justify-center gap-2 rounded-lg p-3 text-sm font-semibold transition-all ${
+                    formData.status === "pending"
+                      ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 ring-2 ring-yellow-500"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  }`}
+                >
+                  <Clock className="h-4 w-4" />
+                  Pending
+                </button>
+              </div>
             </div>
           </div>
 

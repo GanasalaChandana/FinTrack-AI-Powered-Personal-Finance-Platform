@@ -22,4 +22,6 @@ public class CreateTransactionRequest {
     private String type;
 
     private LocalDate date;
+
+    private String status; // "completed" or "pending", defaults to "completed"
 }

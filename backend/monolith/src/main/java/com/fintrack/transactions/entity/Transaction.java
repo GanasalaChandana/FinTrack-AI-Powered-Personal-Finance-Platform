@@ -68,6 +68,10 @@ public class Transaction {
     @Column(name = "ml_predicted")
     private boolean mlPredicted = false;
 
+    @Column(columnDefinition = "VARCHAR(20) DEFAULT 'completed'")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    private String status = "completed"; // "completed" or "pending"
+
     // Getter and Setter
     public boolean isMlPredicted() {
         return mlPredicted;

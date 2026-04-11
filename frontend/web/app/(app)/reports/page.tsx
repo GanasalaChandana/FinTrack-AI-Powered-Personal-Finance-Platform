@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { isAuthenticated } from "@/lib/api";
 import { reportsService, type ReportsData, type ReportsRange } from "@/lib/api/services/reports.service";
+import { CheckCircle } from "lucide-react";
 import { IncomeExpenseComparison } from "@/components/charts/AdvancedCharts";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -787,6 +788,91 @@ const EnhancedFinancialReports: React.FC = () => {
             ))}
           </div>
         )}
+
+        {/* ── Category Month-End Projection ── */}
+        {(() => {
+          const cats = allReportsData?.categoryBreakdown ?? [];
+          if (cats.length === 0) return null;
+          const now = new Date();
+          const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+          const daysElapsed = Math.max(now.getDate() - 1, 1);
+          const daysRemaining = daysInMonth - now.getDate() + 1;
+
+          // Use last month's category data as current month proxy (from monthlyData)
+          const months = allReportsData?.monthlyData ?? [];
+          const lastMonth = months[months.length - 1];
+          const totalLastMonth = lastMonth?.expenses ?? 0;
+
+          // Project each category proportionally
+          const projected = cats.slice(0, 8).map((cat) => {
+            const monthlySpend = totalLastMonth > 0
+              ? (cat.amount / (allReportsData!.monthlyData.length || 1))
+              : cat.amount;
+            const dailyRate = monthlySpend / daysInMonth;
+            const spentSoFar = dailyRate * daysElapsed;
+            const projectedEnd = dailyRate * daysInMonth;
+            const budget = cat.budget > 0 ? cat.budget : projectedEnd * 1.2;
+            const pct = Math.min((projectedEnd / budget) * 100, 200);
+            return { ...cat, spentSoFar, projectedEnd, budget, pct, atRisk: projectedEnd > budget };
+          });
+
+          const atRisk = projected.filter((c) => c.atRisk);
+
+          return (
+            <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">
+                    This Month — Category Forecast
+                  </h3>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    {daysRemaining} days remaining · projections based on historical pace
+                  </p>
+                </div>
+                {atRisk.length === 0 ? (
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-full">
+                    <CheckCircle className="w-3.5 h-3.5" /> All on track
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-full">
+                    <AlertCircle className="w-3.5 h-3.5" /> {atRisk.length} at risk
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {projected.map((cat) => (
+                  <div key={cat.name} className="flex items-center gap-3">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: cat.color }}
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300 w-36 truncate">
+                      {cat.name}
+                    </span>
+                    <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          cat.atRisk ? "bg-red-400" : cat.pct > 80 ? "bg-orange-400" : "bg-emerald-500"
+                        }`}
+                        style={{ width: `${Math.min(cat.pct, 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 w-24 text-right">
+                      {fmt(cat.projectedEnd)}
+                      {cat.budget > 0 && (
+                        <span className="text-gray-400 dark:text-gray-500"> / {fmt(cat.budget)}</span>
+                      )}
+                    </span>
+                    {cat.atRisk && (
+                      <span className="text-[10px] font-bold text-red-500 uppercase">risk</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   };

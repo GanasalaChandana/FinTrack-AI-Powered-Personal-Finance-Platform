@@ -22,12 +22,14 @@ import {
   CheckCircle2,
   AlertCircle,
   Info,
+  RefreshCw,
 } from "lucide-react";
 
 import {
   transactionsAPI,
   type Transaction as ApiTransaction,
 } from "@/lib/api";
+import { detectRecurring } from "@/lib/utils/recurringDetection";
 
 import { BulkActions } from "./BulkActions";
 import { Button } from "@/components/ui/Button";
@@ -301,6 +303,15 @@ export default function TransactionManager() {
     const expenses = filteredTransactions.filter((t) => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
     return { income, expenses, net: income - expenses };
   }, [filteredTransactions]);
+
+  // ✅ Recurring merchant detection
+  const recurringMerchants = React.useMemo(() => {
+    const summary = detectRecurring(transactions as any[]);
+    return new Set(summary.items.map((i) => i.merchant.toLowerCase().trim()));
+  }, [transactions]);
+
+  const isRecurring = (t: Transaction) =>
+    recurringMerchants.has((t.merchant || t.description || "").toLowerCase().trim());
 
   // ✅ Pagination derived values
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / PAGE_SIZE));
@@ -902,7 +913,15 @@ export default function TransactionManager() {
                               {(t.merchant || "?").charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <div className="font-medium text-gray-900">{t.merchant || "Unknown"}</div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-gray-900">{t.merchant || "Unknown"}</span>
+                                {isRecurring(t) && (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700">
+                                    <RefreshCw className="w-2.5 h-2.5" />
+                                    Recurring
+                                  </span>
+                                )}
+                              </div>
                               <div className="text-sm text-gray-500">{t.description}</div>
                               {t.aiSuggested && (
                                 <div className="flex items-center gap-1 mt-1">

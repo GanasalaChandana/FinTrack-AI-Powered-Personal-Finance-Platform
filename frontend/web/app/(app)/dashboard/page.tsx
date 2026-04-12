@@ -20,6 +20,7 @@ import { GoalProgressChart } from "@/components/dashboard/GoalProgressChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { AnomalyInsightsCard } from "@/components/dashboard/AnomalyInsightsCard";
 import { BudgetForecastCard } from "@/components/dashboard/BudgetForecastCard";
+import { RecurringTransactionsCard } from "@/components/dashboard/RecurringTransactionsCard";
 import { TransactionModal } from "@/components/modals/TransactionModal";
 import { CSVImportModal, type CSVRow } from "@/components/CSVImportModal";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
@@ -608,10 +609,13 @@ export default function DashboardPage() {
 
             {/* ── AI Insights Row ── */}
             {!loadingData && hasTransactions && (
-              <Grid columns={2} gap="lg">
-                <AnomalyInsightsCard transactions={allTransactions} />
-                <BudgetForecastCard transactions={allTransactions} budgets={allBudgets} />
-              </Grid>
+              <>
+                <Grid columns={2} gap="lg">
+                  <AnomalyInsightsCard transactions={allTransactions} />
+                  <BudgetForecastCard transactions={allTransactions} budgets={allBudgets} />
+                </Grid>
+                <RecurringTransactionsCard transactions={allTransactions} />
+              </>
             )}
 
             {/* ── Quick Actions ── */}

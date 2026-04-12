@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   RefreshCw, Calendar, DollarSign, TrendingUp, Check,
-  Eye, Plus, Trash2, ChevronDown, ChevronUp, Clock, AlertCircle,
+  Eye, Plus, Trash2, ChevronDown, ChevronUp, Clock, AlertCircle, Zap,
 } from "lucide-react";
 import {
   detectRecurringTransactions,
@@ -139,6 +139,18 @@ export function RecurringTransactionsDashboard({
     [visible]
   );
 
+  const subscriptions = useMemo(
+    () => visible.filter((r) => r.isSubscription),
+    [visible]
+  );
+
+  const subscriptionMonthlyCost = useMemo(
+    () => subscriptions
+      .filter((r) => r.pattern.type === "EXPENSE")
+      .reduce((s, r) => s + toMonthly(r.pattern.amount, r.pattern.frequency), 0),
+    [subscriptions]
+  );
+
   // ── Upcoming (next 7 days) ─────────────────────────────────────────────────
   const upcomingSoon = useMemo(
     () => visible.filter((r) => { const d = daysUntil(r.nextExpectedDate); return d >= 0 && d <= 7; }),
@@ -193,7 +205,7 @@ export function RecurringTransactionsDashboard({
     <div className="space-y-6">
 
       {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           {
             label: "Recurring Detected", sub: `${visible.length} pattern${visible.length !== 1 ? "s" : ""}`,
@@ -206,7 +218,12 @@ export function RecurringTransactionsDashboard({
             icon: DollarSign, iconBg: "bg-violet-50", iconText: "text-violet-600", valueCls: "text-gray-900",
           },
           {
-            label: "Potential Savings", sub: "Annual estimate",
+            label: "Subscriptions", sub: `${fmt(subscriptionMonthlyCost)}/mo`,
+            value: String(subscriptions.length),
+            icon: Zap, iconBg: "bg-yellow-50", iconText: "text-yellow-600", valueCls: "text-gray-900",
+          },
+          {
+            label: "Potential Savings", sub: "If all cancelled/year",
             value: fmt(potentialSavings),
             icon: TrendingUp, iconBg: "bg-emerald-50", iconText: "text-emerald-600",
             valueCls: potentialSavings > 0 ? "text-emerald-600" : "text-gray-400",
@@ -225,6 +242,32 @@ export function RecurringTransactionsDashboard({
           </div>
         ))}
       </div>
+
+      {/* ── Subscription Spotlight ── */}
+      {subscriptions.length > 0 && (
+        <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Zap className="w-4 h-4 text-yellow-600" />
+            <h3 className="text-sm font-bold text-yellow-800">
+              Subscriptions Detected — {fmt(subscriptionMonthlyCost)}/mo · {fmt(subscriptionMonthlyCost * 12)}/yr
+            </h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {subscriptions.map((s) => (
+              <div key={s.id}
+                className="flex items-center gap-1.5 bg-white border border-yellow-200 rounded-full px-3 py-1 shadow-sm">
+                <span className="w-5 h-5 rounded-full bg-yellow-400 flex items-center justify-center text-white text-[9px] font-black flex-shrink-0">
+                  {s.pattern.description.charAt(0).toUpperCase()}
+                </span>
+                <span className="text-xs font-semibold text-gray-800 truncate max-w-[100px]">
+                  {s.pattern.description}
+                </span>
+                <span className="text-xs font-bold text-red-500">{fmt(s.pattern.amount)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Upcoming alert banner ── */}
       {upcomingSoon.length > 0 && (
@@ -295,6 +338,12 @@ export function RecurringTransactionsDashboard({
                         <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0 ${st.pillBg} ${st.pillText}`}>
                           {FREQ_LABELS[freq] ?? freq}
                         </span>
+                        {item.isSubscription && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200 flex-shrink-0">
+                            <Zap className="w-2.5 h-2.5" />
+                            Subscription
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">
                         {item.pattern.category} · {item.transactions.length} occurrence{item.transactions.length !== 1 ? "s" : ""}
@@ -337,7 +386,7 @@ export function RecurringTransactionsDashboard({
                   {(item.savings ?? 0) > 0 && (
                     <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
                       <TrendingUp className="w-3 h-3" />
-                      {fmt(item.savings!)}/yr potential
+                      Save {fmt(item.savings!)}/yr if cancelled
                     </span>
                   )}
                 </div>

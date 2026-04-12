@@ -1,5 +1,25 @@
 // lib/utils/recurringDetector.ts
 
+// ── Known subscription keywords ───────────────────────────────────────────────
+const SUBSCRIPTION_KEYWORDS = [
+  "netflix", "spotify", "hulu", "disney", "amazon prime", "apple",
+  "youtube", "google one", "microsoft", "adobe", "dropbox", "slack",
+  "zoom", "github", "openai", "chatgpt", "notion", "figma",
+  "canva", "grammarly", "duolingo", "headspace", "calm",
+  "nytimes", "wsj", "medium", "patreon", "icloud", "onedrive",
+  "prime video", "peacock", "paramount", "hbo", "max", "crunchyroll",
+  "twitch", "playstation", "xbox", "nintendo", "steam", "epic games",
+  "audible", "kindle", "scribd", "chegg",
+  "gym", "planet fitness", "la fitness", "equinox",
+  "insurance", "geico", "state farm", "progressive",
+  "att", "verizon", "comcast", "xfinity", "tmobile", "t-mobile",
+];
+
+function checkIsSubscription(description: string): boolean {
+  const text = description.toLowerCase();
+  return SUBSCRIPTION_KEYWORDS.some((kw) => text.includes(kw));
+}
+
 export interface Transaction {
   id: string;
   date: string;
@@ -25,7 +45,8 @@ export interface RecurringTransaction {
   transactions: Transaction[];
   confidence: number;
   nextExpectedDate: string;
-  savings?: number;
+  savings?: number;       // annual savings if cancelled
+  isSubscription: boolean;
 }
 
 // Helper function to normalize descriptions for matching
@@ -204,9 +225,24 @@ export function detectRecurringTransactions(
     const dayOfWeek = frequency === 'weekly' ? lastDate.getDay() : undefined;
     const dayOfMonth = frequency === 'monthly' ? lastDate.getDate() : undefined;
     
-    // Calculate potential savings (for subscriptions)
-    const savings = lastTxn.type === 'EXPENSE' ? avgAmount * 12 * 0.1 : undefined;
-    
+    // Subscription detection
+    const subscription = checkIsSubscription(lastTxn.description);
+
+    // Potential savings = full annual cost if cancelled (only for expenses)
+    const annualCost = lastTxn.type === 'EXPENSE'
+      ? (() => {
+          switch (frequency) {
+            case 'weekly':    return avgAmount * 52;
+            case 'biweekly':  return avgAmount * 26;
+            case 'monthly':   return avgAmount * 12;
+            case 'quarterly': return avgAmount * 4;
+            case 'yearly':    return avgAmount;
+            default:          return avgAmount * 12;
+          }
+        })()
+      : 0;
+    const savings = lastTxn.type === 'EXPENSE' ? annualCost : undefined;
+
     recurring.push({
       id: `recurring-${Date.now()}-${Math.random()}`,
       pattern: {
@@ -222,6 +258,7 @@ export function detectRecurringTransactions(
       confidence,
       nextExpectedDate: calculateNextDate(lastTxn.date, frequency),
       savings,
+      isSubscription: subscription,
     });
   }
   

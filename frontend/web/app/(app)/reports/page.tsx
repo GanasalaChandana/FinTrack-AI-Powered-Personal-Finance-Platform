@@ -559,7 +559,7 @@ const EnhancedFinancialReports: React.FC = () => {
                       (m.income - m.expenses) < (arr[wi].income - arr[wi].expenses) ? i : wi, 0);
                     return activeMonths.map((m, i) => {
                       const net = m.income - m.expenses;
-                      const prevExp = i > 0 ? monthlyData[i - 1].expenses : null;
+                      const prevExp = i > 0 ? activeMonths[i - 1].expenses : null;
                       const momPct = prevExp && prevExp > 0 ? ((m.expenses - prevExp) / prevExp) * 100 : null;
                       const isBest = i === bestIdx;
                       const isWorst = i === worstIdx;

@@ -21,6 +21,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { AnomalyInsightsCard } from "@/components/dashboard/AnomalyInsightsCard";
 import { BudgetForecastCard } from "@/components/dashboard/BudgetForecastCard";
 import { RecurringTransactionsCard } from "@/components/dashboard/RecurringTransactionsCard";
+import { SpendingInsightsCard } from "@/components/dashboard/SpendingInsightsCard";
 import { TransactionModal } from "@/components/modals/TransactionModal";
 import { CSVImportModal, type CSVRow } from "@/components/CSVImportModal";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
@@ -614,7 +615,10 @@ export default function DashboardPage() {
                   <AnomalyInsightsCard transactions={allTransactions} />
                   <BudgetForecastCard transactions={allTransactions} budgets={allBudgets} />
                 </Grid>
-                <RecurringTransactionsCard transactions={allTransactions} />
+                <Grid columns={2} gap="lg">
+                  <SpendingInsightsCard transactions={allTransactions} />
+                  <RecurringTransactionsCard transactions={allTransactions} />
+                </Grid>
               </>
             )}
 

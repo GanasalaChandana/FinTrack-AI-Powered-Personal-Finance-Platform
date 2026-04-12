@@ -551,11 +551,13 @@ const EnhancedFinancialReports: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {(() => {
-                    const bestIdx = monthlyData.reduce((bi, m, i, arr) =>
+                    const activeMonths = monthlyData.filter(m => m.income > 0 || m.expenses > 0);
+                    if (activeMonths.length === 0) return null;
+                    const bestIdx = activeMonths.reduce((bi, m, i, arr) =>
                       (m.income - m.expenses) > (arr[bi].income - arr[bi].expenses) ? i : bi, 0);
-                    const worstIdx = monthlyData.reduce((wi, m, i, arr) =>
+                    const worstIdx = activeMonths.reduce((wi, m, i, arr) =>
                       (m.income - m.expenses) < (arr[wi].income - arr[wi].expenses) ? i : wi, 0);
-                    return monthlyData.map((m, i) => {
+                    return activeMonths.map((m, i) => {
                       const net = m.income - m.expenses;
                       const prevExp = i > 0 ? monthlyData[i - 1].expenses : null;
                       const momPct = prevExp && prevExp > 0 ? ((m.expenses - prevExp) / prevExp) * 100 : null;
@@ -757,7 +759,7 @@ const EnhancedFinancialReports: React.FC = () => {
 
         {/* ── Cumulative Savings Chart ── */}
         {(() => {
-          const months = reportsData.monthlyData;
+          const months = reportsData.monthlyData.filter(m => m.income > 0 || m.expenses > 0);
           if (months.length < 2) return null;
           let running = 0;
           const cumData = months.map(m => {

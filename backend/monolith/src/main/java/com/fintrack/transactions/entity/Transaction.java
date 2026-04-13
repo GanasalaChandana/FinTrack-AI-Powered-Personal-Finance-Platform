@@ -72,6 +72,14 @@ public class Transaction {
     @JdbcTypeCode(SqlTypes.VARCHAR)
     private String status = "completed"; // "completed" or "pending"
 
+    @Column(columnDefinition = "VARCHAR(1000)")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    private String notes;
+
+    @Column(columnDefinition = "VARCHAR(500)")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    private String tags; // comma-separated tag list e.g. "business,vacation"
+
     // Getter and Setter
     public boolean isMlPredicted() {
         return mlPredicted;

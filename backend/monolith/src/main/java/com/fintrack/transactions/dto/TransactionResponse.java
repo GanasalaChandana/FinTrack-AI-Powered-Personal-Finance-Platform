@@ -22,4 +22,6 @@ public class TransactionResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String status;
+    private String notes;
+    private String tags;
 }

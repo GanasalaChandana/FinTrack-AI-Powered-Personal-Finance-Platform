@@ -71,6 +71,7 @@ interface Transaction extends Omit<ApiTransaction, "category" | "type"> {
   status: TxStatus;
   paymentMethod: string;
   tags: string[];
+  notes?: string;
   aiSuggested: boolean;
   merchant?: string;
 }
@@ -226,6 +227,7 @@ export default function TransactionManager() {
   const [selectedTransactions, setSelectedTransactions] = React.useState<string[]>([]);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editForm, setEditForm] = React.useState<Partial<Transaction>>({});
+  const [editTagsStr, setEditTagsStr] = React.useState("");
 
   const [showAdd, setShowAdd] = React.useState(false);
   const [showFilters, setShowFilters] = React.useState(false); // ✅ Collapsed by default
@@ -261,7 +263,8 @@ export default function TransactionManager() {
     updatedAt: t.updatedAt,
     status: ((t as any).status === "pending" ? "pending" : "completed") as TxStatus,
     paymentMethod: "Credit Card •••• 4242",
-    tags: [],
+    tags: t.tags ? t.tags.split(",").map((s) => s.trim()).filter(Boolean) : [],
+    notes: (t as any).notes || undefined,
     aiSuggested: false,
   });
 
@@ -444,11 +447,13 @@ export default function TransactionManager() {
   const handleEdit = (transaction: Transaction) => {
     setEditingId(transaction.id!);
     setEditForm(transaction);
+    setEditTagsStr((transaction.tags || []).join(", "));
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditForm({});
+    setEditTagsStr("");
   };
 
   const handleSaveEdit = async () => {
@@ -456,6 +461,7 @@ export default function TransactionManager() {
     try {
       const uiType = (editForm.type ?? "expense") as TxType;
       const backendCategory = mapCategoryToBackend(editForm.category as Exclude<CategoryId, "all">, uiType);
+      const tagsArr = editTagsStr.split(",").map((s) => s.trim()).filter(Boolean);
       const updated = await transactionsAPI.update(editingId, {
         date: editForm.date!,
         description: editForm.description!,
@@ -463,18 +469,28 @@ export default function TransactionManager() {
         amount: editForm.amount!,
         type: uiType.toUpperCase(),
         status: editForm.status ?? "completed",
+        notes: editForm.notes || null,
+        tags: tagsArr.join(",") || null,
       } as any);
       const normalized = normalizeTransaction(updated);
       const updateFn = (list: Transaction[]) =>
         list.map((t) =>
           t.id === editingId
-            ? { ...normalized, status: editForm.status || t.status, paymentMethod: editForm.paymentMethod || t.paymentMethod, merchant: editForm.merchant || normalized.merchant }
+            ? {
+                ...normalized,
+                status: editForm.status || t.status,
+                paymentMethod: editForm.paymentMethod || t.paymentMethod,
+                merchant: editForm.merchant || normalized.merchant,
+                notes: editForm.notes || normalized.notes,
+                tags: tagsArr.length > 0 ? tagsArr : normalized.tags,
+              }
             : t,
         );
       setTransactions(updateFn);
       setFilteredTransactions(updateFn);
       setEditingId(null);
       setEditForm({});
+      setEditTagsStr("");
       toast.success("Transaction updated successfully");
     } catch (err) {
       toast.error("Failed to update transaction");
@@ -507,7 +523,7 @@ export default function TransactionManager() {
     toast.info("Transaction duplicated — ready to save");
   };
 
-  const handleAddSave = async (tx: { type: string; category: string; amount: number; date: string; merchant: string; description: string; status?: string }) => {
+  const handleAddSave = async (tx: { type: string; category: string; amount: number; date: string; merchant: string; description: string; status?: string; notes?: string; tags?: string }) => {
     const created = await transactionsAPI.create({
       date: tx.date,
       description: tx.description.trim() || tx.merchant.trim(),
@@ -516,6 +532,8 @@ export default function TransactionManager() {
       type: tx.type.toUpperCase() as "INCOME" | "EXPENSE",
       merchant: tx.merchant.trim(),
       ...(tx.status ? { status: tx.status } : {}),
+      ...(tx.notes ? { notes: tx.notes } : {}),
+      ...(tx.tags ? { tags: tx.tags } : {}),
     } as any);
     const newTx: Transaction = { ...normalizeTransaction(created), merchant: tx.merchant.trim() };
     setTransactions((prev) => [newTx, ...prev]);
@@ -903,17 +921,19 @@ export default function TransactionManager() {
 
                       <td className="px-6 py-4">
                         {isEditing ? (
-                          <div className="space-y-2">
+                          <div className="space-y-2 min-w-[200px]">
                             <input type="text" value={editForm.merchant || ""} onChange={(e) => setEditForm((prev) => ({ ...prev, merchant: e.target.value }))} className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100" placeholder="Merchant" />
                             <input type="text" value={editForm.description} onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))} className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100" placeholder="Description" />
+                            <input type="text" value={editTagsStr} onChange={(e) => setEditTagsStr(e.target.value)} className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100" placeholder="Tags: business, vacation" />
+                            <input type="text" value={editForm.notes || ""} onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))} className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100" placeholder="Private notes..." />
                           </div>
                         ) : (
                           <div className="flex items-start gap-3">
                             <div className={`w-10 h-10 bg-gradient-to-br ${t.type === "income" ? "from-green-500 to-green-600" : "from-blue-500 to-blue-600"} rounded-lg flex items-center justify-center text-white font-bold text-lg flex-shrink-0`}>
                               {(t.merchant || "?").charAt(0).toUpperCase()}
                             </div>
-                            <div>
-                              <div className="flex items-center gap-1.5">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="font-medium text-gray-900 dark:text-gray-100">{t.merchant || "Unknown"}</span>
                                 {isRecurring(t) && (
                                   <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400">
@@ -922,11 +942,25 @@ export default function TransactionManager() {
                                   </span>
                                 )}
                               </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400">{t.description}</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{t.description}</div>
                               {t.aiSuggested && (
-                                <div className="flex items-center gap-1 mt-1">
+                                <div className="flex items-center gap-1 mt-0.5">
                                   <Sparkles className="w-3 h-3 text-purple-600" />
                                   <span className="text-xs text-purple-600 font-medium">AI Suggested</span>
+                                </div>
+                              )}
+                              {t.tags && t.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {t.tags.map((tag, i) => (
+                                    <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400">
+                                      #{tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              {t.notes && (
+                                <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 italic truncate max-w-[200px]" title={t.notes}>
+                                  📝 {t.notes}
                                 </div>
                               )}
                             </div>

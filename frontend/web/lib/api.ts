@@ -32,6 +32,8 @@ export interface Transaction {
   recurring?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  notes?: string;
+  tags?: string; // comma-separated string from backend e.g. "business,vacation"
   [key: string]: any;
 }
 

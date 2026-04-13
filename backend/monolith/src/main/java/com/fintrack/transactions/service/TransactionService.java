@@ -52,6 +52,8 @@ public class TransactionService {
         }
 
         transaction.setStatus(request.getStatus() != null ? request.getStatus() : "completed");
+        transaction.setNotes(request.getNotes());
+        transaction.setTags(request.getTags());
         transaction.setCreatedAt(LocalDateTime.now());
         transaction.setUpdatedAt(LocalDateTime.now());
 
@@ -131,6 +133,8 @@ public class TransactionService {
         if (request.getStatus() != null) {
             transaction.setStatus(request.getStatus());
         }
+        transaction.setNotes(request.getNotes());
+        transaction.setTags(request.getTags());
         transaction.setUpdatedAt(LocalDateTime.now());
 
         Transaction updated = transactionRepository.save(transaction);
@@ -191,6 +195,8 @@ public class TransactionService {
                 .createdAt(transaction.getCreatedAt())
                 .updatedAt(transaction.getUpdatedAt())
                 .status(transaction.getStatus() != null ? transaction.getStatus() : "completed")
+                .notes(transaction.getNotes())
+                .tags(transaction.getTags())
                 .build();
     }
 

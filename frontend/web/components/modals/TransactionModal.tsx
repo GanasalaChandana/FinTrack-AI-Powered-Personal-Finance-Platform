@@ -13,6 +13,8 @@ interface Transaction {
   merchant: string;
   description: string;
   status?: "completed" | "pending";
+  notes?: string;
+  tags?: string; // comma-separated e.g. "business,vacation"
 }
 
 interface TransactionModalProps {
@@ -65,6 +67,8 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
     merchant: "",
     description: "",
     status: "completed",
+    notes: "",
+    tags: "",
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -80,7 +84,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
       // Support prefill for duplicate — strip the id
       setFormData(transaction
         ? { ...transaction, id: undefined }
-        : { type: "expense", category: "", amount: 0, date: new Date().toISOString().split("T")[0], merchant: "", description: "", status: "completed" }
+        : { type: "expense", category: "", amount: 0, date: new Date().toISOString().split("T")[0], merchant: "", description: "", status: "completed", notes: "", tags: "" }
       );
       setAiSuggested(false);
     }
@@ -341,6 +345,32 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
                 </button>
               </div>
             </div>
+
+            {/* Tags */}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Tags (Optional)
+              </label>
+              <div className="relative">
+                <Tag className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={formData.tags || ""}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3 pl-10 pr-4 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  placeholder="business, vacation, tax-deductible"
+                />
+              </div>
+              {formData.tags && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {formData.tags.split(",").map((t) => t.trim()).filter(Boolean).map((tag, i) => (
+                    <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Description */}
@@ -353,9 +383,26 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
+                rows={2}
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3 pl-10 pr-4 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                placeholder="Add any notes about this transaction..."
+                placeholder="Brief description for categorization context..."
+              />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="mt-4">
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Private Notes (Optional)
+            </label>
+            <div className="relative">
+              <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 opacity-60" />
+              <textarea
+                value={formData.notes || ""}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={2}
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3 pl-10 pr-4 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="Reimbursable, client name, receipt #, personal memo..."
               />
             </div>
           </div>

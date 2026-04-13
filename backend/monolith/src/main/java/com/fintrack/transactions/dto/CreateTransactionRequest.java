@@ -24,4 +24,8 @@ public class CreateTransactionRequest {
     private LocalDate date;
 
     private String status; // "completed" or "pending", defaults to "completed"
+
+    private String notes;
+
+    private String tags; // comma-separated e.g. "business,vacation"
 }

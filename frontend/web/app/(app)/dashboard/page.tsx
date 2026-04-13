@@ -24,6 +24,7 @@ import { RecurringTransactionsCard } from "@/components/dashboard/RecurringTrans
 import { SpendingInsightsCard } from "@/components/dashboard/SpendingInsightsCard";
 import { SavingsGoalsCard } from "@/components/dashboard/SavingsGoalsCard";
 import { MonthEndForecastCard } from "@/components/dashboard/MonthEndForecastCard";
+import { BillRemindersCard } from "@/components/dashboard/BillRemindersCard";
 import { TransactionModal } from "@/components/modals/TransactionModal";
 import { CSVImportModal, type CSVRow } from "@/components/CSVImportModal";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
@@ -618,6 +619,8 @@ export default function DashboardPage() {
                   <BudgetForecastCard transactions={allTransactions} budgets={allBudgets} />
                   <MonthEndForecastCard transactions={allTransactions} />
                 </Grid>
+                {/* Bill Reminders — full-width so all upcoming bills are visible */}
+                <BillRemindersCard transactions={allTransactions} />
                 <Grid columns={3} gap="lg">
                   <SpendingInsightsCard transactions={allTransactions} />
                   <RecurringTransactionsCard transactions={allTransactions} />

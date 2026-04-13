@@ -35,6 +35,7 @@ export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasToken, setHasToken] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [budgetAlertCount, setBudgetAlertCount] = useState(0);
   const { theme, setTheme } = useThemePreference();
 
   const cycleTheme = () => {
@@ -74,6 +75,16 @@ export default function Navigation() {
       const token = getToken();
       const tokenExists = !!token;
       setHasToken(tokenExists);
+
+      // Read budget alert count from localStorage (written by dashboard)
+      const readBudgetAlerts = () => {
+        const count = parseInt(localStorage.getItem("fintrack-budget-alerts") || "0", 10);
+        setBudgetAlertCount(isNaN(count) ? 0 : count);
+      };
+      readBudgetAlerts();
+      window.addEventListener("fintrack-budget-alerts-updated", readBudgetAlerts);
+      window.addEventListener("storage", readBudgetAlerts);
+
       const shouldLoadData = tokenExists && !isPublicRoute(pathname);
       if (shouldLoadData) {
         loadAlerts();
@@ -88,8 +99,17 @@ export default function Navigation() {
             }
           }
         }, 120000); // poll every 2 minutes — reduces load on free-tier Render dyno
-        return () => clearInterval(interval);
+        return () => {
+          clearInterval(interval);
+          window.removeEventListener("fintrack-budget-alerts-updated", readBudgetAlerts);
+          window.removeEventListener("storage", readBudgetAlerts);
+        };
       }
+
+      return () => {
+        window.removeEventListener("fintrack-budget-alerts-updated", readBudgetAlerts);
+        window.removeEventListener("storage", readBudgetAlerts);
+      };
     }
   }, [pathname]);
 
@@ -361,7 +381,22 @@ export default function Navigation() {
               <>
                 {navLink("/dashboard", "Dashboard")}
                 {navLink("/transactions", "Transactions")}
-                {navLink("/goals-budgets", "Goals & Budgets")}
+                {/* Goals & Budgets with budget alert badge */}
+                <Link
+                  href="/goals-budgets"
+                  className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    isActive("/goals-budgets")
+                      ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400"
+                      : "text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  Goals & Budgets
+                  {budgetAlertCount > 0 && (
+                    <span className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-orange-500 rounded-full">
+                      {budgetAlertCount > 9 ? "9+" : budgetAlertCount}
+                    </span>
+                  )}
+                </Link>
                 {navLink("/reports", "Reports")}
                 {navLink("/receipts", "Receipts", <Camera className="w-3.5 h-3.5" />)}
                 {navLink("/health", "Health", <Activity className="w-3.5 h-3.5" />)}
@@ -537,13 +572,13 @@ export default function Navigation() {
                 {[
                   { href: "/dashboard", label: "Dashboard" },
                   { href: "/transactions", label: "Transactions" },
-                  { href: "/goals-budgets", label: "Goals & Budgets" },
+                  { href: "/goals-budgets", label: "Goals & Budgets", badgeCount: budgetAlertCount, badgeColor: "bg-orange-500" },
                   { href: "/reports", label: "Reports" },
                   { href: "/receipts", label: "Receipt Scanner", icon: <Camera className="w-4 h-4" /> },
                   { href: "/health", label: "Health Score", icon: <Activity className="w-4 h-4" /> },
                   { href: "/insights", label: "AI Insights", icon: <Brain className="w-4 h-4" /> },
                   { href: "/recurring", label: "Recurring", icon: <RefreshCw className="w-4 h-4" /> },
-                ].map(({ href, label, icon }) => (
+                ].map(({ href, label, icon, badgeCount, badgeColor }: any) => (
                   <Link
                     key={href}
                     href={href}
@@ -556,6 +591,11 @@ export default function Navigation() {
                   >
                     {icon}
                     {label}
+                    {badgeCount > 0 && (
+                      <span className={`ml-auto ${badgeColor} text-white text-xs px-1.5 py-0.5 rounded-full`}>
+                        {badgeCount > 9 ? "9+" : badgeCount}
+                      </span>
+                    )}
                     {href === "/alerts" && alertsUnreadCount > 0 && <span className="ml-auto bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{alertsUnreadCount}</span>}
                     {href === "/notifications" && notificationsUnreadCount > 0 && <span className="ml-auto bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full">{notificationsUnreadCount}</span>}
                   </Link>

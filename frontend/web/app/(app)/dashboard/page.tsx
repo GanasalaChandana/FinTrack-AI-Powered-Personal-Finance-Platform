@@ -25,6 +25,7 @@ import { SpendingInsightsCard } from "@/components/dashboard/SpendingInsightsCar
 import { SavingsGoalsCard } from "@/components/dashboard/SavingsGoalsCard";
 import { MonthEndForecastCard } from "@/components/dashboard/MonthEndForecastCard";
 import { BillRemindersCard } from "@/components/dashboard/BillRemindersCard";
+import { BudgetAlertsCard } from "@/components/dashboard/BudgetAlertsCard";
 import { TransactionModal } from "@/components/modals/TransactionModal";
 import { CSVImportModal, type CSVRow } from "@/components/CSVImportModal";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
@@ -329,9 +330,17 @@ export default function DashboardPage() {
     const days = parseInt(dateRange);
     const trendData = processSpendingTrend(allTransactions, days);
     setSpendingTrendData(trendData);
-    setBudgetComparisonData(processBudgetComparison(allBudgets, allTransactions));
+    const budgetData = processBudgetComparison(allBudgets, allTransactions);
+    setBudgetComparisonData(budgetData);
     setCategoryData(processCategoryBreakdown(allTransactions, days));
     setStats(calculateStats(allTransactions, days, goals));
+
+    // Write budget alert count to localStorage so Navigation can show a badge
+    const atRiskCount = budgetData.filter((b) => b.budget > 0 && b.spent / b.budget >= 0.75).length;
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fintrack-budget-alerts", atRiskCount.toString());
+      window.dispatchEvent(new Event("fintrack-budget-alerts-updated"));
+    }
   }, [allTransactions, allBudgets, goals, dateRange]);
 
   // ── Sparklines — always 6-month window ───────────────────────────────────
@@ -621,8 +630,11 @@ export default function DashboardPage() {
                 </Grid>
                 {/* Bill Reminders — full-width so all upcoming bills are visible */}
                 <BillRemindersCard transactions={allTransactions} />
-                <Grid columns={3} gap="lg">
+                <Grid columns={2} gap="lg">
                   <SpendingInsightsCard transactions={allTransactions} />
+                  <BudgetAlertsCard budgets={budgetComparisonData} />
+                </Grid>
+                <Grid columns={2} gap="lg">
                   <RecurringTransactionsCard transactions={allTransactions} />
                   <SavingsGoalsCard />
                 </Grid>

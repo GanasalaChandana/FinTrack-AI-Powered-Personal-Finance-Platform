@@ -119,10 +119,10 @@ function computeHealthScore(budgets: Budget[], daysLeft: number, daysInMonth: nu
 }
 
 function healthLabel(score: number) {
-  if (score >= 85) return { label: "Excellent", color: "#10b981", bg: "bg-emerald-50", ring: "ring-emerald-200" };
-  if (score >= 65) return { label: "Good",      color: "#6366f1", bg: "bg-indigo-50",  ring: "ring-indigo-200" };
-  if (score >= 45) return { label: "Fair",      color: "#f59e0b", bg: "bg-amber-50",   ring: "ring-amber-200" };
-  return              { label: "At Risk",   color: "#ef4444", bg: "bg-red-50",     ring: "ring-red-200" };
+  if (score >= 85) return { label: "Excellent", color: "#10b981", bg: "bg-emerald-50 dark:bg-emerald-900/30", ring: "ring-emerald-200 dark:ring-emerald-800" };
+  if (score >= 65) return { label: "Good",      color: "#6366f1", bg: "bg-indigo-50 dark:bg-indigo-900/30",  ring: "ring-indigo-200 dark:ring-indigo-800" };
+  if (score >= 45) return { label: "Fair",      color: "#f59e0b", bg: "bg-amber-50 dark:bg-amber-900/30",   ring: "ring-amber-200 dark:ring-amber-800" };
+  return              { label: "At Risk",   color: "#ef4444", bg: "bg-red-50 dark:bg-red-900/30",     ring: "ring-red-200 dark:ring-red-800" };
 }
 
 // ── Radial Progress Ring ──────────────────────────────────────────────────────
@@ -198,21 +198,21 @@ function DeleteConfirmModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm border border-gray-100 p-7">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-sm border border-gray-100 dark:border-gray-700 p-7">
         <div className="flex flex-col items-center text-center gap-4 mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
             <Trash2 className="w-7 h-7 text-red-500" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Delete Budget?</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              This will permanently remove <span className="font-semibold text-gray-700">"{categoryName}"</span>.
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Delete Budget?</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              This will permanently remove <span className="font-semibold text-gray-700 dark:text-gray-200">"{categoryName}"</span>.
             </p>
           </div>
         </div>
         <div className="flex gap-3">
           <button onClick={onCancel} disabled={isDeleting}
-            className="flex-1 rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50">
+            className="flex-1 rounded-xl border-2 border-gray-200 dark:border-gray-600 px-4 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition disabled:opacity-50">
             Cancel
           </button>
           <button onClick={onConfirm} disabled={isDeleting}
@@ -325,7 +325,7 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
 
   if (!budgets || budgets.length === 0) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center bg-gray-50">
+      <div className="min-h-[60vh] flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <EmptyState icon={Plus} title="No budgets yet"
           description="Create your first budget to start tracking your spending limits."
           actionLabel="Add Budget" onAction={openAddModal} gradient="from-indigo-500 to-purple-500" />
@@ -352,7 +352,7 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
         .score-badge{animation:scorePop 0.5s ease 0.3s both}
       `}</style>
 
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-7">
 
           {/* ── Header ──────────────────────────────────────────────────────── */}
@@ -362,16 +362,16 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
                 <Sparkles className="w-4 h-4 text-indigo-500" />
                 <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">This Month</span>
               </div>
-              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Goals &amp; Budgets</h1>
-              <p className="text-gray-400 text-sm mt-1">Track your spending limits and stay on target.</p>
+              <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Goals &amp; Budgets</h1>
+              <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Track your spending limits and stay on target.</p>
             </div>
             <div className="flex items-center gap-3">
               {/* Days left pill */}
-              <div className="flex items-center gap-2 bg-white rounded-2xl px-4 py-2.5 border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-2xl px-4 py-2.5 border border-gray-100 dark:border-gray-700 shadow-sm">
                 <Calendar className="w-4 h-4 text-indigo-400" />
                 <div>
-                  <p className="text-sm font-extrabold text-gray-800 leading-none">{daysLeft}d left</p>
-                  <p className="text-[10px] text-gray-400 leading-none mt-0.5">in this month</p>
+                  <p className="text-sm font-extrabold text-gray-800 dark:text-gray-100 leading-none">{daysLeft}d left</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-none mt-0.5">in this month</p>
                 </div>
               </div>
               <button onClick={openAddModal}
@@ -384,21 +384,21 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
 
           {/* ── Over-budget alert ─────────────────────────────────────────── */}
           {overBudgetCount > 0 && (
-            <div className="rounded-2xl bg-red-50 border border-red-200 px-5 py-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+            <div className="rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 px-5 py-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-5 h-5 text-red-500" />
               </div>
               <div>
-                <p className="text-sm font-bold text-red-700">
+                <p className="text-sm font-bold text-red-700 dark:text-red-400">
                   {overBudgetCount} budget{overBudgetCount > 1 ? "s are" : " is"} over limit this month
                 </p>
-                <p className="text-xs text-red-400 mt-0.5">Review the highlighted cards below.</p>
+                <p className="text-xs text-red-400 dark:text-red-500 mt-0.5">Review the highlighted cards below.</p>
               </div>
             </div>
           )}
 
           {/* ── Summary Panel ─────────────────────────────────────────────── */}
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
             <div className="h-1.5 w-full"
               style={{ background: "linear-gradient(to right,#6366f1,#8b5cf6,#a855f7)" }} />
             <div className="p-6">
@@ -428,17 +428,17 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
                   <p className="text-[10px] font-bold uppercase tracking-widest mt-1" style={{ color: health.color }}>
                     {health.label}
                   </p>
-                  <p className="text-[9px] text-gray-400 mt-0.5">Health Score</p>
+                  <p className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">Health Score</p>
                 </div>
               </div>
 
               {/* Overall progress */}
               {totals.totalBudget > 0 && (
-                <div className="mt-5 bg-slate-50 rounded-2xl p-4">
+                <div className="mt-5 bg-slate-50 dark:bg-gray-700/50 rounded-2xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Monthly Overview</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide">Monthly Overview</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                         {fmt(totals.totalSpent)} spent of {fmt(totals.totalBudget)}
                       </p>
                     </div>
@@ -446,7 +446,7 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
                       overallPct >= 100 ? "text-red-600" : overallPct >= 80 ? "text-amber-500" : "text-emerald-600"
                     }`}>{Math.round(overallPct)}%</p>
                   </div>
-                  <div className="h-3 rounded-full bg-gray-200 overflow-hidden">
+                  <div className="h-3 rounded-full bg-gray-200 dark:bg-gray-600 overflow-hidden">
                     <div className="h-full rounded-full transition-all duration-700"
                       style={{
                         width: `${overallPct}%`,
@@ -473,10 +473,10 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
 
               return (
                 <div key={b.id}
-                  className={`budget-card bg-white rounded-3xl border flex flex-col overflow-hidden transition-all duration-300 ${
+                  className={`budget-card bg-white dark:bg-gray-800 rounded-3xl border flex flex-col overflow-hidden transition-all duration-300 ${
                     isCurrentlyDeleting ? "opacity-40 pointer-events-none scale-95"
                     : "hover:shadow-xl hover:-translate-y-1 shadow-sm"
-                  } ${over ? "border-red-200" : nearLimit ? "border-amber-200" : "border-gray-100"}`}
+                  } ${over ? "border-red-200 dark:border-red-800" : nearLimit ? "border-amber-200 dark:border-amber-800" : "border-gray-100 dark:border-gray-700"}`}
                   style={{ animationDelay: `${i * 0.05}s` }}
                 >
                   {/* Color accent top bar */}
@@ -492,17 +492,17 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
                           {b.icon}
                         </div>
                         <div className="min-w-0">
-                          <h3 className="font-bold text-gray-900 leading-tight truncate text-sm">{b.category}</h3>
-                          <p className="text-xs text-gray-400 mt-0.5">Limit: {fmt(b.budget)}</p>
+                          <h3 className="font-bold text-gray-900 dark:text-gray-100 leading-tight truncate text-sm">{b.category}</h3>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Limit: {fmt(b.budget)}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <button onClick={() => openEditModal(b)}
-                          className="p-1.5 rounded-xl hover:bg-indigo-50 text-gray-300 hover:text-indigo-500 transition-all" aria-label="Edit">
+                          className="p-1.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-300 dark:text-gray-600 hover:text-indigo-500 transition-all" aria-label="Edit">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => setPendingDeleteBudget(b)}
-                          className="p-1.5 rounded-xl hover:bg-red-50 text-gray-300 hover:text-red-400 transition-all" aria-label="Delete">
+                          className="p-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-300 dark:text-gray-600 hover:text-red-400 transition-all" aria-label="Delete">
                           {isCurrentlyDeleting
                             ? <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />
                             : <Trash2 className="w-3.5 h-3.5" />}
@@ -536,7 +536,7 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
                     </div>
 
                     {/* Progress bar */}
-                    <div className="h-2 rounded-full overflow-hidden bg-slate-100">
+                    <div className="h-2 rounded-full overflow-hidden bg-slate-100 dark:bg-gray-700">
                       {isEmpty ? (
                         <div className="h-full w-full"
                           style={{ background: "repeating-linear-gradient(90deg,#e2e8f0 0px,#e2e8f0 6px,transparent 6px,transparent 12px)" }} />
@@ -588,9 +588,9 @@ function SummaryCard({ label, value, sub, Icon, bgAccent, textAccent, valueColor
         <Icon className={`w-5 h-5 ${textAccent}`} />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{label}</p>
+        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">{label}</p>
         <p className={`text-2xl font-extrabold tracking-tight leading-none ${valueColor}`}>{value}</p>
-        {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+        {sub && <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{sub}</p>}
       </div>
     </div>
   );
@@ -606,7 +606,7 @@ interface BudgetModalProps {
 function BudgetModal({ mode, form, errors, isSaving, onChange, onClose, onSubmit }: BudgetModalProps) {
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-white">{mode === "add" ? "Create Budget" : "Edit Budget"}</h3>
@@ -622,15 +622,15 @@ function BudgetModal({ mode, form, errors, isSaving, onChange, onClose, onSubmit
 
         <form onSubmit={onSubmit} className="px-6 py-5 space-y-5">
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Category</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Category</label>
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
               {PRESET_CATEGORIES.map((cat) => (
                 <button key={cat.name} type="button"
                   onClick={() => onChange({ ...form, category: cat.name, icon: cat.icon, color: cat.color })}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
                     form.category === cat.name
-                      ? "border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm"
-                      : "border-gray-100 hover:border-gray-300 text-gray-500 bg-white"
+                      ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm"
+                      : "border-gray-100 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-700"
                   }`}>
                   <span>{cat.icon}</span><span>{cat.name}</span>
                 </button>
@@ -639,42 +639,42 @@ function BudgetModal({ mode, form, errors, isSaving, onChange, onClose, onSubmit
             <input type="text" value={form.category}
               onChange={(e) => onChange({ ...form, category: e.target.value })}
               placeholder="Or type a custom category..."
-              className="mt-2 w-full rounded-xl border-2 border-gray-100 px-4 py-2.5 text-sm focus:border-indigo-500 outline-none bg-slate-50 focus:bg-white transition" />
+              className="mt-2 w-full rounded-xl border-2 border-gray-100 dark:border-gray-600 px-4 py-2.5 text-sm focus:border-indigo-500 outline-none bg-slate-50 dark:bg-gray-700 dark:text-gray-100 focus:bg-white dark:focus:bg-gray-600 transition placeholder:text-gray-400 dark:placeholder:text-gray-500" />
             {errors.category && <p className="mt-1 text-xs text-red-500 font-medium">{errors.category}</p>}
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Monthly Limit ($)</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Monthly Limit ($)</label>
             <input type="number" min={0.01} step="0.01" value={form.budget}
               onChange={(e) => onChange({ ...form, budget: e.target.value })}
               placeholder="e.g., 300"
-              className="w-full rounded-xl border-2 border-gray-100 px-4 py-2.5 text-sm focus:border-indigo-500 outline-none bg-slate-50 focus:bg-white transition" />
+              className="w-full rounded-xl border-2 border-gray-100 dark:border-gray-600 px-4 py-2.5 text-sm focus:border-indigo-500 outline-none bg-slate-50 dark:bg-gray-700 dark:text-gray-100 focus:bg-white dark:focus:bg-gray-600 transition placeholder:text-gray-400 dark:placeholder:text-gray-500" />
             {errors.budget && <p className="mt-1 text-xs text-red-500 font-medium">{errors.budget}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Icon</label>
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Icon</label>
               <input type="text" value={form.icon}
                 onChange={(e) => { const v = [...e.target.value].slice(0, 2).join(""); onChange({ ...form, icon: v }); }}
-                className="w-full text-center rounded-xl border-2 border-gray-100 px-2 py-2.5 text-xl focus:border-indigo-500 outline-none bg-slate-50 focus:bg-white transition" />
+                className="w-full text-center rounded-xl border-2 border-gray-100 dark:border-gray-600 px-2 py-2.5 text-xl focus:border-indigo-500 outline-none bg-slate-50 dark:bg-gray-700 dark:text-gray-100 focus:bg-white dark:focus:bg-gray-600 transition" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Color</label>
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Color</label>
               <div className="flex items-center gap-2">
                 <input type="color" value={form.color}
                   onChange={(e) => onChange({ ...form, color: e.target.value })}
-                  className="w-11 h-11 rounded-xl border-2 border-gray-100 cursor-pointer p-0.5" />
+                  className="w-11 h-11 rounded-xl border-2 border-gray-100 dark:border-gray-600 cursor-pointer p-0.5 bg-white dark:bg-gray-700" />
                 <input type="text" value={form.color}
                   onChange={(e) => onChange({ ...form, color: e.target.value })}
-                  className="flex-1 rounded-xl border-2 border-gray-100 px-3 py-2.5 text-xs font-mono focus:border-indigo-500 outline-none bg-slate-50 focus:bg-white transition" />
+                  className="flex-1 rounded-xl border-2 border-gray-100 dark:border-gray-600 px-3 py-2.5 text-xs font-mono focus:border-indigo-500 outline-none bg-slate-50 dark:bg-gray-700 dark:text-gray-100 focus:bg-white dark:focus:bg-gray-600 transition" />
               </div>
             </div>
           </div>
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} disabled={isSaving}
-              className="flex-1 rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-500 hover:bg-gray-50 transition disabled:opacity-50">
+              className="flex-1 rounded-xl border-2 border-gray-200 dark:border-gray-600 px-4 py-2.5 text-sm font-bold text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition disabled:opacity-50">
               Cancel
             </button>
             <button type="submit" disabled={isSaving}

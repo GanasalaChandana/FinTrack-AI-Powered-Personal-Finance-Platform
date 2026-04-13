@@ -174,8 +174,6 @@ export default function SettingsContent() {
 
       const transactions = await apiRequest<any[]>('/api/transactions');
 
-      // Belt-and-suspenders: filter to only rows that belong to the current user
-      // (the backend enforces this via JWT, but we verify on the client too)
       const owned = Array.isArray(transactions)
         ? transactions.filter((t) => !t.userId || t.userId === currentUser.id)
         : [];
@@ -206,26 +204,26 @@ export default function SettingsContent() {
 
   /* ── Hydration guard ────────────────────────────────────────── */
   if (!mounted) return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-4xl mx-auto space-y-4">
-        <div className="bg-white rounded-2xl h-16 animate-pulse" />
-        <div className="bg-white rounded-2xl h-64 animate-pulse" />
+        <div className="bg-white dark:bg-gray-800 rounded-2xl h-16 animate-pulse" />
+        <div className="bg-white dark:bg-gray-800 rounded-2xl h-64 animate-pulse" />
       </div>
     </div>
   );
 
-  const inputCls = 'w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white transition';
+  const inputCls = 'w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white dark:bg-gray-700 dark:text-gray-100 transition placeholder:text-gray-400 dark:placeholder:text-gray-500';
 
   /* ===================== UI ===================== */
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 p-6">
 
       {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold transition-all ${
           toast.type === 'error'
-            ? 'bg-red-50 border-red-200 text-red-700'
-            : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+            ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
+            : 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'
         }`}>
           {toast.type === 'error' ? '✕' : <CheckCircle className="w-4 h-4" />} {toast.msg}
         </div>
@@ -233,10 +231,10 @@ export default function SettingsContent() {
 
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header + Tabs */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-100">
-            <h1 className="text-2xl font-extrabold text-gray-900">Settings</h1>
-            <p className="text-gray-400 text-sm mt-0.5">Manage your account and preferences</p>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">Settings</h1>
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-0.5">Manage your account and preferences</p>
           </div>
           <div className="flex overflow-x-auto px-2">
             {([
@@ -248,8 +246,8 @@ export default function SettingsContent() {
               <button key={key} onClick={() => goTab(key)}
                 className={`flex items-center gap-1.5 px-5 py-3.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-all ${
                   activeTab === key
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-800'
+                    ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
                 }`}>
                 <Icon className="w-4 h-4" />{label}
               </button>
@@ -259,31 +257,31 @@ export default function SettingsContent() {
 
         {/* ── PROFILE ── */}
         {activeTab === 'profile' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-5">Profile Information</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-5">Profile Information</h2>
             {profileLoading ? (
               <div className="space-y-4">
-                {[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" />)}
+                {[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse" />)}
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">First Name</label>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">First Name</label>
                     <input className={inputCls} value={profile.firstName}
                       onChange={(e) => setProfile({ ...profile, firstName: e.target.value })} />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Last Name</label>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Last Name</label>
                     <input className={inputCls} value={profile.lastName}
                       onChange={(e) => setProfile({ ...profile, lastName: e.target.value })} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Email</label>
-                  <input className={`${inputCls} bg-slate-50 text-gray-400 cursor-not-allowed`}
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Email</label>
+                  <input className={`${inputCls} bg-slate-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500 cursor-not-allowed`}
                     value={profile.email} readOnly />
-                  <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Email cannot be changed</p>
                 </div>
                 <div className="flex justify-end pt-2">
                   <button onClick={handleProfileSave} disabled={profileSaving}
@@ -299,29 +297,29 @@ export default function SettingsContent() {
 
         {/* ── SECURITY ── */}
         {activeTab === 'security' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
-            <h2 className="text-lg font-bold text-gray-900">Change Password</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 space-y-5">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Change Password</h2>
             {([
               { field: 'currentPassword' as const, label: 'Current Password', show: showPw,    toggle: () => setShowPw(s => !s) },
               { field: 'newPassword'     as const, label: 'New Password',     show: showNewPw,  toggle: () => setShowNewPw(s => !s) },
               { field: 'confirmPassword' as const, label: 'Confirm Password', show: showConfPw, toggle: () => setShowConfPw(s => !s) },
             ]).map(({ field, label, show, toggle }) => (
               <div key={field}>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">{label}</label>
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">{label}</label>
                 <div className="relative">
                   <input type={show ? 'text' : 'password'} className={`${inputCls} pr-10`}
                     value={pwData[field]}
                     onChange={(e) => setPwData({ ...pwData, [field]: e.target.value })} />
                   <button type="button" onClick={toggle}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                     {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
             ))}
-            <div className="flex items-start gap-3 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
-              <Shield className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
-              <ul className="text-xs text-indigo-700 space-y-0.5">
+            <div className="flex items-start gap-3 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/40 rounded-xl">
+              <Shield className="w-4 h-4 text-indigo-500 dark:text-indigo-400 mt-0.5 flex-shrink-0" />
+              <ul className="text-xs text-indigo-700 dark:text-indigo-300 space-y-0.5">
                 <li>• At least 8 characters</li>
                 <li>• Use uppercase, lowercase, numbers, and special characters</li>
               </ul>
@@ -338,10 +336,10 @@ export default function SettingsContent() {
 
         {/* ── PREFERENCES ── */}
         {activeTab === 'preferences' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
-            <h2 className="text-lg font-bold text-gray-900">Preferences</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 space-y-5">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Preferences</h2>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Currency</label>
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Currency</label>
               <select className={inputCls} value={mergedPrefs.currency}
                 onChange={(e) => setPrefs({ ...mergedPrefs, currency: e.target.value })}>
                 {[{ code: 'USD', label: '$ — US Dollar' }, { code: 'EUR', label: '€ — Euro' }, { code: 'INR', label: '₹ — Indian Rupee' }, { code: 'GBP', label: '£ — British Pound' }]
@@ -349,14 +347,14 @@ export default function SettingsContent() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Date Format</label>
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Date Format</label>
               <select className={inputCls} value={mergedPrefs.dateFormat}
                 onChange={(e) => setPrefs({ ...mergedPrefs, dateFormat: e.target.value as any })}>
                 {(['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'] as const).map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Language</label>
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Language</label>
               <select className={inputCls} value={mergedPrefs.language}
                 onChange={(e) => setPrefs({ ...mergedPrefs, language: e.target.value })}>
                 {[{ code: 'en', label: 'English' }, { code: 'es', label: 'Spanish' }, { code: 'fr', label: 'French' }, { code: 'de', label: 'German' }]
@@ -374,8 +372,8 @@ export default function SettingsContent() {
 
         {/* ── CATEGORIES ── */}
         {activeTab === 'categories' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-5">Custom Categories</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-5">Custom Categories</h2>
             <div className="flex gap-2 mb-6 flex-wrap">
               <input placeholder="Category name"
                 value={editingCat ? editingCat.name : newCat.name}
@@ -384,33 +382,33 @@ export default function SettingsContent() {
               <input placeholder="Icon" title="Emoji icon"
                 value={editingCat ? editingCat.icon : newCat.icon}
                 onChange={(e) => editingCat ? setEditingCat({ ...editingCat, icon: e.target.value }) : setNewCat({ ...newCat, icon: e.target.value })}
-                className="w-16 text-center border border-gray-200 rounded-xl px-2 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+                className="w-16 text-center border border-gray-200 dark:border-gray-600 rounded-xl px-2 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 dark:text-gray-100" />
               <input type="color"
                 value={editingCat ? editingCat.color : newCat.color}
                 onChange={(e) => editingCat ? setEditingCat({ ...editingCat, color: e.target.value }) : setNewCat({ ...newCat, color: e.target.value })}
-                className="w-10 h-10 border border-gray-200 rounded-xl cursor-pointer p-0.5" />
+                className="w-10 h-10 border border-gray-200 dark:border-gray-600 rounded-xl cursor-pointer p-0.5 bg-white dark:bg-gray-700" />
               {editingCat ? (
                 <>
                   <button onClick={handleUpdateCategory} className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700">Update</button>
-                  <button onClick={() => setEditingCat(null)} className="px-4 py-2 border border-gray-200 text-sm font-bold rounded-xl hover:bg-slate-50">Cancel</button>
+                  <button onClick={() => setEditingCat(null)} className="px-4 py-2 border border-gray-200 dark:border-gray-600 text-sm font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-gray-700 dark:text-gray-300 transition">Cancel</button>
                 </>
               ) : (
                 <button onClick={handleAddCategory} className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700">Add</button>
               )}
             </div>
             {categories.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-8">No custom categories yet. Add one above.</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No custom categories yet. Add one above.</p>
             ) : (
               <div className="grid sm:grid-cols-2 gap-3">
                 {categories.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between p-3.5 border border-gray-100 rounded-xl hover:bg-slate-50 transition">
+                  <div key={c.id} className="flex items-center justify-between p-3.5 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-700/50 transition">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg" style={{ backgroundColor: `${c.color}20` }}>{c.icon}</div>
-                      <span className="text-sm font-semibold text-gray-800">{c.name}</span>
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{c.name}</span>
                     </div>
                     <div className="flex gap-1">
-                      <button onClick={() => setEditingCat(c)} className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg"><Tag className="w-4 h-4" /></button>
-                      <button onClick={() => handleDeleteCategory(c.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => setEditingCat(c)} className="p-1.5 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg"><Tag className="w-4 h-4" /></button>
+                      <button onClick={() => handleDeleteCategory(c.id)} className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                 ))}
@@ -418,12 +416,12 @@ export default function SettingsContent() {
             )}
 
             {/* Data & privacy section at bottom of categories */}
-            <div className="mt-8 pt-6 border-t border-gray-100 space-y-4">
-              <h3 className="text-lg font-bold text-gray-900">Data & Privacy</h3>
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-gray-100">
+            <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 space-y-4">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Data & Privacy</h3>
+              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600">
                 <div>
-                  <p className="text-sm font-semibold text-gray-700">Export Data</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Download all your transactions as JSON</p>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Export Data</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Download all your transactions as JSON</p>
                 </div>
                 <button onClick={handleExport} disabled={exporting}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition disabled:opacity-60">
@@ -431,10 +429,10 @@ export default function SettingsContent() {
                   Export
                 </button>
               </div>
-              <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-200">
+              <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800/50">
                 <div>
-                  <p className="text-sm font-semibold text-red-800">Delete Account</p>
-                  <p className="text-xs text-red-600 mt-0.5">Permanently delete your account and all data</p>
+                  <p className="text-sm font-semibold text-red-800 dark:text-red-400">Delete Account</p>
+                  <p className="text-xs text-red-600 dark:text-red-500 mt-0.5">Permanently delete your account and all data</p>
                 </div>
                 <button onClick={handleDeleteAccount} disabled={deleting}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 transition disabled:opacity-60">

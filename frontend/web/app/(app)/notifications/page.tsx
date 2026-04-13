@@ -228,20 +228,20 @@ const TYPE_CONFIG: Record<NotifType, {
   badgeBg: string; badgeText: string; label: string;
 }> = {
   SUCCESS: {
-    border: "border-l-emerald-400", iconBg: "bg-emerald-50", iconColor: "text-emerald-600",
-    badgeBg: "bg-emerald-100", badgeText: "text-emerald-700", label: "Success",
+    border: "border-l-emerald-400", iconBg: "bg-emerald-50 dark:bg-emerald-900/20", iconColor: "text-emerald-600 dark:text-emerald-400",
+    badgeBg: "bg-emerald-100 dark:bg-emerald-900/40", badgeText: "text-emerald-700 dark:text-emerald-400", label: "Success",
   },
   WARNING: {
-    border: "border-l-amber-400", iconBg: "bg-amber-50", iconColor: "text-amber-600",
-    badgeBg: "bg-amber-100", badgeText: "text-amber-700", label: "Warning",
+    border: "border-l-amber-400", iconBg: "bg-amber-50 dark:bg-amber-900/20", iconColor: "text-amber-600 dark:text-amber-400",
+    badgeBg: "bg-amber-100 dark:bg-amber-900/40", badgeText: "text-amber-700 dark:text-amber-400", label: "Warning",
   },
   ERROR: {
-    border: "border-l-red-400", iconBg: "bg-red-50", iconColor: "text-red-600",
-    badgeBg: "bg-red-100", badgeText: "text-red-700", label: "Error",
+    border: "border-l-red-400", iconBg: "bg-red-50 dark:bg-red-900/20", iconColor: "text-red-600 dark:text-red-400",
+    badgeBg: "bg-red-100 dark:bg-red-900/40", badgeText: "text-red-700 dark:text-red-400", label: "Error",
   },
   INFO: {
-    border: "border-l-blue-400", iconBg: "bg-blue-50", iconColor: "text-blue-600",
-    badgeBg: "bg-blue-100", badgeText: "text-blue-600", label: "Info",
+    border: "border-l-blue-400", iconBg: "bg-blue-50 dark:bg-blue-900/20", iconColor: "text-blue-600 dark:text-blue-400",
+    badgeBg: "bg-blue-100 dark:bg-blue-900/40", badgeText: "text-blue-600 dark:text-blue-400", label: "Info",
   },
 };
 
@@ -398,14 +398,14 @@ export default function NotificationsPage() {
         {notifications.length > 0 && (
           <div className="grid grid-cols-4 gap-3">
             {([
-              { label: "Total",   value: notifications.length,                        color: "text-gray-900", bg: "bg-white" },
-              { label: "Unread",  value: unreadCount,                                 color: "text-blue-600",  bg: "bg-blue-50" },
-              { label: "Success", value: notifications.filter(n=>n.type==="SUCCESS").length, color: "text-emerald-600", bg: "bg-emerald-50" },
-              { label: "Warning", value: notifications.filter(n=>n.type==="WARNING").length, color: "text-amber-600",   bg: "bg-amber-50" },
+              { label: "Total",   value: notifications.length,                        color: "text-gray-900 dark:text-gray-100", bg: "bg-white dark:bg-gray-800" },
+              { label: "Unread",  value: unreadCount,                                 color: "text-blue-600 dark:text-blue-400",  bg: "bg-blue-50 dark:bg-blue-900/20" },
+              { label: "Success", value: notifications.filter(n=>n.type==="SUCCESS").length, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+              { label: "Warning", value: notifications.filter(n=>n.type==="WARNING").length, color: "text-amber-600 dark:text-amber-400",   bg: "bg-amber-50 dark:bg-amber-900/20" },
             ] as const).map(s => (
-              <div key={s.label} className={`rounded-3xl border border-gray-100 ${s.bg} p-4 text-center shadow-sm`}>
+              <div key={s.label} className={`rounded-3xl border border-gray-100 dark:border-gray-700 ${s.bg} p-4 text-center shadow-sm`}>
                 <p className={`text-2xl font-extrabold ${s.color}`}>{s.value}</p>
-                <p className="text-xs font-semibold text-gray-400 mt-0.5">{s.label}</p>
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 mt-0.5">{s.label}</p>
               </div>
             ))}
           </div>

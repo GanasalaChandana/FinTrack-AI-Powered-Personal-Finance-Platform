@@ -220,16 +220,16 @@ function generateInsights(transactions: ApiTransaction[]): SpendingInsight[] {
 // ── Design maps ───────────────────────────────────────────────────────────────
 
 const TYPE_STYLES = {
-  warning: { bg: "bg-white", border: "border-red-200",     iconBg: "bg-red-50",     iconText: "text-red-500",     label: "Warning", labelBg: "bg-red-50 text-red-700",       bar: "bg-red-500" },
-  success: { bg: "bg-white", border: "border-emerald-200", iconBg: "bg-emerald-50", iconText: "text-emerald-600", label: "Win",     labelBg: "bg-emerald-50 text-emerald-700", bar: "bg-emerald-500" },
-  info:    { bg: "bg-white", border: "border-indigo-200",  iconBg: "bg-indigo-50",  iconText: "text-indigo-600",  label: "Info",    labelBg: "bg-indigo-50 text-indigo-700",   bar: "bg-indigo-500" },
-  tip:     { bg: "bg-white", border: "border-amber-200",   iconBg: "bg-amber-50",   iconText: "text-amber-600",   label: "Tip",     labelBg: "bg-amber-50 text-amber-700",     bar: "bg-amber-400" },
+  warning: { bg: "bg-white dark:bg-gray-800", border: "border-red-200 dark:border-red-800/50",         iconBg: "bg-red-50 dark:bg-red-900/20",         iconText: "text-red-500",     label: "Warning", labelBg: "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400",             bar: "bg-red-500" },
+  success: { bg: "bg-white dark:bg-gray-800", border: "border-emerald-200 dark:border-emerald-800/40", iconBg: "bg-emerald-50 dark:bg-emerald-900/20", iconText: "text-emerald-600", label: "Win",     labelBg: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400", bar: "bg-emerald-500" },
+  info:    { bg: "bg-white dark:bg-gray-800", border: "border-indigo-200 dark:border-indigo-800/40",   iconBg: "bg-indigo-50 dark:bg-indigo-900/30",   iconText: "text-indigo-600",  label: "Info",    labelBg: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",     bar: "bg-indigo-500" },
+  tip:     { bg: "bg-white dark:bg-gray-800", border: "border-amber-200 dark:border-amber-800/40",     iconBg: "bg-amber-50 dark:bg-amber-900/20",     iconText: "text-amber-600",   label: "Tip",     labelBg: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",         bar: "bg-amber-400" },
 };
 
 const IMPACT_STYLES = {
-  high:   "bg-red-50 text-red-700",
-  medium: "bg-amber-50 text-amber-700",
-  low:    "bg-slate-100 text-slate-600",
+  high:   "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400",
+  medium: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
+  low:    "bg-slate-100 text-slate-600 dark:bg-gray-700 dark:text-gray-300",
 };
 
 const TYPE_ICONS = {
@@ -312,12 +312,12 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
 
   if (insights.length === 0) {
     return (
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
-          <Sparkles className="w-8 h-8 text-indigo-400" />
+      <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-12 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mx-auto mb-4">
+          <Sparkles className="w-8 h-8 text-indigo-400 dark:text-indigo-400" />
         </div>
-        <h3 className="text-lg font-bold text-gray-800 mb-2">No Insights Yet</h3>
-        <p className="text-sm text-gray-400">Add more transactions to get personalised spending insights.</p>
+        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-2">No Insights Yet</h3>
+        <p className="text-sm text-gray-400 dark:text-gray-500">Add more transactions to get personalised spending insights.</p>
       </div>
     );
   }
@@ -326,20 +326,20 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
     <div className="space-y-6">
 
       {/* ── Summary header card ── */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="h-1.5 w-full" style={{ background: "linear-gradient(to right,#6366f1,#8b5cf6,#a855f7)" }} />
         <div className="p-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-5">
             <div className="flex items-center gap-3 flex-1">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
                 <Brain className="w-6 h-6 text-indigo-500" />
               </div>
               <div>
                 <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest">AI Analysis</p>
-                <p className="text-xl font-extrabold text-gray-900 leading-tight">
+                <p className="text-xl font-extrabold text-gray-900 dark:text-gray-100 leading-tight">
                   {active.length} insight{active.length !== 1 ? "s" : ""} found
                 </p>
-                <p className="text-xs text-gray-400">From {transactions.length} transactions</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">From {transactions.length} transactions</p>
               </div>
             </div>
 
@@ -366,19 +366,19 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
       <SavingsProjection insights={active} />
 
       {/* ── Filter tabs ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 flex gap-1 overflow-x-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-1.5 flex gap-1 overflow-x-auto">
         {FILTER_OPTIONS.map((f) => {
           const count = f.value === "all" ? active.length : counts[f.value as keyof typeof counts] ?? 0;
           return (
             <button key={f.value} onClick={() => setFilter(f.value)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
-                filter === f.value ? "bg-indigo-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-800 hover:bg-slate-50"
+                filter === f.value ? "bg-indigo-600 text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-700/50"
               }`}>
               <f.icon className="w-3.5 h-3.5" />
               {f.label}
               {count > 0 && (
                 <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${
-                  filter === f.value ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                  filter === f.value ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-gray-700 text-slate-500 dark:text-gray-400"
                 }`}>{count}</span>
               )}
             </button>
@@ -409,7 +409,7 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
                     {/* Title row */}
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2 flex-wrap min-w-0">
-                        <h3 className="text-sm font-bold text-gray-900">{insight.title}</h3>
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">{insight.title}</h3>
                         <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0 ${st.labelBg}`}>
                           {st.label}
                         </span>
@@ -418,19 +418,19 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
                         </span>
                       </div>
                       <button onClick={() => setDismissed((p) => { const n = new Set([...p, insight.id]); saveDismissed(n); return n; })}
-                        className="p-1.5 rounded-xl text-gray-300 hover:text-gray-500 hover:bg-slate-100 transition flex-shrink-0">
+                        className="p-1.5 rounded-xl text-gray-300 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 transition flex-shrink-0">
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
                     {/* Message */}
-                    <p className="text-sm text-gray-500 leading-relaxed">{insight.message}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{insight.message}</p>
 
                     {/* Pills */}
                     {(insight.category || insight.amount || insight.savingsEstimate) && (
                       <div className="flex items-center gap-2 mt-3 flex-wrap">
                         {insight.category && (
-                          <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-gray-600">
+                          <span className="px-3 py-1 bg-slate-100 dark:bg-gray-700 rounded-full text-xs font-semibold text-gray-600 dark:text-gray-300">
                             {insight.category}
                           </span>
                         )}
@@ -440,7 +440,7 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
                           </span>
                         )}
                         {insight.savingsEstimate != null && (
-                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-extrabold flex items-center gap-1">
+                          <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-extrabold flex items-center gap-1">
                             <TrendingUp className="w-3 h-3" />
                             Save ~${insight.savingsEstimate.toFixed(0)}/yr
                           </span>
@@ -454,7 +454,7 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
                         <button
                           onClick={() => setExpanded(isOpen ? null : insight.id)}
                           className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${
-                            isOpen ? "bg-slate-100 text-gray-600" : st.labelBg
+                            isOpen ? "bg-slate-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" : st.labelBg
                           }`}>
                           {isOpen ? "Hide" : "View"} Actions
                           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
@@ -464,7 +464,7 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
                           <div className="mt-3 space-y-2">
                             {insight.actions.map((action, i) => (
                               <div key={i}
-                                className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 rounded-2xl border border-gray-100 text-sm font-semibold text-gray-700 hover:bg-slate-100 transition cursor-pointer">
+                                className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-gray-700/50 rounded-2xl border border-gray-100 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-700 transition cursor-pointer">
                                 <ArrowRight className={`w-3.5 h-3.5 flex-shrink-0 ${st.iconText}`} />
                                 {action}
                               </div>
@@ -482,10 +482,10 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
 
         {/* Empty filtered */}
         {filtered.length === 0 && active.length > 0 && (
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center">
-            <Filter className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-gray-500">No {filter} insights.</p>
-            <button onClick={() => setFilter("all")} className="mt-2 text-xs font-bold text-indigo-500 hover:underline">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-10 text-center">
+            <Filter className="w-10 h-10 text-slate-300 dark:text-gray-600 mx-auto mb-3" />
+            <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">No {filter} insights.</p>
+            <button onClick={() => setFilter("all")} className="mt-2 text-xs font-bold text-indigo-500 dark:text-indigo-400 hover:underline">
               Clear filter
             </button>
           </div>
@@ -493,10 +493,10 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
 
         {/* All dismissed */}
         {active.length === 0 && insights.length > 0 && (
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-10 text-center">
             <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-gray-700">All insights dismissed!</p>
-            <button onClick={() => { const empty = new Set<string>(); saveDismissed(empty); setDismissed(empty); }} className="mt-2 text-xs font-bold text-indigo-500 hover:underline">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">All insights dismissed!</p>
+            <button onClick={() => { const empty = new Set<string>(); saveDismissed(empty); setDismissed(empty); }} className="mt-2 text-xs font-bold text-indigo-500 dark:text-indigo-400 hover:underline">
               Restore all
             </button>
           </div>
@@ -532,10 +532,10 @@ export default function InsightsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-400 font-medium">Analysing your spending…</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 font-medium">Analysing your spending…</p>
         </div>
       </div>
     );
@@ -543,13 +543,13 @@ export default function InsightsPage() {
 
   if (error && transactions.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center max-w-sm w-full">
-          <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex items-center justify-center px-4">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-10 text-center max-w-sm w-full">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-7 h-7 text-red-500" />
           </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">Couldn't Load Insights</h2>
-          <p className="text-sm text-gray-500 mb-6">{error}</p>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Couldn't Load Insights</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{error}</p>
           <button onClick={loadTransactions}
             className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition">
             Try Again
@@ -560,7 +560,7 @@ export default function InsightsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-7">
 
         {/* Header */}
@@ -570,21 +570,21 @@ export default function InsightsPage() {
               <Sparkles className="w-4 h-4 text-indigo-500" />
               <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">AI Powered</span>
             </div>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Spending Insights</h1>
-            <p className="text-gray-400 text-sm mt-1">
+            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Spending Insights</h1>
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
               Smart analysis from {transactions.length} transaction{transactions.length !== 1 ? "s" : ""}.
             </p>
           </div>
           <button onClick={loadTransactions}
-            className="inline-flex items-center gap-2 rounded-2xl bg-white border border-gray-100 shadow-sm px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-slate-50 hover:shadow-md transition-all self-start flex-shrink-0">
+            className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm px-4 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700/50 hover:shadow-md transition-all self-start flex-shrink-0">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
         </div>
 
         {error && (
-          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+          <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl px-4 py-3">
             <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-amber-700">{error}</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">{error}</p>
           </div>
         )}
 

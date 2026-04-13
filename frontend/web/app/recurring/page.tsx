@@ -113,10 +113,10 @@ const FREQ_LABELS: Record<string, string> = {
 };
 
 const FREQ_COLORS: Record<string, string> = {
-  DAILY: "bg-purple-100 text-purple-700",
-  WEEKLY: "bg-blue-100 text-blue-700",
-  MONTHLY: "bg-indigo-100 text-indigo-700",
-  YEARLY: "bg-gray-100 text-gray-700",
+  DAILY: "bg-purple-100 dark:bg-violet-900/20 text-purple-700 dark:text-violet-400",
+  WEEKLY: "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400",
+  MONTHLY: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400",
+  YEARLY: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300",
 };
 
 /** Map frontend auto-detection frequencies → backend enum values */
@@ -192,33 +192,33 @@ function AddRuleForm({ onSave, onClose }: AddRuleFormProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-800">Add Recurring Rule</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Add Recurring Rule</h2>
+          <button onClick={onClose} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"><X className="w-5 h-5" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          {error && <div className="bg-red-50 text-red-600 text-sm px-4 py-2 rounded-lg">{error}</div>}
+          {error && <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm px-4 py-2 rounded-lg">{error}</div>}
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Description *</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Description *</label>
             <input type="text" value={form.description} onChange={(e) => set("description", e.target.value)}
               placeholder="e.g. Netflix, Rent, Gym membership"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Amount ($) *</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Amount ($) *</label>
               <input type="number" min="0.01" step="0.01" value={form.amount} onChange={(e) => set("amount", e.target.value)}
                 placeholder="0.00"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Type</label>
               <select value={form.type} onChange={(e) => set("type", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100">
                 <option value="EXPENSE">Expense</option>
                 <option value="INCOME">Income</option>
               </select>
@@ -227,9 +227,9 @@ function AddRuleForm({ onSave, onClose }: AddRuleFormProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Frequency</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Frequency</label>
               <select value={form.frequency} onChange={(e) => set("frequency", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100">
                 <option value="DAILY">Daily</option>
                 <option value="WEEKLY">Weekly</option>
                 <option value="MONTHLY">Monthly</option>
@@ -237,9 +237,9 @@ function AddRuleForm({ onSave, onClose }: AddRuleFormProps) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Category</label>
               <select value={form.category} onChange={(e) => set("category", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100">
                 {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
@@ -247,20 +247,20 @@ function AddRuleForm({ onSave, onClose }: AddRuleFormProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Start Date *</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Start Date *</label>
               <input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">End Date (optional)</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">End Date (optional)</label>
               <input type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100" />
             </div>
           </div>
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
-              className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2 text-sm hover:bg-gray-50 transition">
+              className="flex-1 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
               Cancel
             </button>
             <button type="submit" disabled={saving}
@@ -286,15 +286,15 @@ interface SavedRulesSectionProps {
 function SavedRulesSection({ rules, onDelete, onAdd }: SavedRulesSectionProps) {
   if (rules.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-base font-bold text-gray-800">Saved Rules</h2>
+          <h2 className="text-base font-bold text-gray-800 dark:text-gray-200">Saved Rules</h2>
           <button onClick={onAdd}
             className="flex items-center gap-1.5 text-xs font-semibold bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition">
             <Plus className="w-3.5 h-3.5" /> Add Rule
           </button>
         </div>
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-gray-400 dark:text-gray-500">
           No rules saved yet. Save an auto-detected pattern below or add one manually.
         </p>
       </div>
@@ -312,11 +312,11 @@ function SavedRulesSection({ rules, onDelete, onAdd }: SavedRulesSectionProps) {
     }, 0);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-base font-bold text-gray-800">Saved Rules</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <h2 className="text-base font-bold text-gray-800 dark:text-gray-200">Saved Rules</h2>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
             {rules.length} rule{rules.length !== 1 ? "s" : ""} · ~{fmt(monthlyTotal)}/month in recurring expenses
           </p>
         </div>
@@ -338,8 +338,8 @@ function SavedRulesSection({ rules, onDelete, onAdd }: SavedRulesSectionProps) {
           else                { urgency = `In ${days}d`; }
 
           return (
-            <div key={rule.id} className={`flex items-center gap-4 p-3 rounded-xl border ${rule.active ? "border-gray-100 bg-gray-50" : "border-gray-100 bg-gray-50 opacity-50"}`}>
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${rule.type === "EXPENSE" ? "bg-red-100" : "bg-green-100"}`}>
+            <div key={rule.id} className={`flex items-center gap-4 p-3 rounded-xl border ${rule.active ? "border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50" : "border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 opacity-50"}`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${rule.type === "EXPENSE" ? "bg-red-100 dark:bg-red-900/20" : "bg-green-100 dark:bg-emerald-900/20"}`}>
                 {rule.type === "EXPENSE"
                   ? <TrendingDown className="w-4 h-4 text-red-500" />
                   : <TrendingUp   className="w-4 h-4 text-green-500" />}
@@ -347,12 +347,12 @@ function SavedRulesSection({ rules, onDelete, onAdd }: SavedRulesSectionProps) {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-semibold text-gray-800 truncate">{rule.description}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${FREQ_COLORS[rule.frequency] ?? "bg-gray-100 text-gray-600"}`}>
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{rule.description}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${FREQ_COLORS[rule.frequency] ?? "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"}`}>
                     {FREQ_LABELS[rule.frequency]}
                   </span>
                   {rule.category && (
-                    <span className="text-xs text-gray-400">{rule.category}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{rule.category}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-3 mt-0.5">
@@ -368,7 +368,7 @@ function SavedRulesSection({ rules, onDelete, onAdd }: SavedRulesSectionProps) {
 
               <button
                 onClick={() => onDelete(rule.id)}
-                className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition flex-shrink-0">
+                className="p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition flex-shrink-0">
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
@@ -504,10 +504,10 @@ export default function RecurringPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-400 font-medium">Loading recurring transactions…</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 font-medium">Loading recurring transactions…</p>
         </div>
       </div>
     );
@@ -515,13 +515,13 @@ export default function RecurringPage() {
 
   if (error && transactions.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center max-w-sm w-full">
-          <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-7 h-7 text-red-500" />
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex items-center justify-center px-4">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-10 text-center max-w-sm w-full">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-7 h-7 text-red-500 dark:text-red-400" />
           </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">Couldn't Load Transactions</h2>
-          <p className="text-sm text-gray-500 mb-6">{error}</p>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Couldn't Load Transactions</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{error}</p>
           <button onClick={loadTransactions}
             className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition">
             Try Again
@@ -538,7 +538,7 @@ export default function RecurringPage() {
         <AddRuleForm onSave={handleManualAdd} onClose={() => setShowAddForm(false)} />
       )}
 
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-7">
 
           {/* Header */}
@@ -548,32 +548,32 @@ export default function RecurringPage() {
                 <Sparkles className="w-4 h-4 text-indigo-500" />
                 <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Smart Detection</span>
               </div>
-              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Recurring Transactions</h1>
-              <p className="text-gray-400 text-sm mt-1">
+              <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Recurring Transactions</h1>
+              <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
                 {savedRules.length} saved rule{savedRules.length !== 1 ? "s" : ""} · auto-detected from {transactions.length} transaction{transactions.length !== 1 ? "s" : ""}
               </p>
             </div>
             <button onClick={handleRefresh}
-              className="inline-flex items-center gap-2 rounded-2xl bg-white border border-gray-100 shadow-sm px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-slate-50 hover:shadow-md transition-all self-start flex-shrink-0">
+              className="inline-flex items-center gap-2 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm px-4 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700/50 hover:shadow-md transition-all self-start flex-shrink-0">
               <RefreshCw className="w-4 h-4" /> Refresh
             </button>
           </div>
 
           {error && (
-            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+            <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl px-4 py-3">
               <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-amber-700">{error}</p>
+              <p className="text-sm text-amber-700 dark:text-amber-400">{error}</p>
             </div>
           )}
 
           {/* Inline delete confirmation */}
           {confirmDeleteId !== null && (
-            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-4">
-              <p className="text-sm text-red-700 font-medium">Delete this recurring rule? This cannot be undone.</p>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-2xl px-4 py-3 flex items-center justify-between gap-4">
+              <p className="text-sm text-red-700 dark:text-red-400 font-medium">Delete this recurring rule? This cannot be undone.</p>
               <div className="flex gap-2 flex-shrink-0">
                 <button
                   onClick={() => setConfirmDeleteId(null)}
-                  className="px-3 py-1.5 text-xs font-semibold text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                  className="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
                 >
                   Cancel
                 </button>
@@ -596,19 +596,19 @@ export default function RecurringPage() {
 
           {/* Auto-detected patterns */}
           {transactions.length === 0 ? (
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                <RefreshCw className="w-7 h-7 text-slate-400" />
+            <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-12 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-4">
+                <RefreshCw className="w-7 h-7 text-slate-400 dark:text-gray-500" />
               </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">No Transactions Available</h3>
-              <p className="text-sm text-gray-400">Add transactions to detect recurring patterns.</p>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-2">No Transactions Available</h3>
+              <p className="text-sm text-gray-400 dark:text-gray-500">Add transactions to detect recurring patterns.</p>
             </div>
           ) : (
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-4 h-4 text-indigo-400" />
-                <h2 className="text-base font-bold text-gray-800">Auto-Detected Patterns</h2>
-                <span className="text-xs text-gray-400">— click "Save Rule" to persist any pattern</span>
+                <h2 className="text-base font-bold text-gray-800 dark:text-gray-200">Auto-Detected Patterns</h2>
+                <span className="text-xs text-gray-400 dark:text-gray-500">— click "Save Rule" to persist any pattern</span>
               </div>
               <RecurringTransactionsDashboard
                 transactions={transactions}

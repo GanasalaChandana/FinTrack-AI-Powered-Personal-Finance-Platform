@@ -369,16 +369,16 @@ const SEVERITY_CONFIG: Record<Severity, {
   dot: string; badgeBg: string; badgeText: string;
 }> = {
   high: {
-    label: "High", bg: "bg-red-50", text: "text-red-700", border: "border-red-200",
-    dot: "bg-red-500", badgeBg: "bg-red-100", badgeText: "text-red-700",
+    label: "High", bg: "bg-red-50 dark:bg-red-900/20", text: "text-red-700 dark:text-red-400", border: "border-red-200 dark:border-red-800/50",
+    dot: "bg-red-500", badgeBg: "bg-red-100 dark:bg-red-900/40", badgeText: "text-red-700 dark:text-red-400",
   },
   medium: {
-    label: "Medium", bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200",
-    dot: "bg-amber-400", badgeBg: "bg-amber-100", badgeText: "text-amber-700",
+    label: "Medium", bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-700 dark:text-amber-400", border: "border-amber-200 dark:border-amber-800/40",
+    dot: "bg-amber-400", badgeBg: "bg-amber-100 dark:bg-amber-900/40", badgeText: "text-amber-700 dark:text-amber-400",
   },
   low: {
-    label: "Low", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200",
-    dot: "bg-blue-400", badgeBg: "bg-blue-100", badgeText: "text-blue-600",
+    label: "Low", bg: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-700 dark:text-blue-400", border: "border-blue-200 dark:border-blue-800/40",
+    dot: "bg-blue-400", badgeBg: "bg-blue-100 dark:bg-blue-900/40", badgeText: "text-blue-600 dark:text-blue-400",
   },
 };
 
@@ -610,7 +610,7 @@ export default function AlertsPage() {
                     ? `${cfg.bg} ${cfg.border} ring-2 ring-offset-1 ${
                         sev === "high" ? "ring-red-400" : sev === "medium" ? "ring-amber-400" : "ring-blue-400"
                       }`
-                    : "bg-white border-gray-100 hover:border-gray-200"
+                    : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600"
                 }`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
@@ -620,8 +620,8 @@ export default function AlertsPage() {
                     </div>
                   )}
                 </div>
-                <p className={`text-2xl font-extrabold ${count > 0 ? cfg.text : "text-gray-300"}`}>{count}</p>
-                <p className="text-xs font-semibold text-gray-400 mt-0.5">{cfg.label} Severity</p>
+                <p className={`text-2xl font-extrabold ${count > 0 ? cfg.text : "text-gray-300 dark:text-gray-600"}`}>{count}</p>
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 mt-0.5">{cfg.label} Severity</p>
               </button>
             );
           })}
@@ -629,26 +629,26 @@ export default function AlertsPage() {
 
         {/* ── Alert Rules Panel ────────────────────────────────────────────── */}
         {showRules && (
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
             <div className="h-1 w-full bg-gradient-to-r from-indigo-500 to-violet-500" />
             <div className="p-6">
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h3 className="text-base font-bold text-gray-900">Alert Rules</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Toggle which patterns generate alerts</p>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Alert Rules</h3>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Toggle which patterns generate alerts</p>
                 </div>
                 <button onClick={() => setShowRules(false)}
-                  className="p-2 rounded-xl hover:bg-gray-100 transition">
-                  <X className="w-4 h-4 text-gray-400" />
+                  className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                  <X className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                 </button>
               </div>
               <div className="space-y-3">
                 {rules.map(rule => (
                   <div key={rule.id}
-                    className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl">
+                    className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-gray-700/50 rounded-2xl">
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">{rule.name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{rule.description}
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{rule.name}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{rule.description}
                         {rule.threshold && <span className="text-indigo-500 ml-1">
                           (threshold: {rule.id === "category" || rule.id === "spike" ? `${rule.threshold}%` : rule.id === "large_txn" ? fmt(rule.threshold) : `${rule.threshold}x`})
                         </span>}
@@ -656,7 +656,7 @@ export default function AlertsPage() {
                     </div>
                     <button onClick={() => toggleRule(rule.id)}
                       className={`relative inline-flex w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
-                        rule.enabled ? "bg-indigo-600" : "bg-gray-200"
+                        rule.enabled ? "bg-indigo-600" : "bg-gray-200 dark:bg-gray-600"
                       }`}>
                       <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
                         rule.enabled ? "translate-x-5" : "translate-x-0"
@@ -665,7 +665,7 @@ export default function AlertsPage() {
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-gray-400 mt-4 text-center">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 text-center">
                 Rule changes apply on next Refresh — alerts are generated from your live transaction data.
               </p>
             </div>
@@ -674,12 +674,12 @@ export default function AlertsPage() {
 
         {/* ── Filter Bar ───────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-1">
+          <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-1">
             {(["all", "unread", "read"] as const).map(f => (
               <button key={f}
                 onClick={() => setFilter(f)}
                 className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-all ${
-                  filter === f ? "bg-indigo-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-800 hover:bg-slate-50"
+                  filter === f ? "bg-indigo-600 text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-700/50"
                 }`}>
                 {f}
                 {f === "unread" && counts.unread > 0 && (
@@ -695,12 +695,12 @@ export default function AlertsPage() {
             <div className="flex items-center gap-2">
               {counts.unread > 0 && (
                 <button onClick={markAllRead}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition">
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition">
                   <Check className="w-3.5 h-3.5" /> Mark all read
                 </button>
               )}
               <button onClick={dismissAll}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-gray-600 transition">
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition">
                 <Trash2 className="w-3.5 h-3.5" /> Clear all
               </button>
             </div>
@@ -711,7 +711,7 @@ export default function AlertsPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
-            <p className="text-sm text-gray-400 font-semibold">Analysing transactions…</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 font-semibold">Analysing transactions…</p>
           </div>
         ) : error ? (
           <Alert variant="error" title="Failed to load alerts">
@@ -720,22 +720,22 @@ export default function AlertsPage() {
             </Button>
           </Alert>
         ) : transactions.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
-              <BellOff className="w-8 h-8 text-indigo-300" />
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-12 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mx-auto mb-4">
+              <BellOff className="w-8 h-8 text-indigo-300 dark:text-indigo-400" />
             </div>
-            <h3 className="text-base font-bold text-gray-700 mb-1">No Transactions Found</h3>
-            <p className="text-sm text-gray-400">Add transactions first — alerts are generated automatically from your spending data.</p>
+            <h3 className="text-base font-bold text-gray-700 dark:text-gray-200 mb-1">No Transactions Found</h3>
+            <p className="text-sm text-gray-400 dark:text-gray-500">Add transactions first — alerts are generated automatically from your spending data.</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-12 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="w-8 h-8 text-emerald-400" />
             </div>
-            <h3 className="text-base font-bold text-gray-700 mb-1">
+            <h3 className="text-base font-bold text-gray-700 dark:text-gray-200 mb-1">
               {filter === "unread" ? "No unread alerts" : filter === "read" ? "No read alerts" : "No alerts"}
             </h3>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-400 dark:text-gray-500">
               {severityFilter !== "all"
                 ? `No ${severityFilter} severity alerts match your filter.`
                 : "You're all caught up! 🎉"}
@@ -748,12 +748,12 @@ export default function AlertsPage() {
               const Icon = alert.icon;
               return (
                 <div key={alert.id}
-                  className={`group relative bg-white rounded-3xl border shadow-sm overflow-hidden transition-all hover:shadow-md ${
+                  className={`group relative bg-white dark:bg-gray-800 rounded-3xl border shadow-sm overflow-hidden transition-all hover:shadow-md ${
                     !alert.read ? `border-l-4 ${
-                      alert.severity === "high" ? "border-l-red-400 border-gray-100"
-                      : alert.severity === "medium" ? "border-l-amber-400 border-gray-100"
-                      : "border-l-blue-400 border-gray-100"
-                    }` : "border-gray-100"
+                      alert.severity === "high" ? "border-l-red-400 border-gray-100 dark:border-gray-700"
+                      : alert.severity === "medium" ? "border-l-amber-400 border-gray-100 dark:border-gray-700"
+                      : "border-l-blue-400 border-gray-100 dark:border-gray-700"
+                    }` : "border-gray-100 dark:border-gray-700"
                   }`}>
                   <div className="p-5">
                     <div className="flex items-start gap-4">
@@ -766,7 +766,7 @@ export default function AlertsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className={`text-sm font-bold ${alert.read ? "text-gray-600" : "text-gray-900"}`}>
+                            <h4 className={`text-sm font-bold ${alert.read ? "text-gray-600 dark:text-gray-400" : "text-gray-900 dark:text-gray-100"}`}>
                               {alert.title}
                             </h4>
                             <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.badgeBg} ${cfg.badgeText}`}>
@@ -783,19 +783,19 @@ export default function AlertsPage() {
                             {!alert.read && (
                               <button onClick={() => markRead(alert.id)}
                                 title="Mark as read"
-                                className="p-1.5 rounded-lg hover:bg-gray-100 transition">
-                                <Check className="w-3.5 h-3.5 text-gray-400" />
+                                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                <Check className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
                               </button>
                             )}
                             <button onClick={() => dismiss(alert.id)}
                               title="Dismiss"
                               className="p-1.5 rounded-lg hover:bg-red-50 transition">
-                              <X className="w-3.5 h-3.5 text-gray-400 hover:text-red-400" />
+                              <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 hover:text-red-400" />
                             </button>
                           </div>
                         </div>
 
-                        <p className={`text-sm mt-1 ${alert.read ? "text-gray-400" : "text-gray-600"}`}>
+                        <p className={`text-sm mt-1 ${alert.read ? "text-gray-400 dark:text-gray-500" : "text-gray-600 dark:text-gray-300"}`}>
                           {alert.message}
                         </p>
 
@@ -807,11 +807,11 @@ export default function AlertsPage() {
                               </span>
                             )}
                             {alert.category && (
-                              <span className="text-xs text-gray-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                              <span className="text-xs text-gray-400 dark:text-gray-500 bg-slate-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
                                 {alert.category}
                               </span>
                             )}
-                            <span className="flex items-center gap-1 text-[11px] text-gray-300">
+                            <span className="flex items-center gap-1 text-[11px] text-gray-300 dark:text-gray-600">
                               <Clock className="w-3 h-3" />
                               {timeAgo(alert.createdAt)}
                             </span>
@@ -837,19 +837,19 @@ export default function AlertsPage() {
 
         {/* ── Summary Footer ───────────────────────────────────────────────── */}
         {!loading && transactions.length > 0 && alerts.length > 0 && (
-          <div className="bg-white rounded-3xl border border-indigo-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-indigo-100 dark:border-indigo-800/40 shadow-sm overflow-hidden">
             <div className="h-1 w-full" style={{ background: "linear-gradient(to right,#6366f1,#8b5cf6,#a855f7)" }} />
             <div className="p-5 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-5 h-5 text-indigo-500" />
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-1">Alert Summary</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1">Alert Summary</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
                   Generated <strong>{alerts.length} alerts</strong> from{" "}
                   <strong>{transactions.length} transactions</strong>.{" "}
                   {counts.high > 0 && (
-                    <span className="text-red-600 font-semibold">{counts.high} high-severity item{counts.high !== 1 ? "s" : ""} need your attention. </span>
+                    <span className="text-red-600 dark:text-red-400 font-semibold">{counts.high} high-severity item{counts.high !== 1 ? "s" : ""} need your attention. </span>
                   )}
                   Alerts are recalculated each time you refresh.
                 </p>

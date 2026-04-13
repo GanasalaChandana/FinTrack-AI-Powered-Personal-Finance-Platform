@@ -264,7 +264,7 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
     <div className="space-y-6">
 
       {/* ── Score Hero Card ── */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div
           className="h-1.5 w-full"
           style={{ background: "linear-gradient(to right,#a855f7,#6366f1,#3b82f6)" }}
@@ -274,8 +274,8 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
             <p className="text-xs font-bold text-violet-500 uppercase tracking-widest mb-1">
               Overall Rating
             </p>
-            <h2 className="text-2xl font-extrabold text-gray-900">Financial Health Score</h2>
-            <p className="text-gray-400 text-sm mt-1">Your overall financial wellness rating</p>
+            <h2 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">Financial Health Score</h2>
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Your overall financial wellness rating</p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-10 mb-8">
@@ -301,7 +301,7 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
                 >
                   {animatedScore}
                 </span>
-                <span className="text-xs text-gray-400 mt-1">out of 1000</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">out of 1000</span>
               </div>
             </div>
 
@@ -333,7 +333,7 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all ${
                   score.grade === g
                     ? `${GRADE_STYLES[g].bg} ring-2 ${GRADE_STYLES[g].ring}`
-                    : "bg-gray-100 text-gray-400"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500"
                 }`}
                 style={score.grade === g ? { color: GRADE_STYLES[g].color } : {}}
               >
@@ -348,16 +348,16 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
           {/* Strengths & Focus Areas */}
           <div className="grid sm:grid-cols-2 gap-4">
             {score.strengths.length > 0 && (
-              <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-4">
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800/40 p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-800/40 flex items-center justify-center flex-shrink-0">
                     <TrendingUp className="w-4 h-4 text-emerald-600" />
                   </div>
-                  <span className="text-sm font-bold text-emerald-800">Your Strengths</span>
+                  <span className="text-sm font-bold text-emerald-800 dark:text-emerald-400">Your Strengths</span>
                 </div>
                 <ul className="space-y-1.5">
                   {score.strengths.map((s, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-emerald-700">
+                    <li key={i} className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
                       <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
                       {s}
                     </li>
@@ -366,16 +366,16 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
               </div>
             )}
             {score.improvements.length > 0 && (
-              <div className="bg-amber-50 rounded-2xl border border-amber-100 p-4">
+              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-800/40 p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-800/40 flex items-center justify-center flex-shrink-0">
                     <Target className="w-4 h-4 text-amber-600" />
                   </div>
-                  <span className="text-sm font-bold text-amber-800">Focus Areas</span>
+                  <span className="text-sm font-bold text-amber-800 dark:text-amber-400">Focus Areas</span>
                 </div>
                 <ul className="space-y-1.5">
                   {score.improvements.map((s, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-amber-700">
+                    <li key={i} className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
                       <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                       {s}
                     </li>
@@ -388,13 +388,13 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
       </div>
 
       {/* ── Score Breakdown ── */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div
           className="h-1 w-full"
           style={{ background: "linear-gradient(to right,#6366f1,#8b5cf6)" }}
         />
         <div className="p-6">
-          <h3 className="text-base font-bold text-gray-900 mb-5">Score Breakdown</h3>
+          <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-5">Score Breakdown</h3>
           <div className="space-y-5">
             {Object.entries(score.components).map(([key, component]) => {
               const st = STATUS_STYLES[component.status];
@@ -410,22 +410,22 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
                         <Icon className={`w-4 h-4 ${st.text}`} />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-gray-800">
+                        <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
                           {COMPONENT_LABELS[key]}
                         </p>
-                        <p className="text-xs text-gray-400 truncate">
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
                           {component.description}
                         </p>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <span className="text-xl font-extrabold text-gray-900">
+                      <span className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
                         {component.score}
                       </span>
-                      <span className="text-xs text-gray-400 ml-0.5">/{component.maxScore}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500 ml-0.5">/{component.maxScore}</span>
                     </div>
                   </div>
-                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div className="h-2 rounded-full bg-slate-100 dark:bg-gray-700 overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-700 ${st.bar}`}
                       style={{ width: `${pct}%` }}
@@ -437,7 +437,7 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
                     >
                       {st.label}
                     </span>
-                    <span className="text-[10px] text-gray-400">{Math.round(pct)}%</span>
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500">{Math.round(pct)}%</span>
                   </div>
                 </div>
               );
@@ -448,25 +448,25 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
 
       {/* ── Recommendations ── */}
       {score.recommendations.length > 0 && (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
           <div className="h-1 w-full bg-amber-400" />
           <div className="p-6">
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
                 <Lightbulb className="w-4 h-4 text-amber-500" />
               </div>
-              <h3 className="text-base font-bold text-gray-900">Personalized Recommendations</h3>
+              <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Personalized Recommendations</h3>
             </div>
             <div className="space-y-3">
               {score.recommendations.map((rec, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-3 bg-indigo-50 rounded-2xl border border-indigo-100 px-4 py-3"
+                  className="flex items-start gap-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl border border-indigo-100 dark:border-indigo-800/40 px-4 py-3"
                 >
                   <div className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-extrabold flex items-center justify-center flex-shrink-0 mt-0.5">
                     {i + 1}
                   </div>
-                  <p className="text-sm text-indigo-800">{rec}</p>
+                  <p className="text-sm text-indigo-800 dark:text-indigo-400">{rec}</p>
                 </div>
               ))}
             </div>
@@ -606,10 +606,10 @@ export default function HealthPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-400 font-medium">Calculating your health score…</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 font-medium">Calculating your health score…</p>
         </div>
       </div>
     );
@@ -617,13 +617,13 @@ export default function HealthPage() {
 
   if (error && !financialData) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center max-w-sm w-full">
-          <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex items-center justify-center px-4">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-10 text-center max-w-sm w-full">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-7 h-7 text-red-500" />
           </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">Couldn't Load Data</h2>
-          <p className="text-sm text-gray-500 mb-6">{error}</p>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Couldn't Load Data</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{error}</p>
           <button
             onClick={loadData}
             className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition"
@@ -645,7 +645,7 @@ export default function HealthPage() {
         }
       `}</style>
 
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-7">
 
           {/* Header */}
@@ -656,19 +656,19 @@ export default function HealthPage() {
                 Wellness
               </span>
             </div>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
               Financial Health Score
             </h1>
-            <p className="text-gray-400 text-sm mt-1">
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
               Comprehensive analysis of your financial wellness.
             </p>
           </div>
 
           {/* Warning banner (data exists but is incomplete) */}
           {error && (
-            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+            <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl px-4 py-3">
               <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-amber-700">{error}</p>
+              <p className="text-sm text-amber-700 dark:text-amber-400">{error}</p>
             </div>
           )}
 

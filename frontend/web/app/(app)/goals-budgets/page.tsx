@@ -152,34 +152,34 @@ function GoalForm({ initial, onSave, onClose }: GoalFormProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             {initial?.id ? "Edit Goal" : "Create New Goal"}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4 max-h-[80vh] overflow-y-auto">
           {error && (
-            <div className="bg-red-50 text-red-600 text-sm px-4 py-2 rounded-lg">{error}</div>
+            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm px-4 py-2 rounded-lg">{error}</div>
           )}
 
           {/* Icon & Color row */}
           <div className="flex gap-4">
             {/* Icon picker */}
             <div className="flex-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Icon</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Icon</label>
               <div className="grid grid-cols-8 gap-1">
                 {GOAL_ICONS.map((ic) => (
                   <button
                     key={ic} type="button"
                     onClick={() => set("icon", ic)}
                     className={`text-xl p-1 rounded-lg border-2 transition-all ${
-                      form.icon === ic ? "border-indigo-500 bg-indigo-50" : "border-transparent hover:border-gray-200"
+                      form.icon === ic ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30" : "border-transparent hover:border-gray-200 dark:hover:border-gray-700"
                     }`}
                   >
                     {ic}
@@ -190,7 +190,7 @@ function GoalForm({ initial, onSave, onClose }: GoalFormProps) {
 
             {/* Color picker */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Color</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Color</label>
               <div className="grid grid-cols-2 gap-1">
                 {GOAL_COLORS.map((c) => (
                   <button
@@ -208,22 +208,22 @@ function GoalForm({ initial, onSave, onClose }: GoalFormProps) {
 
           {/* Name */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Goal Name *</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Goal Name *</label>
             <input
               type="text" value={form.name}
               onChange={(e) => set("name", e.target.value)}
               placeholder="e.g. Emergency Fund, Dream Vacation…"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
 
           {/* Category */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Category *</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Category *</label>
             <select
               value={form.category}
               onChange={(e) => set("category", e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100"
             >
               {GOAL_CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -234,21 +234,21 @@ function GoalForm({ initial, onSave, onClose }: GoalFormProps) {
           {/* Target & Current amounts */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Target Amount ($) *</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Target Amount ($) *</label>
               <input
                 type="number" min="1" step="0.01" value={form.target}
                 onChange={(e) => set("target", e.target.value)}
                 placeholder="10000"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Already Saved ($)</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Already Saved ($)</label>
               <input
                 type="number" min="0" step="0.01" value={form.current}
                 onChange={(e) => set("current", e.target.value)}
                 placeholder="0"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
           </div>
@@ -256,20 +256,20 @@ function GoalForm({ initial, onSave, onClose }: GoalFormProps) {
           {/* Monthly contribution & Deadline */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Monthly Contribution ($)</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Monthly Contribution ($)</label>
               <input
                 type="number" min="0" step="0.01" value={form.monthlyContribution}
                 onChange={(e) => set("monthlyContribution", e.target.value)}
                 placeholder="500"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Target Date</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Target Date</label>
               <input
                 type="date" value={form.deadline}
                 onChange={(e) => set("deadline", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
           </div>
@@ -278,7 +278,7 @@ function GoalForm({ initial, onSave, onClose }: GoalFormProps) {
           <div className="flex gap-3 pt-2">
             <button
               type="button" onClick={onClose}
-              className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2 text-sm hover:bg-gray-50 transition"
+              className="flex-1 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
             >
               Cancel
             </button>
@@ -329,31 +329,31 @@ function ContributeModal({ goal, onSave, onClose }: ContributeModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6">
+      <div className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">Add Contribution</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Add Contribution</h2>
+          <button onClick={onClose} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"><X className="w-5 h-5" /></button>
         </div>
 
         {/* Goal info */}
-        <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 mb-4">
+        <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 mb-4">
           <span className="text-2xl">{goal.icon}</span>
           <div>
-            <p className="font-medium text-gray-800 text-sm">{goal.name}</p>
-            <p className="text-xs text-gray-500">{fmt(goal.current)} saved · {fmt(remaining)} remaining</p>
+            <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">{goal.name}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{fmt(goal.current)} saved · {fmt(remaining)} remaining</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <div className="bg-red-50 text-red-600 text-sm px-3 py-2 rounded-lg">{error}</div>}
+          {error && <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm px-3 py-2 rounded-lg">{error}</div>}
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Amount ($)</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Amount ($)</label>
             <input
               type="number" min="0.01" step="0.01" value={amount} autoFocus
               onChange={(e) => setAmount(e.target.value)}
               placeholder={`e.g. ${Math.min(500, remaining).toFixed(0)}`}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
 
@@ -363,7 +363,7 @@ function ContributeModal({ goal, onSave, onClose }: ContributeModalProps) {
               <button
                 key={v} type="button"
                 onClick={() => setAmount(String(v))}
-                className="flex-1 border border-indigo-200 text-indigo-600 rounded-lg py-1.5 text-xs hover:bg-indigo-50 transition"
+                className="flex-1 border border-indigo-200 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 rounded-lg py-1.5 text-xs hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition"
               >
                 +${v}
               </button>
@@ -372,7 +372,7 @@ function ContributeModal({ goal, onSave, onClose }: ContributeModalProps) {
               <button
                 type="button"
                 onClick={() => setAmount(remaining.toFixed(2))}
-                className="flex-1 border border-green-200 text-green-600 rounded-lg py-1.5 text-xs hover:bg-green-50 transition"
+                className="flex-1 border border-green-200 dark:border-green-800/40 text-green-600 dark:text-emerald-400 rounded-lg py-1.5 text-xs hover:bg-green-50 dark:hover:bg-emerald-900/20 transition"
               >
                 Finish!
               </button>
@@ -382,7 +382,7 @@ function ContributeModal({ goal, onSave, onClose }: ContributeModalProps) {
           <div className="flex gap-3">
             <button
               type="button" onClick={onClose}
-              className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2 text-sm hover:bg-gray-50 transition"
+              className="flex-1 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
             >
               Cancel
             </button>
@@ -446,10 +446,10 @@ function getTrackStatus(goal: Goal): TrackStatus {
 }
 
 const TRACK_CONFIG = {
-  "achieved":    { label: "🎉 Achieved",  cls: "bg-green-100 text-green-700"  },
-  "on-track":    { label: "✅ On Track",  cls: "bg-emerald-100 text-emerald-700" },
-  "behind":      { label: "⚠️ Behind",   cls: "bg-yellow-100 text-yellow-700" },
-  "at-risk":     { label: "🔴 At Risk",  cls: "bg-red-100 text-red-600"      },
+  "achieved":    { label: "🎉 Achieved",  cls: "bg-green-100 dark:bg-emerald-900/20 text-green-700 dark:text-emerald-400"  },
+  "on-track":    { label: "✅ On Track",  cls: "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" },
+  "behind":      { label: "⚠️ Behind",   cls: "bg-yellow-100 dark:bg-amber-900/20 text-yellow-700 dark:text-amber-400" },
+  "at-risk":     { label: "🔴 At Risk",  cls: "bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400"      },
   "no-deadline": { label: "",            cls: ""                              },
 };
 
@@ -486,7 +486,7 @@ function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalCardProps) {
   }
 
   return (
-    <div className={`bg-white rounded-2xl border shadow-sm hover:shadow-md transition-shadow p-5 ${achieved ? "border-green-200 bg-green-50/30" : "border-gray-100"}`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-2xl border shadow-sm hover:shadow-md transition-shadow p-5 ${achieved ? "border-green-200 dark:border-green-800/40 bg-green-50/30 dark:bg-emerald-900/10" : "border-gray-100 dark:border-gray-700"}`}>
       {/* Top row */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
@@ -498,23 +498,23 @@ function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalCardProps) {
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-gray-800 text-sm">{goal.name}</h3>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{goal.name}</h3>
               {trackCfg.label && (
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${trackCfg.cls}`}>
                   {trackCfg.label}
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400">{goal.category}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{goal.category}</p>
           </div>
         </div>
 
         {/* Action buttons */}
         <div className="flex items-center gap-1">
-          <button onClick={() => onEdit(goal)} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
+          <button onClick={() => onEdit(goal)} className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition">
             <Pencil className="w-3.5 h-3.5" />
           </button>
-          <button onClick={() => onDelete(goal.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
+          <button onClick={() => onDelete(goal.id)} className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -522,11 +522,11 @@ function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalCardProps) {
 
       {/* Progress bar with milestones */}
       <div className="mb-3">
-        <div className="flex justify-between text-xs text-gray-500 mb-1">
+        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
           <span>{fmt(goal.current)} saved</span>
           <span className="font-bold" style={{ color: goal.color }}>{Math.round(progress)}%</span>
         </div>
-        <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+        <div className="relative h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-700"
             style={{ width: `${progress}%`, backgroundColor: goal.color }}
@@ -544,13 +544,13 @@ function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalCardProps) {
         {milestones.length > 0 && (
           <div className="flex gap-1 mt-1.5">
             {milestones.map(m => (
-              <span key={m} className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full">
+              <span key={m} className="text-[10px] font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full">
                 {m}% ✓
               </span>
             ))}
           </div>
         )}
-        <div className="flex justify-between text-xs text-gray-400 mt-1">
+        <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
           <span>Target: {fmt(goal.target)}</span>
           {!achieved && <span>{fmt(remaining)} to go</span>}
           {achieved  && <span className="text-green-600 font-medium">🎉 Goal reached!</span>}
@@ -559,23 +559,23 @@ function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalCardProps) {
 
       {/* Smart projection row */}
       {!achieved && (
-        <div className="bg-gray-50 rounded-xl px-3 py-2 mb-3 space-y-1">
+        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2 mb-3 space-y-1">
           {proj && (
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">📅 Projected completion</span>
-              <span className="font-semibold text-gray-700">{proj.date}</span>
+              <span className="text-gray-500 dark:text-gray-400">📅 Projected completion</span>
+              <span className="font-semibold text-gray-700 dark:text-gray-200">{proj.date}</span>
             </div>
           )}
           {reqMo && (
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">💡 Needed to meet deadline</span>
-              <span className="font-semibold text-indigo-600">{fmt(reqMo)}/mo</span>
+              <span className="text-gray-500 dark:text-gray-400">💡 Needed to meet deadline</span>
+              <span className="font-semibold text-indigo-600 dark:text-indigo-400">{fmt(reqMo)}/mo</span>
             </div>
           )}
           {goal.monthlyContribution && goal.monthlyContribution > 0 && (
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">📈 Current contribution</span>
-              <span className="font-semibold text-gray-700">{fmt(goal.monthlyContribution)}/mo</span>
+              <span className="text-gray-500 dark:text-gray-400">📈 Current contribution</span>
+              <span className="font-semibold text-gray-700 dark:text-gray-200">{fmt(goal.monthlyContribution)}/mo</span>
             </div>
           )}
         </div>
@@ -688,12 +688,12 @@ function GoalsSection() {
             { label: "Total Target",   value: fmt(totalTarget), suffix: "", icon: "📊", color: "#f59e0b", raw: true },
             { label: "Total Saved",    value: fmt(totalSaved),  suffix: ` (${overallPct}%)`, icon: "💰", color: "#3b82f6", raw: true },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+            <div key={s.label} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-lg">{s.icon}</span>
-                <p className="text-xs text-gray-500">{s.label}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{s.label}</p>
               </div>
-              <p className="text-xl font-bold text-gray-800">
+              <p className="text-xl font-bold text-gray-800 dark:text-gray-200">
                 {s.raw ? s.value : s.value}{s.suffix}
               </p>
             </div>
@@ -703,7 +703,7 @@ function GoalsSection() {
 
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-800">
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
           {totalGoals > 0 ? `${totalGoals} Savings Goal${totalGoals !== 1 ? "s" : ""}` : "Savings Goals"}
         </h2>
         <button
@@ -716,17 +716,17 @@ function GoalsSection() {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">{error}</div>
+        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm px-4 py-3 rounded-xl mb-4">{error}</div>
       )}
 
       {/* Empty state */}
       {totalGoals === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
+          <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-4">
             <Target className="w-10 h-10 text-indigo-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">No savings goals yet</h3>
-          <p className="text-sm text-gray-400 mb-6 max-w-xs">
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">No savings goals yet</h3>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mb-6 max-w-xs">
             Set a goal for your dream vacation, emergency fund, new car, or anything you're saving toward.
           </p>
           <button
@@ -870,7 +870,7 @@ export default function GoalsBudgetsPage() {
 
   if (isLoading && activeTab === "budgets") {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
       </div>
     );
@@ -882,7 +882,7 @@ export default function GoalsBudgetsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {isFetching && (
         <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-primary-100 overflow-hidden">
           <div className="h-full bg-primary-500 animate-pulse w-full" />

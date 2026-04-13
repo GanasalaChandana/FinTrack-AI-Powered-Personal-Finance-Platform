@@ -23,6 +23,7 @@ import { BudgetForecastCard } from "@/components/dashboard/BudgetForecastCard";
 import { RecurringTransactionsCard } from "@/components/dashboard/RecurringTransactionsCard";
 import { SpendingInsightsCard } from "@/components/dashboard/SpendingInsightsCard";
 import { SavingsGoalsCard } from "@/components/dashboard/SavingsGoalsCard";
+import { MonthEndForecastCard } from "@/components/dashboard/MonthEndForecastCard";
 import { TransactionModal } from "@/components/modals/TransactionModal";
 import { CSVImportModal, type CSVRow } from "@/components/CSVImportModal";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
@@ -612,9 +613,10 @@ export default function DashboardPage() {
             {/* ── AI Insights Row ── */}
             {!loadingData && hasTransactions && (
               <>
-                <Grid columns={2} gap="lg">
+                <Grid columns={3} gap="lg">
                   <AnomalyInsightsCard transactions={allTransactions} />
                   <BudgetForecastCard transactions={allTransactions} budgets={allBudgets} />
+                  <MonthEndForecastCard transactions={allTransactions} />
                 </Grid>
                 <Grid columns={3} gap="lg">
                   <SpendingInsightsCard transactions={allTransactions} />

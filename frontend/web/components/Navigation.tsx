@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Bell, Mail, LogOut, Menu, X, Check, AlertTriangle, Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor } from "lucide-react";
+import { Bell, Mail, LogOut, Menu, X, Check, AlertTriangle, Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor, BarChart3, Wallet } from "lucide-react";
 import { getToken, removeToken } from "@/lib/api";
 import { useThemePreference } from "@/lib/hooks/useThemePreference";
 
@@ -402,6 +402,8 @@ export default function Navigation() {
                 {navLink("/health", "Health", <Activity className="w-3.5 h-3.5" />)}
                 {navLink("/insights", "Insights", <Brain className="w-3.5 h-3.5" />)}
                 {navLink("/recurring", "Recurring", <RefreshCw className="w-3.5 h-3.5" />)}
+                {navLink("/analytics", "Analytics", <BarChart3 className="w-3.5 h-3.5" />)}
+                {navLink("/net-worth", "Net Worth", <Wallet className="w-3.5 h-3.5" />)}
               </>
             )}
           </div>
@@ -578,6 +580,8 @@ export default function Navigation() {
                   { href: "/health", label: "Health Score", icon: <Activity className="w-4 h-4" /> },
                   { href: "/insights", label: "AI Insights", icon: <Brain className="w-4 h-4" /> },
                   { href: "/recurring", label: "Recurring", icon: <RefreshCw className="w-4 h-4" /> },
+                  { href: "/analytics", label: "Analytics", icon: <BarChart3 className="w-4 h-4" /> },
+                  { href: "/net-worth", label: "Net Worth", icon: <Wallet className="w-4 h-4" /> },
                 ].map(({ href, label, icon, badgeCount, badgeColor }: any) => (
                   <Link
                     key={href}

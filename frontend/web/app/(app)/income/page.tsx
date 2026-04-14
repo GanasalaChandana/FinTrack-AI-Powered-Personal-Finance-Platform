@@ -97,7 +97,8 @@ export default function IncomePage() {
 
   // ── Monthly income trend ──────────────────────────────────────────────────
   const monthlyData = useMemo(() => {
-    const map = new Map<string, Record<string, number>>();
+    // Map: sortKey → { label, total, [source]: amount }
+    const map = new Map<string, { label: string; total: number; [src: string]: number | string }>();
     filtered.forEach(t => {
       const d = new Date(t.date);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -105,12 +106,12 @@ export default function IncomePage() {
       if (!map.has(key)) map.set(key, { label, total: 0 });
       const row = map.get(key)!;
       const src = t.category || "Other";
-      row[src] = (row[src] ?? 0) + Math.abs(t.amount);
+      row[src] = ((row[src] as number) ?? 0) + Math.abs(t.amount);
       row.total = (row.total ?? 0) + Math.abs(t.amount);
     });
     return Array.from(map.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([, v]) => ({ ...v, total: Math.round(v.total as number) }));
+      .map(([, v]) => ({ ...v, total: Math.round(v.total) }));
   }, [filtered]);
 
   // ── Top income months ─────────────────────────────────────────────────────

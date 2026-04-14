@@ -56,18 +56,20 @@ const DATE_RANGE_LABELS: Record<DateRange, string> = {
 
 function DateRangePicker({ value, onChange }: { value: DateRange; onChange: (v: DateRange) => void }) {
   return (
-    <div className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 rounded-md p-2 inline-flex">
-      <Calendar className="w-4 h-4 text-neutral-500 dark:text-neutral-400 ml-1 flex-shrink-0" />
+    <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-1 inline-flex">
+      <Calendar className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 ml-1.5 flex-shrink-0" />
       {(["30", "90", "180", "365"] as DateRange[]).map((range) => (
-        <Button
+        <button
           key={range}
-          variant={value === range ? "primary" : "ghost"}
-          size="sm"
           onClick={() => onChange(range)}
-          className="text-xs"
+          className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-150 ${
+            value === range
+              ? "bg-white dark:bg-neutral-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+              : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200"
+          }`}
         >
           {DATE_RANGE_LABELS[range]}
-        </Button>
+        </button>
       ))}
     </div>
   );

@@ -94,7 +94,7 @@ export function StatCard({
     >
       <div className="flex items-start justify-between mb-4">
         <div
-          className="w-12 h-12 rounded-md flex items-center justify-center shadow-sm flex-shrink-0"
+          className="w-[52px] h-[52px] rounded-xl flex items-center justify-center shadow-md flex-shrink-0"
           style={{ background: iconGradient }}
         >
           <Icon className="w-6 h-6 text-white" />

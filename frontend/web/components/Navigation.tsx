@@ -31,7 +31,7 @@ interface Notification {
 const NAV_MAIN = [
   { href: "/dashboard",     label: "Dashboard",      icon: LayoutDashboard },
   { href: "/transactions",  label: "Transactions",   icon: ArrowLeftRight },
-  { href: "/goals-budgets", label: "Goals & Budgets",icon: Target, badgeKey: "budget" },
+  { href: "/goals-budgets", label: "Goals & Budget", icon: Target, badgeKey: "budget" },
   { href: "/reports",       label: "Reports",        icon: BarChart3 },
   { href: "/calendar",      label: "Calendar",       icon: Calendar },
 ];

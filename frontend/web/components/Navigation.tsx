@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Bell, Mail, LogOut, Menu, X, Check, AlertTriangle, Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor, BarChart3, Wallet, Search, Calendar } from "lucide-react";
+import { Bell, Mail, LogOut, Menu, X, Check, AlertTriangle, Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor, BarChart3, Wallet, Search, Calendar, CreditCard, TrendingUp } from "lucide-react";
 import { getToken, removeToken } from "@/lib/api";
 import { useThemePreference } from "@/lib/hooks/useThemePreference";
 import { CommandPalette } from "@/components/CommandPalette";
@@ -418,6 +418,8 @@ export default function Navigation() {
                 {navLink("/analytics", "Analytics", <BarChart3 className="w-3.5 h-3.5" />)}
                 {navLink("/net-worth", "Net Worth", <Wallet className="w-3.5 h-3.5" />)}
                 {navLink("/calendar", "Calendar", <Calendar className="w-3.5 h-3.5" />)}
+                {navLink("/debt", "Debt Payoff", <CreditCard className="w-3.5 h-3.5" />)}
+                {navLink("/income", "Income", <TrendingUp className="w-3.5 h-3.5" />)}
               </>
             )}
           </div>
@@ -617,6 +619,8 @@ export default function Navigation() {
                   { href: "/analytics", label: "Analytics", icon: <BarChart3 className="w-4 h-4" /> },
                   { href: "/net-worth", label: "Net Worth", icon: <Wallet className="w-4 h-4" /> },
                   { href: "/calendar", label: "Calendar", icon: <Calendar className="w-4 h-4" /> },
+                  { href: "/debt", label: "Debt Payoff", icon: <CreditCard className="w-4 h-4" /> },
+                  { href: "/income", label: "Income", icon: <TrendingUp className="w-4 h-4" /> },
                 ].map(({ href, label, icon, badgeCount, badgeColor }: any) => (
                   <Link
                     key={href}

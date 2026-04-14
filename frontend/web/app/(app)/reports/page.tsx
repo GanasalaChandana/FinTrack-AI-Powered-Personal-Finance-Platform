@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   CartesianGrid, Tooltip, Legend, XAxis, YAxis, ResponsiveContainer,
-  ReferenceLine, ComposedChart,
+  ReferenceLine, ComposedChart, Cell,
 } from "recharts";
 import {
   TrendingUp, TrendingDown, Download, DollarSign, Target, Award,
@@ -25,7 +25,7 @@ import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/Pag
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ReportTab = "overview" | "custom" | "trends" | "comparison" | "forecast";
+type ReportTab = "overview" | "custom" | "trends" | "comparison" | "forecast" | "budget-history";
 type DateRange = "last-7-days" | "last-30-days" | "last-3-months" | "last-6-months" | "last-year" | "custom";
 type ChartType = "line" | "bar" | "area" | "pie";
 
@@ -1110,14 +1110,142 @@ const EnhancedFinancialReports: React.FC = () => {
     );
   }
 
+  // ── Tab: Budget History ───────────────────────────────────────────────────
+
+  const renderBudgetHistory = () => {
+    if (dataLoading) return <LoadingSpinner />;
+    const monthly = allReportsData?.monthlyData ?? [];
+    if (monthly.length === 0) {
+      return <ChartEmptyState message="Not enough data to show budget history." />;
+    }
+
+    // Build per-month budget vs actual. `target` in MonthlyReportData is the budget target set by reportsService.
+    const historyData = monthly.slice(-6).map((m: any) => ({
+      month: m.month,
+      actual: Math.round(m.expenses ?? 0),
+      budget: Math.round(m.target > 0 ? m.target : m.expenses * 1.1),   // fallback: 10% over actual
+      savings: Math.round(m.savings ?? (m.income - m.expenses)),
+      income: Math.round(m.income ?? 0),
+    }));
+
+    const overBudgetMonths = historyData.filter(m => m.actual > m.budget).length;
+    const underBudgetMonths = historyData.filter(m => m.actual <= m.budget).length;
+    const totalActual = historyData.reduce((s, m) => s + m.actual, 0);
+    const totalBudget = historyData.reduce((s, m) => s + m.budget, 0);
+    const avgAdherence = Math.round((underBudgetMonths / historyData.length) * 100);
+
+    return (
+      <div className="space-y-6">
+        {/* Summary chips */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            { label: "Months Under Budget", value: `${underBudgetMonths} / ${historyData.length}`, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+            { label: "Months Over Budget",  value: `${overBudgetMonths} / ${historyData.length}`,  color: "text-red-500 dark:text-red-400",     bg: "bg-red-50 dark:bg-red-900/20" },
+            { label: "Total Spent",          value: fmt(totalActual), color: "text-gray-900 dark:text-white", bg: "bg-gray-50 dark:bg-gray-800" },
+            { label: "Budget Adherence",     value: `${avgAdherence}%`, color: avgAdherence >= 70 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400", bg: "bg-gray-50 dark:bg-gray-800" },
+          ].map(({ label, value, color, bg }) => (
+            <div key={label} className={`rounded-xl p-4 ${bg} border border-gray-100 dark:border-gray-700`}>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{label}</p>
+              <p className={`text-xl font-black ${color}`}>{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Budget vs Actual bar chart */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Budget vs Actual (last 6 months)</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">Green = under budget · Red = over budget</p>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={historyData} barCategoryGap="30%" barGap={4}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+              <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} tickLine={false} />
+              <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+              <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number) => fmt(v)} />
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 16 }} />
+              <Bar dataKey="budget" name="Budget" fill="#e0e7ff" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="actual" name="Actual" radius={[4, 4, 0, 0]}>
+                {historyData.map((entry, i) => (
+                  <Cell key={i} fill={entry.actual > entry.budget ? "#ef4444" : "#10b981"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Monthly breakdown table */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+            <h3 className="text-base font-bold text-gray-900 dark:text-white">Monthly Breakdown</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-gray-800">
+                  {["Month", "Budget", "Actual", "Difference", "Savings", "Status"].map(h => (
+                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {historyData.map(m => {
+                  const diff = m.budget - m.actual;
+                  const under = diff >= 0;
+                  return (
+                    <tr key={m.month} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <td className="px-5 py-3 font-semibold text-gray-900 dark:text-white">{m.month}</td>
+                      <td className="px-5 py-3 text-gray-600 dark:text-gray-400">{fmt(m.budget)}</td>
+                      <td className="px-5 py-3 font-semibold text-gray-900 dark:text-white">{fmt(m.actual)}</td>
+                      <td className={`px-5 py-3 font-bold ${under ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
+                        {under ? "+" : ""}{fmt(diff)}
+                      </td>
+                      <td className="px-5 py-3 text-gray-600 dark:text-gray-400">{fmt(m.savings)}</td>
+                      <td className="px-5 py-3">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${under ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"}`}>
+                          {under ? "Under" : "Over"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Income vs Expenses trend */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Savings Trend</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">Monthly savings over the period</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={historyData}>
+              <defs>
+                <linearGradient id="savGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} tickLine={false} />
+              <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+              <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number) => fmt(v)} />
+              <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="4 2" />
+              <Area type="monotone" dataKey="savings" stroke="#6366f1" strokeWidth={2.5} fill="url(#savGrad)" name="Savings" dot={{ r: 4, fill: "#6366f1" }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    );
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const TABS = [
-    { id: "overview",    label: "Overview",         icon: BarChart3 },
-    { id: "custom",      label: "Custom Reports",   icon: Settings },
-    { id: "trends",      label: "Spending Trends",  icon: TrendingUp },
-    { id: "comparison",  label: "Comparison",       icon: PieChartIcon },
-    { id: "forecast",    label: "Forecast",         icon: Target },
+    { id: "overview",       label: "Overview",         icon: BarChart3 },
+    { id: "custom",         label: "Custom Reports",   icon: Settings },
+    { id: "trends",         label: "Spending Trends",  icon: TrendingUp },
+    { id: "comparison",     label: "Comparison",       icon: PieChartIcon },
+    { id: "forecast",       label: "Forecast",         icon: Target },
+    { id: "budget-history", label: "Budget History",   icon: Calendar },
   ] as const;
 
   return (
@@ -1182,11 +1310,12 @@ const EnhancedFinancialReports: React.FC = () => {
 
           {/* Content — key includes dateRange so chart re-animates on range change */}
           <div className="tab-content" key={`${selectedReport}-${dateRange}`}>
-            {selectedReport === "overview"   && renderOverview()}
-            {selectedReport === "custom"     && renderCustomReportBuilder()}
-            {selectedReport === "trends"     && renderSpendingTrends()}
-            {selectedReport === "comparison" && renderComparison()}
-            {selectedReport === "forecast"   && renderForecast()}
+            {selectedReport === "overview"        && renderOverview()}
+            {selectedReport === "custom"          && renderCustomReportBuilder()}
+            {selectedReport === "trends"          && renderSpendingTrends()}
+            {selectedReport === "comparison"      && renderComparison()}
+            {selectedReport === "forecast"        && renderForecast()}
+            {selectedReport === "budget-history"  && renderBudgetHistory()}
           </div>
         </PageContent>
       </div>

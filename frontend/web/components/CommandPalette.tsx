@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Search, LayoutDashboard, ArrowRightLeft, Target, FileText,
   Camera, Activity, Brain, RefreshCw, BarChart3, Wallet,
-  LogOut, Sun, Moon, Monitor, Calendar,
+  LogOut, Sun, Moon, Monitor, Calendar, CreditCard, TrendingUp,
   X, ChevronRight, Loader2,
 } from "lucide-react";
 import { transactionsAPI } from "@/lib/api";
@@ -54,6 +54,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Recurring", href: "/recurring", icon: <RefreshCw className="w-4 h-4" />, keywords: ["subscriptions", "bills", "recurring"] },
   { label: "Receipt Scanner", href: "/receipts", icon: <Camera className="w-4 h-4" />, keywords: ["scan", "ocr", "photo"] },
   { label: "Calendar", href: "/calendar", icon: <Calendar className="w-4 h-4" />, keywords: ["calendar", "bills", "schedule", "upcoming"] },
+  { label: "Debt Payoff", href: "/debt", icon: <CreditCard className="w-4 h-4" />, keywords: ["debt", "loan", "credit card", "payoff", "avalanche", "snowball"] },
+  { label: "Income Breakdown", href: "/income", icon: <TrendingUp className="w-4 h-4" />, keywords: ["income", "salary", "sources", "earnings"] },
 ];
 
 const formatAmount = (amount: number, type: string) => {

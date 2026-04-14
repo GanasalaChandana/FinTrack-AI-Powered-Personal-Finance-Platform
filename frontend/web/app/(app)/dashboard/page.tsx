@@ -520,11 +520,11 @@ export default function DashboardPage() {
 
             {/* ── Stat Cards ── */}
             {loadingData ? (
-              <Grid columns={3} gap="lg">
+              <Grid columns={4} gap="lg">
                 {[0,1,2,3].map((i) => <CardSkeleton key={i} />)}
               </Grid>
             ) : (
-              <Grid columns={3} gap="lg">
+              <Grid columns={4} gap="lg">
                 {hasTransactions ? (
                   <>
                     <StatCard

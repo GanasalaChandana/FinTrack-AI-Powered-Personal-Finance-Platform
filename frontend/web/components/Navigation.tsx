@@ -9,7 +9,7 @@ import {
   Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor,
   BarChart3, Wallet, Search, Calendar, CreditCard, TrendingUp,
   LayoutDashboard, ArrowLeftRight, Target, ChevronLeft, ChevronRight,
-  PiggyBank,
+  PiggyBank, DollarSign,
 } from "lucide-react";
 import { getToken, removeToken } from "@/lib/api";
 import { useThemePreference } from "@/lib/hooks/useThemePreference";
@@ -26,528 +26,588 @@ interface Notification {
   type: string; read: boolean; createdAt: string;
 }
 
-// ── Nav item data ────────────────────────────────────────────────────────────
+// ── Nav sections ─────────────────────────────────────────────────────────────
 
 const NAV_MAIN = [
-  { href: "/dashboard",    label: "Dashboard",      icon: LayoutDashboard },
-  { href: "/transactions", label: "Transactions",   icon: ArrowLeftRight },
-  { href: "/goals-budgets",label: "Goals & Budgets",icon: Target,     badgeKey: "budget" },
-  { href: "/reports",      label: "Reports",        icon: BarChart3 },
-  { href: "/calendar",     label: "Calendar",       icon: Calendar },
+  { href: "/dashboard",     label: "Dashboard",      icon: LayoutDashboard },
+  { href: "/transactions",  label: "Transactions",   icon: ArrowLeftRight },
+  { href: "/goals-budgets", label: "Goals & Budgets",icon: Target, badgeKey: "budget" },
+  { href: "/reports",       label: "Reports",        icon: BarChart3 },
+  { href: "/calendar",      label: "Calendar",       icon: Calendar },
 ];
 
 const NAV_TOOLS = [
-  { href: "/income",       label: "Income",         icon: TrendingUp },
-  { href: "/debt",         label: "Debt Payoff",    icon: CreditCard },
-  { href: "/analytics",    label: "Analytics",      icon: BarChart3 },
-  { href: "/net-worth",    label: "Net Worth",      icon: Wallet },
-  { href: "/recurring",    label: "Recurring",      icon: RefreshCw },
-  { href: "/health",       label: "Health Score",   icon: Activity },
-  { href: "/insights",     label: "AI Insights",    icon: Brain },
-  { href: "/receipts",     label: "Receipts",       icon: Camera },
+  { href: "/income",        label: "Income",         icon: DollarSign },
+  { href: "/debt",          label: "Debt Payoff",    icon: CreditCard },
+  { href: "/analytics",     label: "Analytics",      icon: BarChart3 },
+  { href: "/net-worth",     label: "Net Worth",      icon: Wallet },
+  { href: "/recurring",     label: "Recurring",      icon: RefreshCw },
+  { href: "/health",        label: "Health Score",   icon: Activity },
+  { href: "/insights",      label: "AI Insights",    icon: Brain },
+  { href: "/receipts",      label: "Receipts",       icon: Camera },
 ];
+
+// ── Reusable nav link ─────────────────────────────────────────────────────────
+
+function NavItem({
+  href, label, icon: Icon, badge, collapsed, active, onClick,
+}: {
+  href: string; label: string; icon: React.ElementType;
+  badge?: number; collapsed: boolean; active: boolean; onClick?: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      title={collapsed ? label : undefined}
+      className={`
+        relative flex items-center gap-3 rounded-lg text-[13px] font-medium
+        transition-all duration-150 select-none
+        ${collapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-2'}
+        ${active
+          ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'}
+      `}
+    >
+      {/* active bar */}
+      {active && (
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-indigo-500" />
+      )}
+
+      <Icon className={`flex-shrink-0 ${collapsed ? 'w-[18px] h-[18px]' : 'w-4 h-4'} ${active ? 'text-indigo-500' : 'text-gray-400 dark:text-gray-500'}`} />
+
+      {!collapsed && <span className="flex-1 truncate">{label}</span>}
+
+      {/* badge */}
+      {!collapsed && !!badge && badge > 0 && (
+        <span className="flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-orange-500 rounded-full px-1">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
+      {collapsed && !!badge && badge > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] bg-orange-500 rounded-full ring-2 ring-white dark:ring-gray-900" />
+      )}
+    </Link>
+  );
+}
+
+// ── Section heading ───────────────────────────────────────────────────────────
+
+function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
+  if (collapsed) return <div className="my-1 mx-auto w-6 border-t border-gray-200 dark:border-gray-700" />;
+  return (
+    <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-600 select-none">
+      {label}
+    </p>
+  );
+}
+
+// ── Dropdown popup (alerts / notifications) ───────────────────────────────────
+
+function Popup({ children, width = 360 }: { children: React.ReactNode; width?: number }) {
+  return (
+    <div
+      className="absolute bottom-full left-0 mb-2 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden z-[60]"
+      style={{ width }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ── Bottom action button ──────────────────────────────────────────────────────
+
+function BottomBtn({
+  icon: Icon, label, badge, badgeColor = 'bg-red-500', collapsed, onClick, danger, title,
+}: {
+  icon: React.ElementType; label: string; badge?: number; badgeColor?: string;
+  collapsed: boolean; onClick: () => void; danger?: boolean; title?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={collapsed ? (title ?? label) : undefined}
+      className={`
+        relative flex items-center gap-3 rounded-lg text-[13px] font-medium w-full
+        transition-all duration-150
+        ${collapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-2'}
+        ${danger
+          ? 'text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'}
+      `}
+    >
+      <Icon className={`flex-shrink-0 ${collapsed ? 'w-[18px] h-[18px]' : 'w-4 h-4'}`} />
+      {!collapsed && <span className="flex-1 text-left">{label}</span>}
+      {!collapsed && !!badge && badge > 0 && (
+        <span className={`flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white ${badgeColor} rounded-full px-1`}>
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
+      {collapsed && !!badge && badge > 0 && (
+        <span className={`absolute -top-0.5 -right-0.5 w-[7px] h-[7px] ${badgeColor} rounded-full ring-2 ring-white dark:ring-gray-900`} />
+      )}
+    </button>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function Navigation() {
   const [mounted,      setMounted]      = useState(false);
   const [hasToken,     setHasToken]     = useState(false);
-  const [collapsed,    setCollapsed]    = useState(false);   // icon-only mode
-  const [mobileOpen,   setMobileOpen]   = useState(false);   // mobile overlay
-  const [budgetAlertCount, setBudgetAlertCount] = useState(0);
-  const [isPaletteOpen,    setIsPaletteOpen]    = useState(false);
+  const [collapsed,    setCollapsed]    = useState(false);
+  const [mobileOpen,   setMobileOpen]   = useState(false);
+  const [budgetAlerts, setBudgetAlerts] = useState(0);
+  const [isPaletteOpen,setIsPaletteOpen]= useState(false);
 
-  const [isAlertsOpen,          setIsAlertsOpen]          = useState(false);
-  const [alerts,                setAlerts]                 = useState<Alert[]>([]);
-  const [alertsUnreadCount,     setAlertsUnreadCount]      = useState(0);
+  const [isAlertsOpen,         setIsAlertsOpen]         = useState(false);
+  const [alerts,               setAlerts]               = useState<Alert[]>([]);
+  const [alertsUnread,         setAlertsUnread]         = useState(0);
   const alertsRef = useRef<HTMLDivElement>(null);
 
-  const [isNotificationsOpen,       setIsNotificationsOpen]       = useState(false);
-  const [notifications,             setNotifications]             = useState<Notification[]>([]);
-  const [notificationsUnreadCount,  setNotificationsUnreadCount]  = useState(0);
-  const notificationsRef = useRef<HTMLDivElement>(null);
+  const [isNotifsOpen,         setIsNotifsOpen]         = useState(false);
+  const [notifs,               setNotifs]               = useState<Notification[]>([]);
+  const [notifsUnread,         setNotifsUnread]         = useState(0);
+  const notifsRef = useRef<HTMLDivElement>(null);
 
-  const pollFailures   = useRef(0);
-  const MAX_FAILURES   = 4;
+  const pollFailures = useRef(0);
 
   const { theme, setTheme } = useThemePreference();
   const ThemeIcon = theme === 'dark' ? Moon : theme === 'system' ? Monitor : Sun;
-  const cycleTheme = () => {
-    if (theme === 'light') setTheme('dark');
-    else if (theme === 'dark') setTheme('system');
-    else setTheme('light');
-  };
+  const cycleTheme = () => setTheme(theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light');
 
   const router   = useRouter();
-  const pathname = usePathname() || "";
+  const pathname = usePathname() || '';
 
-  const isPublicRoute = (p: string) => {
+  const isPublic = (p: string) => {
     const pub = ['/', '/login', '/register', '/signin', '/signup'];
     return pub.includes(p) || pub.some(pp => p.startsWith(`${pp}/`) || p.startsWith(`${pp}?`));
   };
 
-  // ── Bootstrap ──────────────────────────────────────────────────────────────
+  // ── mount + listeners ─────────────────────────────────────────────────────
   useEffect(() => {
     setMounted(true);
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
 
     const token = getToken();
     setHasToken(!!token);
 
-    const readBudgetAlerts = () => {
-      const n = parseInt(localStorage.getItem("fintrack-budget-alerts") || "0", 10);
-      setBudgetAlertCount(isNaN(n) ? 0 : n);
+    const readBudget = () => {
+      const n = parseInt(localStorage.getItem('fintrack-budget-alerts') || '0', 10);
+      setBudgetAlerts(isNaN(n) ? 0 : n);
     };
-    readBudgetAlerts();
-    window.addEventListener("fintrack-budget-alerts-updated", readBudgetAlerts);
-    window.addEventListener("storage", readBudgetAlerts);
+    readBudget();
+    window.addEventListener('fintrack-budget-alerts-updated', readBudget);
+    window.addEventListener('storage', readBudget);
 
-    const handleCmdK = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        if (getToken()) setIsPaletteOpen(prev => !prev);
+        if (getToken()) setIsPaletteOpen(p => !p);
       }
     };
-    window.addEventListener("keydown", handleCmdK);
+    window.addEventListener('keydown', onKey);
 
-    if (token && !isPublicRoute(pathname)) {
-      loadAlerts(); loadNotifications();
+    if (token && !isPublic(pathname)) {
+      loadAlerts(); loadNotifs();
       const iv = setInterval(() => {
-        if (!isPublicRoute(window.location.pathname) && getToken() && pollFailures.current < MAX_FAILURES) {
-          loadAlerts(); loadNotifications();
+        if (!isPublic(window.location.pathname) && getToken() && pollFailures.current < 4) {
+          loadAlerts(); loadNotifs();
         }
-      }, 120000);
+      }, 120_000);
       return () => {
         clearInterval(iv);
-        window.removeEventListener("fintrack-budget-alerts-updated", readBudgetAlerts);
-        window.removeEventListener("storage", readBudgetAlerts);
-        window.removeEventListener("keydown", handleCmdK);
+        window.removeEventListener('fintrack-budget-alerts-updated', readBudget);
+        window.removeEventListener('storage', readBudget);
+        window.removeEventListener('keydown', onKey);
       };
     }
     return () => {
-      window.removeEventListener("fintrack-budget-alerts-updated", readBudgetAlerts);
-      window.removeEventListener("storage", readBudgetAlerts);
-      window.removeEventListener("keydown", handleCmdK);
+      window.removeEventListener('fintrack-budget-alerts-updated', readBudget);
+      window.removeEventListener('storage', readBudget);
+      window.removeEventListener('keydown', onKey);
     };
   }, [pathname]);
 
   // close dropdowns on outside click
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    const fn = (e: MouseEvent) => {
       if (alertsRef.current && !alertsRef.current.contains(e.target as Node)) setIsAlertsOpen(false);
-      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) setIsNotificationsOpen(false);
+      if (notifsRef.current  && !notifsRef.current.contains(e.target as Node))  setIsNotifsOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-  // close mobile nav on route change
-  useEffect(() => { setMobileOpen(false); }, [pathname]);
+  // close mobile drawer on route change
+  useEffect(() => setMobileOpen(false), [pathname]);
 
-  // keep CSS variable in sync with collapsed state (used by ClientLayout for content offset)
+  // sync sidebar width as CSS var so ClientLayout padding tracks it
   useEffect(() => {
     document.documentElement.style.setProperty('--sidebar-w', collapsed ? '4rem' : '15rem');
   }, [collapsed]);
 
-  // ── Data loading ───────────────────────────────────────────────────────────
+  // ── data ─────────────────────────────────────────────────────────────────
   const loadAlerts = async () => {
     try {
-      if (isPublicRoute(window.location.pathname)) return;
+      if (isPublic(window.location.pathname)) return;
       const token = getToken(); if (!token) return;
-      const userId = localStorage.getItem("userId");
+      const userId = localStorage.getItem('userId');
       const res = await fetch(`${API_BASE_URL}/api/alerts`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest', ...(userId && { 'X-User-Id': userId }) },
+        headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest', ...(userId && { 'X-User-Id': userId }) },
         credentials: 'omit',
       });
       if (res.ok) {
         pollFailures.current = 0;
-        const data = await res.json();
-        setAlerts(data.slice(0, 5));
-        setAlertsUnreadCount(data.filter((a: Alert) => !a.isRead).length);
-      } else if (res.status === 401) { removeToken(); setHasToken(false); setAlerts([]); setAlertsUnreadCount(0); }
-      else pollFailures.current += 1;
-    } catch { pollFailures.current += 1; }
+        const d = await res.json();
+        setAlerts(d.slice(0, 5));
+        setAlertsUnread(d.filter((a: Alert) => !a.isRead).length);
+      } else if (res.status === 401) { removeToken(); setHasToken(false); }
+      else pollFailures.current++;
+    } catch { pollFailures.current++; }
   };
 
-  const loadNotifications = async () => {
+  const loadNotifs = async () => {
     try {
-      if (isPublicRoute(window.location.pathname)) return;
+      if (isPublic(window.location.pathname)) return;
       const token = getToken(); if (!token) return;
-      const userStr = localStorage.getItem("user");
-      if (!userStr || userStr === '{}') return;
-      const user = JSON.parse(userStr); if (!user.id) return;
-      const res = await fetch(`${API_BASE_URL}/api/notifications/user/${user.id}`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' },
+      const u = JSON.parse(localStorage.getItem('user') || '{}'); if (!u.id) return;
+      const res = await fetch(`${API_BASE_URL}/api/notifications/user/${u.id}`, {
+        headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'omit',
       });
       if (res.ok) {
         pollFailures.current = 0;
-        const data = await res.json();
-        setNotifications(data.slice(0, 5)); setNotificationsUnreadCount(data.filter((n: Notification) => !n.read).length);
-      } else if (res.status === 401) { removeToken(); setHasToken(false); setNotifications([]); setNotificationsUnreadCount(0); }
-      else pollFailures.current += 1;
-    } catch { pollFailures.current += 1; }
+        const d = await res.json();
+        setNotifs(d.slice(0, 5));
+        setNotifsUnread(d.filter((n: Notification) => !n.read).length);
+      } else if (res.status === 401) { removeToken(); setHasToken(false); }
+      else pollFailures.current++;
+    } catch { pollFailures.current++; }
   };
 
-  const handleAlertMarkAsRead = async (id: string, e: React.MouseEvent) => {
+  const markAlertRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const token = getToken(); if (!token) return;
     const res = await fetch(`${API_BASE_URL}/api/alerts/${id}/read`, {
-      method: 'PATCH', headers: { 'Authorization': `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
+      method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
     });
-    if (res.ok) { setAlerts(a => a.map(x => x.id === id ? { ...x, isRead: true } : x)); setAlertsUnreadCount(n => Math.max(0, n - 1)); }
+    if (res.ok) { setAlerts(a => a.map(x => x.id === id ? { ...x, isRead: true } : x)); setAlertsUnread(n => Math.max(0, n - 1)); }
   };
 
-  const handleAlertDismiss = async (id: string, e: React.MouseEvent) => {
+  const dismissAlert = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const token = getToken(); if (!token) return;
     const res = await fetch(`${API_BASE_URL}/api/alerts/${id}`, {
-      method: 'DELETE', headers: { 'Authorization': `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
     });
     if (res.ok) {
-      const dismissed = alerts.find(a => a.id === id);
+      const d = alerts.find(a => a.id === id);
       setAlerts(a => a.filter(x => x.id !== id));
-      if (dismissed && !dismissed.isRead) setAlertsUnreadCount(n => Math.max(0, n - 1));
+      if (d && !d.isRead) setAlertsUnread(n => Math.max(0, n - 1));
     }
   };
 
-  const handleNotifMarkAsRead = async (id: string, e: React.MouseEvent) => {
+  const markNotifRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const token = getToken(); if (!token) return;
-    const user = JSON.parse(localStorage.getItem("user") || "{}"); if (!user.id) return;
-    const res = await fetch(`${API_BASE_URL}/api/notifications/${id}/read?userId=${user.id}`, {
-      method: 'PATCH', headers: { 'Authorization': `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
+    const u = JSON.parse(localStorage.getItem('user') || '{}'); if (!u.id) return;
+    const res = await fetch(`${API_BASE_URL}/api/notifications/${id}/read?userId=${u.id}`, {
+      method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
     });
-    if (res.ok) { setNotifications(n => n.map(x => x.id === id ? { ...x, read: true } : x)); setNotificationsUnreadCount(n => Math.max(0, n - 1)); }
+    if (res.ok) { setNotifs(n => n.map(x => x.id === id ? { ...x, read: true } : x)); setNotifsUnread(n => Math.max(0, n - 1)); }
   };
 
-  const handleNotifDismiss = async (id: string, e: React.MouseEvent) => {
+  const dismissNotif = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const token = getToken(); if (!token) return;
-    const user = JSON.parse(localStorage.getItem("user") || "{}"); if (!user.id) return;
-    const res = await fetch(`${API_BASE_URL}/api/notifications/${id}?userId=${user.id}`, {
-      method: 'DELETE', headers: { 'Authorization': `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
+    const u = JSON.parse(localStorage.getItem('user') || '{}'); if (!u.id) return;
+    const res = await fetch(`${API_BASE_URL}/api/notifications/${id}?userId=${u.id}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
     });
     if (res.ok) {
-      const dismissed = notifications.find(n => n.id === id);
-      setNotifications(n => n.filter(x => x.id !== id));
-      if (dismissed && !dismissed.read) setNotificationsUnreadCount(n => Math.max(0, n - 1));
+      const d = notifs.find(n => n.id === id);
+      setNotifs(n => n.filter(x => x.id !== id));
+      if (d && !d.read) setNotifsUnread(n => Math.max(0, n - 1));
     }
   };
 
-  const handleLogout = () => {
-    removeToken(); setHasToken(false); setAlerts([]); setNotifications([]);
-    setAlertsUnreadCount(0); setNotificationsUnreadCount(0);
-    router.push("/login?mode=signin");
+  const logout = () => {
+    removeToken(); setHasToken(false); setAlerts([]); setNotifs([]);
+    setAlertsUnread(0); setNotifsUnread(0);
+    router.push('/login?mode=signin');
   };
 
-  const alertPriorityColor = (p: string) =>
-    p === 'urgent' ? 'text-red-600' : p === 'high' ? 'text-orange-600' : p === 'medium' ? 'text-yellow-600' : 'text-blue-600';
-
-  const alertIcon   = (t: string) => ({ expense_limit: '💸', budget_limit: '💰', achievement: '🎉', unusual_activity: '🔍' }[t] ?? '🚨');
-  const notifIcon   = (t: string) => ({ welcome: '👋', alert: '⚠️', info: 'ℹ️', success: '✅', warning: '⚠️' }[t.toLowerCase()] ?? '📬');
-
-  const fmtTime = (d: string) => {
-    const ms = Date.now() - new Date(d).getTime();
-    const m = Math.floor(ms / 60000);
-    if (m < 1) return 'Just now'; if (m < 60) return `${m}m ago`;
+  const alertPriColor = (p: string) =>
+    p === 'urgent' ? 'text-red-500' : p === 'high' ? 'text-orange-500' : p === 'medium' ? 'text-yellow-500' : 'text-blue-500';
+  const alertEmoji   = (t: string) => ({ expense_limit: '💸', budget_limit: '💰', achievement: '🎉', unusual_activity: '🔍' }[t] ?? '🚨');
+  const notifEmoji   = (t: string) => ({ welcome: '👋', alert: '⚠️', info: 'ℹ️', success: '✅', warning: '⚠️' }[t?.toLowerCase()] ?? '📬');
+  const timeAgo      = (d: string) => {
+    const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
+    if (m < 1) return 'just now'; if (m < 60) return `${m}m ago`;
     const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`;
     return `${Math.floor(h / 24)}d ago`;
   };
 
-  // ── Early returns ──────────────────────────────────────────────────────────
+  // ── early returns ─────────────────────────────────────────────────────────
   if (!mounted) return (
-    <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-60 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-col items-center justify-center">
-      <span className="text-xl font-bold text-indigo-600">FinTrack</span>
+    <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-60 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 items-center justify-center">
+      <span className="text-base font-bold text-indigo-600">FinTrack</span>
     </aside>
   );
+  if (isPublic(pathname) || !hasToken) return null;
 
-  if (isPublicRoute(pathname) || !hasToken) return null;
+  const active = (href: string) => pathname === href;
 
-  const isActive = (href: string) => pathname === href;
+  // ── sidebar body ─────────────────────────────────────────────────────────
+  const Sidebar = ({ onClose }: { onClose?: () => void }) => (
+    <div className="flex flex-col h-full overflow-hidden">
 
-  // ── Sidebar content (shared between desktop + mobile overlay) ─────────────
-  const SidebarContent = ({ onClose }: { onClose?: () => void }) => (
-    <div className="flex flex-col h-full">
-
-      {/* Logo + collapse toggle */}
-      <div className={`flex items-center h-16 border-b border-gray-100 dark:border-gray-800 flex-shrink-0 ${collapsed ? 'justify-center px-3' : 'px-5 gap-3'}`}>
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg,#6366F1,#4F46E5)' }}>
-          <PiggyBank className="w-4 h-4 text-white" />
+      {/* ── Logo row ── */}
+      <div className={`flex items-center h-[60px] px-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0 ${collapsed && !onClose ? 'justify-center' : 'gap-2.5'}`}>
+        <div
+          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm"
+          style={{ background: 'linear-gradient(135deg,#6366F1,#4F46E5)' }}
+        >
+          <PiggyBank className="w-3.5 h-3.5 text-white" />
         </div>
-        {!collapsed && (
-          <Link href="/dashboard" className="text-lg font-extrabold text-indigo-600 dark:text-indigo-400 tracking-tight" onClick={onClose}>
+
+        {(!collapsed || onClose) && (
+          <Link
+            href="/dashboard"
+            onClick={onClose}
+            className="text-base font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent"
+          >
             FinTrack
           </Link>
         )}
-        {/* collapse btn — desktop only */}
+
+        {/* collapse toggle (desktop only) */}
         {!onClose && (
           <button
             onClick={() => setCollapsed(c => !c)}
-            className="hidden lg:flex ml-auto p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition"
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className={`p-1.5 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors ${collapsed ? 'mx-auto' : 'ml-auto'}`}
+            title={collapsed ? 'Expand' : 'Collapse'}
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
         )}
+
+        {/* close btn (mobile overlay) */}
         {onClose && (
-          <button onClick={onClose} className="ml-auto p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="ml-auto p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg">
+            <X className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Nav scroll area */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
-
-        {/* Search / Cmd+K */}
+      {/* ── Search ── */}
+      <div className={`px-3 pt-3 pb-1 ${collapsed && !onClose ? 'flex justify-center' : ''}`}>
         <button
           onClick={() => { setIsPaletteOpen(true); onClose?.(); }}
-          className={`w-full flex items-center gap-3 mb-3 px-3 py-2 rounded-lg text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 border border-gray-200 dark:border-gray-700 transition ${collapsed ? 'justify-center' : ''}`}
           title="Search (Ctrl+K)"
+          className={`
+            flex items-center gap-2 rounded-lg border transition-colors
+            bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700
+            text-gray-400 dark:text-gray-500
+            hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:border-indigo-200 dark:hover:border-indigo-500/30 hover:text-indigo-500
+            ${collapsed && !onClose ? 'w-10 h-9 justify-center px-0' : 'w-full px-3 py-2'}
+          `}
         >
-          <Search className="w-4 h-4 flex-shrink-0" />
-          {!collapsed && (
-            <span className="flex-1 text-left text-xs">Search...</span>
-          )}
-          {!collapsed && (
-            <kbd className="text-[10px] font-mono bg-white dark:bg-gray-700 rounded px-1 py-0.5 border border-gray-200 dark:border-gray-600 text-gray-400">⌘K</kbd>
+          <Search className="w-3.5 h-3.5 flex-shrink-0" />
+          {(!collapsed || onClose) && (
+            <>
+              <span className="flex-1 text-left text-xs">Search...</span>
+              <kbd className="hidden sm:inline text-[10px] font-mono bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 text-gray-400 dark:text-gray-500">⌘K</kbd>
+            </>
           )}
         </button>
+      </div>
 
-        {/* MAIN section */}
-        {!collapsed && (
-          <p className="px-3 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-600">Main</p>
-        )}
-        {NAV_MAIN.map(({ href, label, icon: Icon, badgeKey }) => {
-          const badge = badgeKey === 'budget' ? budgetAlertCount : 0;
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={onClose}
-              title={collapsed ? label : undefined}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all group relative ${
-                isActive(href)
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400'
-              } ${collapsed ? 'justify-center' : ''}`}
-            >
-              {isActive(href) && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-indigo-500 rounded-r-full" />
-              )}
-              <Icon className={`w-4 h-4 flex-shrink-0 ${isActive(href) ? 'text-indigo-500' : 'text-gray-400 group-hover:text-indigo-500'}`} />
-              {!collapsed && <span className="flex-1">{label}</span>}
-              {!collapsed && badge > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-orange-500 rounded-full px-1">
-                  {badge > 9 ? '9+' : badge}
-                </span>
-              )}
-              {collapsed && badge > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full" />
-              )}
-            </Link>
-          );
-        })}
+      {/* ── Nav scroll ── */}
+      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
 
-        {/* TOOLS section */}
-        <div className={collapsed ? 'pt-3' : 'pt-4'}>
-          {!collapsed && (
-            <p className="px-3 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-600">Tools</p>
-          )}
-          {collapsed && <div className="mx-3 border-t border-gray-100 dark:border-gray-800 mb-2" />}
-          {NAV_TOOLS.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={onClose}
-              title={collapsed ? label : undefined}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all group relative ${
-                isActive(href)
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400'
-              } ${collapsed ? 'justify-center' : ''}`}
-            >
-              {isActive(href) && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-indigo-500 rounded-r-full" />
-              )}
-              <Icon className={`w-4 h-4 flex-shrink-0 ${isActive(href) ? 'text-indigo-500' : 'text-gray-400 group-hover:text-indigo-500'}`} />
-              {!collapsed && <span className="flex-1">{label}</span>}
-            </Link>
-          ))}
-        </div>
+        {/* MAIN */}
+        <SectionLabel label="Main" collapsed={collapsed && !onClose} />
+        {NAV_MAIN.map(({ href, label, icon, badgeKey }) => (
+          <NavItem
+            key={href} href={href} label={label} icon={icon}
+            badge={badgeKey === 'budget' ? budgetAlerts : 0}
+            collapsed={collapsed && !onClose}
+            active={active(href)}
+            onClick={onClose}
+          />
+        ))}
+
+        {/* TOOLS */}
+        <SectionLabel label="Tools" collapsed={collapsed && !onClose} />
+        {NAV_TOOLS.map(({ href, label, icon }) => (
+          <NavItem
+            key={href} href={href} label={label} icon={icon}
+            collapsed={collapsed && !onClose}
+            active={active(href)}
+            onClick={onClose}
+          />
+        ))}
       </nav>
 
-      {/* Bottom action bar */}
-      <div className={`flex-shrink-0 border-t border-gray-100 dark:border-gray-800 p-2 ${collapsed ? 'flex flex-col gap-1 items-center' : 'space-y-0.5'}`}>
+      {/* ── Bottom actions ── */}
+      <div className={`flex-shrink-0 px-3 py-3 border-t border-gray-100 dark:border-gray-800 space-y-0.5`}>
 
         {/* Alerts */}
         <div className="relative" ref={alertsRef}>
-          <button
-            onClick={() => { setIsAlertsOpen(o => !o); setIsNotificationsOpen(false); }}
-            title="Alerts"
-            className={`relative flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition ${collapsed ? 'justify-center w-10 h-10 px-0' : ''}`}
-          >
-            <Bell className="w-4 h-4 flex-shrink-0" />
-            {!collapsed && <span className="flex-1 text-left">Alerts</span>}
-            {alertsUnreadCount > 0 && (
-              <span className={`flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-red-500 rounded-full px-1 ${collapsed ? 'absolute top-0 right-0 w-4 h-4 min-w-0 px-0' : ''}`}>
-                {alertsUnreadCount > 9 ? '9+' : alertsUnreadCount}
-              </span>
-            )}
-          </button>
+          <BottomBtn
+            icon={Bell} label="Alerts" badge={alertsUnread} badgeColor="bg-red-500"
+            collapsed={collapsed && !onClose}
+            onClick={() => { setIsAlertsOpen(o => !o); setIsNotifsOpen(false); }}
+          />
           {isAlertsOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-88 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50" style={{ width: '360px' }}>
-              <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-red-500" /> Financial Alerts
-                </h3>
-                <Link href="/alerts" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium" onClick={() => setIsAlertsOpen(false)}>View all</Link>
+            <Popup>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-500" /> Financial Alerts
+                </span>
+                <Link href="/alerts" onClick={() => setIsAlertsOpen(false)} className="text-xs text-indigo-500 hover:underline font-medium">View all</Link>
               </div>
-              <div className="max-h-72 overflow-y-auto">
+              <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
                 {alerts.length === 0 ? (
-                  <div className="p-8 text-center"><Bell className="w-10 h-10 text-gray-300 mx-auto mb-2" /><p className="text-gray-500 text-sm">No alerts</p></div>
-                ) : (
-                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {alerts.map(alert => (
-                      <div key={alert.id} className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition ${!alert.isRead ? 'bg-red-50 dark:bg-red-900/20' : ''}`}>
-                        <div className="flex items-start gap-3">
-                          <span className="text-xl">{alertIcon(alert.type)}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{alert.title}</p>
-                              <span className={`text-[10px] font-bold ${alertPriorityColor(alert.priority)}`}>{alert.priority.toUpperCase()}</span>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{alert.message}</p>
-                            <p className="text-[10px] text-gray-400 mt-0.5">{fmtTime(alert.createdAt)}</p>
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            {!alert.isRead && <button onClick={e => handleAlertMarkAsRead(alert.id, e)} className="p-1 text-green-600 hover:bg-green-50 rounded" title="Mark read"><Check className="w-3.5 h-3.5" /></button>}
-                            <button onClick={e => handleAlertDismiss(alert.id, e)} className="p-1 text-red-500 hover:bg-red-50 rounded" title="Dismiss"><X className="w-3.5 h-3.5" /></button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">
+                    <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" /> No alerts
                   </div>
-                )}
+                ) : alerts.map(a => (
+                  <div key={a.id} className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${!a.isRead ? 'bg-red-50/60 dark:bg-red-900/10' : ''}`}>
+                    <span className="text-base mt-0.5">{alertEmoji(a.type)}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{a.title}</p>
+                        <span className={`text-[10px] font-bold ${alertPriColor(a.priority)}`}>{a.priority.toUpperCase()}</span>
+                      </div>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2">{a.message}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{timeAgo(a.createdAt)}</p>
+                    </div>
+                    <div className="flex gap-1 shrink-0 mt-0.5">
+                      {!a.isRead && <button onClick={e => markAlertRead(a.id, e)} className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-colors" title="Mark read"><Check className="w-3 h-3" /></button>}
+                      <button onClick={e => dismissAlert(a.id, e)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors" title="Dismiss"><X className="w-3 h-3" /></button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            </Popup>
           )}
         </div>
 
         {/* Notifications */}
-        <div className="relative" ref={notificationsRef}>
-          <button
-            onClick={() => { setIsNotificationsOpen(o => !o); setIsAlertsOpen(false); }}
-            title="Notifications"
-            className={`relative flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition ${collapsed ? 'justify-center w-10 h-10 px-0' : ''}`}
-          >
-            <Mail className="w-4 h-4 flex-shrink-0" />
-            {!collapsed && <span className="flex-1 text-left">Notifications</span>}
-            {notificationsUnreadCount > 0 && (
-              <span className={`flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-blue-500 rounded-full px-1 ${collapsed ? 'absolute top-0 right-0 w-4 h-4 min-w-0 px-0' : ''}`}>
-                {notificationsUnreadCount > 9 ? '9+' : notificationsUnreadCount}
-              </span>
-            )}
-          </button>
-          {isNotificationsOpen && (
-            <div className="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50" style={{ width: '360px' }}>
-              <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h3>
-                <Link href="/notifications" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium" onClick={() => setIsNotificationsOpen(false)}>View all</Link>
+        <div className="relative" ref={notifsRef}>
+          <BottomBtn
+            icon={Mail} label="Notifications" badge={notifsUnread} badgeColor="bg-blue-500"
+            collapsed={collapsed && !onClose}
+            onClick={() => { setIsNotifsOpen(o => !o); setIsAlertsOpen(false); }}
+          />
+          {isNotifsOpen && (
+            <Popup>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</span>
+                <Link href="/notifications" onClick={() => setIsNotifsOpen(false)} className="text-xs text-indigo-500 hover:underline font-medium">View all</Link>
               </div>
-              <div className="max-h-72 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="p-8 text-center"><Mail className="w-10 h-10 text-gray-300 mx-auto mb-2" /><p className="text-gray-500 text-sm">No notifications</p></div>
-                ) : (
-                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {notifications.map(notif => (
-                      <div key={notif.id} className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition ${!notif.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
-                        <div className="flex items-start gap-3">
-                          <span className="text-xl">{notifIcon(notif.type)}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{notif.title}</p>
-                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notif.message}</p>
-                            <p className="text-[10px] text-gray-400 mt-0.5">{fmtTime(notif.createdAt)}</p>
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            {!notif.read && <button onClick={e => handleNotifMarkAsRead(notif.id, e)} className="p-1 text-green-600 hover:bg-green-50 rounded" title="Mark read"><Check className="w-3.5 h-3.5" /></button>}
-                            <button onClick={e => handleNotifDismiss(notif.id, e)} className="p-1 text-red-500 hover:bg-red-50 rounded" title="Dismiss"><X className="w-3.5 h-3.5" /></button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+              <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                {notifs.length === 0 ? (
+                  <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">
+                    <Mail className="w-8 h-8 mx-auto mb-2 opacity-30" /> No notifications
                   </div>
-                )}
+                ) : notifs.map(n => (
+                  <div key={n.id} className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${!n.read ? 'bg-blue-50/60 dark:bg-blue-900/10' : ''}`}>
+                    <span className="text-base mt-0.5">{notifEmoji(n.type)}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-gray-900 dark:text-white truncate mb-0.5">{n.title}</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2">{n.message}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{timeAgo(n.createdAt)}</p>
+                    </div>
+                    <div className="flex gap-1 shrink-0 mt-0.5">
+                      {!n.read && <button onClick={e => markNotifRead(n.id, e)} className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-colors" title="Mark read"><Check className="w-3 h-3" /></button>}
+                      <button onClick={e => dismissNotif(n.id, e)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors" title="Dismiss"><X className="w-3 h-3" /></button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            </Popup>
           )}
         </div>
 
         {/* Divider */}
-        <div className="mx-3 my-1 border-t border-gray-100 dark:border-gray-800" />
+        <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
 
-        {/* Theme toggle */}
-        <button
+        {/* Theme */}
+        <BottomBtn
+          icon={ThemeIcon}
+          label={`${theme.charAt(0).toUpperCase() + theme.slice(1)} mode`}
+          collapsed={collapsed && !onClose}
           onClick={cycleTheme}
-          title={`Theme: ${theme}`}
-          className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition ${collapsed ? 'justify-center w-10 h-10 px-0' : ''}`}
-        >
-          <ThemeIcon className="w-4 h-4 flex-shrink-0" />
-          {!collapsed && <span className="flex-1 text-left capitalize">{theme} mode</span>}
-        </button>
+          title={`Theme: ${theme} (click to cycle)`}
+        />
 
         {/* Logout */}
-        <button
-          onClick={() => { handleLogout(); onClose?.(); }}
-          className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition ${collapsed ? 'justify-center w-10 h-10 px-0' : ''}`}
-          title="Logout"
-        >
-          <LogOut className="w-4 h-4 flex-shrink-0" />
-          {!collapsed && <span>Logout</span>}
-        </button>
+        <BottomBtn
+          icon={LogOut} label="Logout"
+          collapsed={collapsed && !onClose}
+          onClick={() => { logout(); onClose?.(); }}
+          danger
+        />
       </div>
     </div>
   );
 
   return (
     <>
-      {/* ── Desktop sidebar ─────────────────────────────────────────────────── */}
-      <aside
-        className={`hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 z-40 transition-all duration-300 ${collapsed ? 'w-16' : 'w-60'}`}
-      >
-        <SidebarContent />
+      {/* ── Desktop sidebar ────────────────────────────────────────────────── */}
+      <aside className={`
+        hidden lg:flex flex-col fixed left-0 top-0 h-screen z-40
+        bg-white dark:bg-gray-900
+        border-r border-gray-100 dark:border-gray-800
+        shadow-[1px_0_0_0_rgba(0,0,0,0.04)]
+        transition-[width] duration-300 ease-in-out
+        ${collapsed ? 'w-16' : 'w-60'}
+      `}>
+        <Sidebar />
       </aside>
 
-      {/* ── Mobile: top bar ─────────────────────────────────────────────────── */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center px-4 gap-3">
-        <button onClick={() => setMobileOpen(true)} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+      {/* ── Mobile top bar ─────────────────────────────────────────────────── */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-14 flex items-center gap-3 px-4 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 shadow-sm">
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="p-2 -ml-1 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+        >
           <Menu className="w-5 h-5" />
         </button>
-        <Link href="/dashboard" className="text-lg font-extrabold text-indigo-600 dark:text-indigo-400">FinTrack</Link>
-        <div className="ml-auto flex items-center gap-2">
-          <button onClick={() => setIsPaletteOpen(true)} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+
+        <Link href="/dashboard" className="text-base font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
+          FinTrack
+        </Link>
+
+        <div className="ml-auto flex items-center gap-1">
+          <button onClick={() => setIsPaletteOpen(true)} className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
             <Search className="w-4 h-4" />
           </button>
-          <button onClick={cycleTheme} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+          <button onClick={cycleTheme} className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
             <ThemeIcon className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      {/* ── Mobile overlay ───────────────────────────────────────────────────── */}
+      {/* ── Mobile drawer overlay ───────────────────────────────────────────── */}
       {mobileOpen && (
         <>
-          <div className="lg:hidden fixed inset-0 bg-black/40 z-50" onClick={() => setMobileOpen(false)} />
-          <aside className="lg:hidden fixed left-0 top-0 h-screen w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 z-50 flex flex-col">
-            <SidebarContent onClose={() => setMobileOpen(false)} />
+          <div className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setMobileOpen(false)} />
+          <aside className="lg:hidden fixed left-0 top-0 h-screen w-72 z-50 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col shadow-2xl">
+            <Sidebar onClose={() => setMobileOpen(false)} />
           </aside>
         </>
       )}
 
-      {/* ── Command Palette ─────────────────────────────────────────────────── */}
+      {/* ── Command Palette ────────────────────────────────────────────────── */}
       <CommandPalette
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}
-        onLogout={handleLogout}
+        onLogout={logout}
         onCycleTheme={cycleTheme}
         currentTheme={theme}
       />

@@ -19,12 +19,13 @@ interface StatCardProps {
 
 const snapZero = (n: number): number => (Math.abs(n) < 0.05 ? 0 : n);
 
-const colorMap: Record<string, { bg: string; icon: string }> = {
-  primary: { bg: 'from-primary-500 to-primary-600', icon: 'text-primary-600' },
-  success: { bg: 'from-success-500 to-success-600', icon: 'text-success-600' },
-  error: { bg: 'from-error-500 to-error-600', icon: 'text-error-600' },
-  warning: { bg: 'from-warning-500 to-warning-600', icon: 'text-warning-600' },
-  accent: { bg: 'from-accent-500 to-accent-600', icon: 'text-accent-600' },
+// Use inline styles for gradients — dynamic Tailwind class strings get purged in production
+const colorGradientMap: Record<string, string> = {
+  primary: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+  success: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+  error:   'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+  warning: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+  accent:  'linear-gradient(135deg, #06B6D4 0%, #0891B2 100%)',
 };
 
 const sparkColorMap: Record<string, string> = {
@@ -63,14 +64,14 @@ export function StatCard({
 
   const badgeVariant = isPositive ? 'success' : isNegative ? 'error' : 'neutral';
   const badgeStyles: Record<string, string> = {
-    success: 'bg-success-50 text-success-700 dark:bg-success-900 dark:text-success-200',
-    error: 'bg-error-50 text-error-700 dark:bg-error-900 dark:text-error-200',
+    success: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+    error:   'bg-red-50 text-red-700 dark:bg-red-900/40 dark:text-red-300',
     neutral: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400',
   };
 
   const TrendIcon = isPositive ? TrendingUp : isNegative ? TrendingDown : Minus;
 
-  const colorConfig = colorMap[color];
+  const iconGradient = colorGradientMap[color];
   const sparkColor = sparkColorMap[color];
 
   const hasSparkline = Array.isArray(sparklineData) && sparklineData.length >= 2;
@@ -93,13 +94,8 @@ export function StatCard({
     >
       <div className="flex items-start justify-between mb-4">
         <div
-          className={`
-            w-12 h-12
-            bg-gradient-to-br ${colorConfig.bg}
-            rounded-md
-            flex items-center justify-center
-            shadow-sm
-          `}
+          className="w-12 h-12 rounded-md flex items-center justify-center shadow-sm flex-shrink-0"
+          style={{ background: iconGradient }}
         >
           <Icon className="w-6 h-6 text-white" />
         </div>

@@ -63,7 +63,7 @@ function NavItem({
       className={`
         relative flex items-center gap-3 rounded-lg text-[13px] font-medium
         transition-all duration-150 select-none
-        ${collapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-2'}
+        ${collapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-2.5'}
         ${active
           ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
           : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'}
@@ -71,7 +71,7 @@ function NavItem({
     >
       {/* active bar */}
       {active && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-indigo-500" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-indigo-500 shadow-[0_0_6px_rgba(99,102,241,0.6)]" />
       )}
 
       <Icon className={`flex-shrink-0 ${collapsed ? 'w-[18px] h-[18px]' : 'w-4 h-4'} ${active ? 'text-indigo-500' : 'text-gray-400 dark:text-gray-500'}`} />
@@ -94,9 +94,9 @@ function NavItem({
 // ── Section heading ───────────────────────────────────────────────────────────
 
 function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
-  if (collapsed) return <div className="my-1 mx-auto w-6 border-t border-gray-200 dark:border-gray-700" />;
+  if (collapsed) return <div className="my-2 mx-auto w-5 border-t border-gray-200 dark:border-gray-700/60" />;
   return (
-    <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-600 select-none">
+    <p className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 select-none">
       {label}
     </p>
   );
@@ -118,26 +118,31 @@ function Popup({ children, width = 360 }: { children: React.ReactNode; width?: n
 // ── Bottom action button ──────────────────────────────────────────────────────
 
 function BottomBtn({
-  icon: Icon, label, badge, badgeColor = 'bg-red-500', collapsed, onClick, danger, title,
+  icon: Icon, label, badge, badgeColor = 'bg-red-500', collapsed, onClick, danger, title, sublabel,
 }: {
   icon: React.ElementType; label: string; badge?: number; badgeColor?: string;
-  collapsed: boolean; onClick: () => void; danger?: boolean; title?: string;
+  collapsed: boolean; onClick: () => void; danger?: boolean; title?: string; sublabel?: string;
 }) {
   return (
     <button
       onClick={onClick}
-      title={collapsed ? (title ?? label) : undefined}
+      title={collapsed ? (title ?? label) : title}
       className={`
         relative flex items-center gap-3 rounded-lg text-[13px] font-medium w-full
         transition-all duration-150
-        ${collapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-2'}
+        ${collapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-2.5'}
         ${danger
           ? 'text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
           : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'}
       `}
     >
       <Icon className={`flex-shrink-0 ${collapsed ? 'w-[18px] h-[18px]' : 'w-4 h-4'}`} />
-      {!collapsed && <span className="flex-1 text-left">{label}</span>}
+      {!collapsed && (
+        <span className="flex-1 text-left leading-none">
+          {label}
+          {sublabel && <span className="block text-[10px] text-gray-400 dark:text-gray-600 font-normal mt-0.5 capitalize">{sublabel}</span>}
+        </span>
+      )}
       {!collapsed && !!badge && badge > 0 && (
         <span className={`flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white ${badgeColor} rounded-full px-1`}>
           {badge > 9 ? '9+' : badge}
@@ -425,7 +430,7 @@ export default function Navigation() {
       </div>
 
       {/* ── Nav scroll ── */}
-      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
 
         {/* MAIN */}
         <SectionLabel label="Main" collapsed={collapsed && !onClose} />
@@ -452,7 +457,7 @@ export default function Navigation() {
       </nav>
 
       {/* ── Bottom actions ── */}
-      <div className={`flex-shrink-0 px-3 py-3 border-t border-gray-100 dark:border-gray-800 space-y-0.5`}>
+      <div className="flex-shrink-0 px-3 pt-2 pb-3 border-t border-gray-100 dark:border-gray-800 space-y-0.5">
 
         {/* Alerts */}
         <div className="relative" ref={alertsRef}>
@@ -533,19 +538,18 @@ export default function Navigation() {
           )}
         </div>
 
-        {/* Divider */}
-        <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
-
         {/* Theme */}
         <BottomBtn
           icon={ThemeIcon}
-          label={`${theme.charAt(0).toUpperCase() + theme.slice(1)} mode`}
+          label="Theme"
+          sublabel={theme}
           collapsed={collapsed && !onClose}
           onClick={cycleTheme}
-          title={`Theme: ${theme} (click to cycle)`}
+          title={`Theme: ${theme} — click to cycle`}
         />
 
         {/* Logout */}
+        <div className="pt-1 border-t border-gray-100 dark:border-gray-800" />
         <BottomBtn
           icon={LogOut} label="Logout"
           collapsed={collapsed && !onClose}

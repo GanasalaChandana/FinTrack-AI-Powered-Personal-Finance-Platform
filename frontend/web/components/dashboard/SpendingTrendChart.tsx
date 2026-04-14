@@ -44,11 +44,11 @@ export function SpendingTrendChart({ data }: SpendingTrendChartProps) {
   const isIncreasing = trend !== null && trend > 0;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-6">
+    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border-2 border-gray-200 dark:border-gray-700 p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">Income vs Expenses</h3>
-          <p className="text-sm text-gray-600">Last 6 months overview</p>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Income vs Expenses</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Last 6 months overview</p>
         </div>
 
         {/* ✅ Badge: only shows % when previous data exists */}
@@ -66,7 +66,7 @@ export function SpendingTrendChart({ data }: SpendingTrendChartProps) {
             </span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-400">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
             <Minus className="w-4 h-4" />
             <span className="text-sm font-medium">No previous data</span>
           </div>
@@ -78,17 +78,17 @@ export function SpendingTrendChart({ data }: SpendingTrendChartProps) {
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis
             dataKey="month"
-            stroke="#6b7280"
-            style={{ fontSize: '12px' }}
+            stroke="#9ca3af"
+            style={{ fontSize: '12px', fill: '#9ca3af' }}
           />
           <YAxis
-            stroke="#6b7280"
-            style={{ fontSize: '12px' }}
+            stroke="#9ca3af"
+            style={{ fontSize: '12px', fill: '#9ca3af' }}
             tickFormatter={(value) => `$${value / 1000}k`}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'white',
+              backgroundColor: 'var(--tooltip-bg, white)',
               border: '2px solid #e5e7eb',
               borderRadius: '8px',
               padding: '12px',

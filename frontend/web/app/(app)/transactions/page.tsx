@@ -1,7 +1,7 @@
 ﻿// frontend/web/app/(app)/transactions/page.tsx
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import {
   Search,
@@ -217,6 +217,7 @@ const QUICK_DATE_FILTERS = [
 
 export default function TransactionManager() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isMounted = useIsMounted();
 
   const [isLoading, setIsLoading] = React.useState(true);
@@ -230,14 +231,31 @@ export default function TransactionManager() {
   const [editTagsStr, setEditTagsStr] = React.useState("");
 
   const [showAdd, setShowAdd] = React.useState(false);
-  const [showFilters, setShowFilters] = React.useState(false); // ✅ Collapsed by default
-  const [activeFilters, setActiveFilters] = React.useState<TxFilters>({ sort: "date-desc" });
+  // Initialize filters from URL params (supports ?category=Food&type=expense&search=starbucks)
+  const [activeFilters, setActiveFilters] = React.useState<TxFilters>(() => {
+    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    return {
+      sort: "date-desc",
+      ...(params?.get("search") ? { search: params.get("search")! } : {}),
+      ...(params?.get("type") ? { type: params.get("type") as TxFilters["type"] } : {}),
+      ...(params?.get("category") ? { category: params.get("category")! } : {}),
+      ...(params?.get("dateFrom") ? { dateFrom: params.get("dateFrom")! } : {}),
+      ...(params?.get("dateTo") ? { dateTo: params.get("dateTo")! } : {}),
+    };
+  });
+  const [showFilters, setShowFilters] = React.useState(() => {
+    // Auto-expand filters panel if URL has filter params
+    if (typeof window === "undefined") return false;
+    const p = new URLSearchParams(window.location.search);
+    return !!(p.get("category") || p.get("type") || p.get("dateFrom") || p.get("dateTo"));
+  });
 
   // ✅ Pagination state
   const [currentPage, setCurrentPage] = React.useState(1);
 
   const [prefillTx, setPrefillTx] = React.useState<any>(null);
   const { toast } = useToast();
+  const [highlightId, setHighlightId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -248,6 +266,40 @@ export default function TransactionManager() {
     }
     void loadTransactions();
   }, [router]);
+
+  // Handle ?highlight=<id> from command palette — scroll to and briefly highlight that row
+  React.useEffect(() => {
+    const id = searchParams?.get("highlight");
+    if (!id) return;
+    setHighlightId(id);
+    // Scroll to the highlighted row
+    const el = document.getElementById(`txn-${id}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Auto-clear after 3 seconds
+    const timer = setTimeout(() => {
+      setHighlightId(null);
+      // Remove from URL without reload
+      const params = new URLSearchParams(window.location.search);
+      params.delete("highlight");
+      const qs = params.toString();
+      window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [searchParams]);
+
+  // Sync active filters → URL params (without triggering a page reload)
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams();
+    if (activeFilters.search) params.set("search", activeFilters.search);
+    if (activeFilters.type && activeFilters.type !== "all") params.set("type", activeFilters.type);
+    if (activeFilters.category) params.set("category", activeFilters.category);
+    if (activeFilters.dateFrom) params.set("dateFrom", activeFilters.dateFrom);
+    if (activeFilters.dateTo) params.set("dateTo", activeFilters.dateTo);
+    const qs = params.toString();
+    const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    window.history.replaceState(null, "", newUrl);
+  }, [activeFilters]);
 
   const normalizeTransaction = (t: ApiTransaction): Transaction => ({
     id: t.id!,
@@ -933,7 +985,8 @@ export default function TransactionManager() {
                   return (
                     <tr
                       key={t.id}
-                      className={`transition-colors ${selectedTransactions.includes(t.id!) ? "bg-blue-50 dark:bg-blue-900/20" : "hover:bg-gray-50 dark:hover:bg-gray-700/50"}`}
+                      id={`txn-${t.id}`}
+                      className={`transition-colors ${highlightId === t.id ? "bg-yellow-50 dark:bg-yellow-900/20 ring-2 ring-yellow-400 ring-inset" : selectedTransactions.includes(t.id!) ? "bg-blue-50 dark:bg-blue-900/20" : "hover:bg-gray-50 dark:hover:bg-gray-700/50"}`}
                     >
                       <td className="px-6 py-4">
                         <input

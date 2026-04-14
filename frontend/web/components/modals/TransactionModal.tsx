@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, DollarSign, Calendar, Tag, FileText, TrendingUp, TrendingDown, Sparkles, Loader2, Clock, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import { getExpenseCategories, getIncomeCategories } from "@/lib/utils/categories";
 
 interface Transaction {
   id?: number;
@@ -25,13 +26,8 @@ interface TransactionModalProps {
   mode?: "add" | "edit";
 }
 
-const EXPENSE_CATEGORIES = [
-  "Food & Dining", "Transportation", "Shopping", "Entertainment",
-  "Bills & Utilities", "Healthcare", "Housing", "Health & Fitness",
-  "Insurance", "Personal Care", "Education", "Travel", "Savings", "Other",
-];
-
-const INCOME_CATEGORIES = ["Salary", "Freelance", "Investment", "Business", "Gift", "Other"];
+// Categories are loaded dynamically (preset + custom from localStorage)
+// See lib/utils/categories.ts
 
 // Local keyword lookup — runs first before hitting the ML API
 const MERCHANT_KEYWORDS: { keywords: string[]; category: string }[] = [
@@ -75,6 +71,14 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
   const [predicting, setPredicting] = useState(false);
   const [aiSuggested, setAiSuggested] = useState(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Dynamic categories (preset + custom) — refreshed when modal opens
+  const [expenseCategories, setExpenseCategories] = useState<string[]>(getExpenseCategories());
+  const [incomeCategories] = useState<string[]>(getIncomeCategories());
+
+  useEffect(() => {
+    // Re-read custom categories whenever the modal opens
+    if (isOpen) setExpenseCategories(getExpenseCategories());
+  }, [isOpen]);
 
   useEffect(() => {
     if (transaction && mode === "edit") {
@@ -121,7 +125,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
         );
         if (result?.category && result.category !== "Uncategorized" && result.category !== "Other") {
           const normalized = result.category.toLowerCase();
-          const matched = EXPENSE_CATEGORIES.find((c) => c.toLowerCase() === normalized);
+          const matched = expenseCategories.find((c) => c.toLowerCase() === normalized);
           const finalCategory = matched || result.category;
           setFormData((prev) => {
             if (prev.category && !aiSuggested) return prev;
@@ -137,7 +141,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.merchant, formData.description, formData.type, mode]);
 
-  const categories = formData.type === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  const categories = formData.type === "expense" ? expenseCategories : incomeCategories;
 
   const validate = () => {
     const newErrors: Record<string, string> = {};

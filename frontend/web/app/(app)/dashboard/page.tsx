@@ -29,6 +29,7 @@ import { BudgetAlertsCard } from "@/components/dashboard/BudgetAlertsCard";
 import { TransactionModal } from "@/components/modals/TransactionModal";
 import { CSVImportModal, type CSVRow } from "@/components/CSVImportModal";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
+import { OnboardingWizard, shouldShowOnboarding } from "@/components/OnboardingWizard";
 import {
   getToken,
   isAuthenticated as checkAuth,
@@ -265,6 +266,7 @@ export default function DashboardPage() {
   const [showTransactionModal, setShowTransactionModal]   = useState(false);
   const [editingTransaction, setEditingTransaction]       = useState<any>(null);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [showOnboarding, setShowOnboarding]               = useState(false);
 
   // ── Auth ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -279,6 +281,8 @@ export default function DashboardPage() {
     } catch {}
     setIsAuthenticated(true);
     setIsLoading(false);
+    // Show onboarding wizard for first-time users
+    if (shouldShowOnboarding()) setShowOnboarding(true);
   }, [router]);
 
   // ── Keyboard shortcuts ───────────────────────────────────────────────────
@@ -409,6 +413,7 @@ export default function DashboardPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
+      {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
       <KeyboardShortcuts isOpen={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
       <TransactionModal
         isOpen={showTransactionModal}

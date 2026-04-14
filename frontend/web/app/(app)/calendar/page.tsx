@@ -1,0 +1,381 @@
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ChevronLeft, ChevronRight, Calendar, TrendingUp, TrendingDown,
+  DollarSign, Loader2, X, Clock,
+} from "lucide-react";
+import { transactionsAPI, type Transaction } from "@/lib/api";
+import { detectRecurring } from "@/lib/utils/recurringDetection";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const fmt = (v: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
+
+function daysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function startDayOfMonth(year: number, month: number) {
+  return new Date(year, month, 1).getDay();
+}
+
+function toDateStr(year: number, month: number, day: number) {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+interface DayData {
+  income: number;
+  expenses: number;
+  transactions: Transaction[];
+  upcomingBills: Array<{ merchant: string; amount: number; isSubscription: boolean }>;
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function CalendarPage() {
+  const router = useRouter();
+  const today = new Date();
+
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
+  useEffect(() => {
+    transactionsAPI.getAll()
+      .then((data: Transaction[]) => setTransactions(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const goBack = () => {
+    if (currentMonth === 0) { setCurrentYear(y => y - 1); setCurrentMonth(11); }
+    else setCurrentMonth(m => m - 1);
+    setSelectedDay(null);
+  };
+  const goForward = () => {
+    if (currentMonth === 11) { setCurrentYear(y => y + 1); setCurrentMonth(0); }
+    else setCurrentMonth(m => m + 1);
+    setSelectedDay(null);
+  };
+  const goToday = () => {
+    setCurrentYear(today.getFullYear());
+    setCurrentMonth(today.getMonth());
+    setSelectedDay(today.getDate());
+  };
+
+  // Build recurring/upcoming bills for this month
+  const recurring = useMemo(() => detectRecurring(transactions), [transactions]);
+
+  // Build day-level data map
+  const dayMap = useMemo<Map<string, DayData>>(() => {
+    const map = new Map<string, DayData>();
+
+    const ensure = (key: string) => {
+      if (!map.has(key)) map.set(key, { income: 0, expenses: 0, transactions: [], upcomingBills: [] });
+      return map.get(key)!;
+    };
+
+    // Place actual transactions
+    transactions.forEach(t => {
+      const raw = t.date?.split("T")[0] ?? "";
+      if (!raw) return;
+      const d = ensure(raw);
+      if (t.type === "income" || t.type === "INCOME") d.income += Math.abs(t.amount);
+      else d.expenses += Math.abs(t.amount);
+      d.transactions.push(t);
+    });
+
+    // Place upcoming bills (project nextExpected into this month's calendar)
+    recurring.items.forEach(item => {
+      if (!item.nextExpected) return;
+      const next = item.nextExpected.split("T")[0];
+      const [y, m] = next.split("-").map(Number);
+      if (y === currentYear && m - 1 === currentMonth) {
+        const d = ensure(next);
+        d.upcomingBills.push({
+          merchant: item.merchant,
+          amount: item.amount,
+          isSubscription: item.isSubscription,
+        });
+      }
+    });
+
+    return map;
+  }, [transactions, recurring, currentYear, currentMonth]);
+
+  // Calendar grid
+  const totalDays = daysInMonth(currentYear, currentMonth);
+  const startDay = startDayOfMonth(currentYear, currentMonth);
+  const cells: (number | null)[] = [
+    ...Array(startDay).fill(null),
+    ...Array.from({ length: totalDays }, (_, i) => i + 1),
+  ];
+  // Pad to complete last row
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  // Monthly summary
+  const monthlySummary = useMemo(() => {
+    let income = 0; let expenses = 0;
+    dayMap.forEach(d => { income += d.income; expenses += d.expenses; });
+    return { income, expenses, net: income - expenses };
+  }, [dayMap]);
+
+  // Selected day panel
+  const selectedDateStr = selectedDay ? toDateStr(currentYear, currentMonth, selectedDay) : null;
+  const selectedData = selectedDateStr ? dayMap.get(selectedDateStr) : null;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3" />
+          <p className="text-gray-500 dark:text-gray-400 text-sm">Loading calendar…</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 md:p-6">
+      <div className="max-w-5xl mx-auto space-y-5">
+
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Calendar className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              Financial Calendar
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Transactions by day with upcoming bills</p>
+          </div>
+          <button
+            onClick={goToday}
+            className="self-start sm:self-auto px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+          >
+            Today
+          </button>
+        </div>
+
+        {/* Monthly summary chips */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Income", value: monthlySummary.income, color: "emerald", icon: <TrendingUp className="w-4 h-4" /> },
+            { label: "Expenses", value: monthlySummary.expenses, color: "red", icon: <TrendingDown className="w-4 h-4" /> },
+            { label: "Net", value: monthlySummary.net, color: monthlySummary.net >= 0 ? "indigo" : "orange", icon: <DollarSign className="w-4 h-4" /> },
+          ].map(({ label, value, color, icon }) => (
+            <div key={label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
+              <span className={`w-9 h-9 rounded-lg flex items-center justify-center bg-${color}-100 dark:bg-${color}-900/30 text-${color}-600 dark:text-${color}-400 shrink-0`}>
+                {icon}
+              </span>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+                <p className={`text-base font-bold text-${color}-600 dark:text-${color}-400`}>{fmt(Math.abs(value))}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar card */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+          {/* Month navigation */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+            <button
+              onClick={goBack}
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              {MONTH_NAMES[currentMonth]} {currentYear}
+            </h2>
+            <button
+              onClick={goForward}
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Day-of-week headers */}
+          <div className="grid grid-cols-7 border-b border-gray-100 dark:border-gray-800">
+            {DAY_LABELS.map(d => (
+              <div key={d} className="py-2 text-center text-xs font-semibold text-gray-400 dark:text-gray-500">
+                {d}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7">
+            {cells.map((day, idx) => {
+              if (day === null) {
+                return <div key={`empty-${idx}`} className="border-b border-r border-gray-100 dark:border-gray-800 h-24 bg-gray-50/50 dark:bg-gray-900/20" />;
+              }
+
+              const dateStr = toDateStr(currentYear, currentMonth, day);
+              const data = dayMap.get(dateStr);
+              const isToday = today.getFullYear() === currentYear && today.getMonth() === currentMonth && today.getDate() === day;
+              const isSelected = day === selectedDay;
+              const hasIncome = (data?.income ?? 0) > 0;
+              const hasExpenses = (data?.expenses ?? 0) > 0;
+              const hasBills = (data?.upcomingBills?.length ?? 0) > 0;
+              const isPast = new Date(currentYear, currentMonth, day) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+              const isFuture = !isPast && !isToday;
+
+              return (
+                <button
+                  key={day}
+                  onClick={() => setSelectedDay(day === selectedDay ? null : day)}
+                  className={`relative h-24 p-1.5 text-left border-b border-r border-gray-100 dark:border-gray-800 transition-colors focus:outline-none ${
+                    isSelected
+                      ? "bg-indigo-50 dark:bg-indigo-900/20"
+                      : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  } ${isFuture && !hasBills ? "opacity-60" : ""}`}
+                >
+                  {/* Day number */}
+                  <span className={`inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full ${
+                    isToday
+                      ? "bg-indigo-600 text-white"
+                      : isSelected
+                        ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300"
+                        : "text-gray-700 dark:text-gray-300"
+                  }`}>
+                    {day}
+                  </span>
+
+                  {/* Amounts */}
+                  <div className="mt-1 space-y-0.5">
+                    {hasIncome && (
+                      <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate leading-none">
+                        +{fmt(data!.income)}
+                      </div>
+                    )}
+                    {hasExpenses && (
+                      <div className="text-[10px] font-semibold text-red-600 dark:text-red-400 truncate leading-none">
+                        -{fmt(data!.expenses)}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Dot indicators */}
+                  <div className="absolute bottom-1.5 left-1.5 flex gap-0.5">
+                    {hasIncome && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                    {hasExpenses && <span className="w-1.5 h-1.5 rounded-full bg-red-500" />}
+                    {hasBills && <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-5 text-xs text-gray-500 dark:text-gray-400">
+          {[
+            { color: "bg-emerald-500", label: "Income" },
+            { color: "bg-red-500", label: "Expenses" },
+            { color: "bg-orange-400", label: "Upcoming bill" },
+          ].map(({ color, label }) => (
+            <span key={label} className="flex items-center gap-1.5">
+              <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
+              {label}
+            </span>
+          ))}
+        </div>
+
+        {/* Selected day panel */}
+        {selectedDay && (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                  {MONTH_NAMES[currentMonth]} {selectedDay}, {currentYear}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {selectedData?.transactions.length ?? 0} transaction(s) · {selectedData?.upcomingBills.length ?? 0} upcoming bill(s)
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedDay(null)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {(!selectedData || (selectedData.transactions.length === 0 && selectedData.upcomingBills.length === 0)) ? (
+              <div className="py-10 text-center">
+                <Calendar className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-400 dark:text-gray-500">No activity on this day</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                {/* Actual transactions */}
+                {selectedData?.transactions.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)).map((t, i) => {
+                  const isIncome = t.type === "income" || t.type === "INCOME";
+                  return (
+                    <div key={`txn-${t.id ?? i}`} className="flex items-center gap-3 px-5 py-3">
+                      <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 ${
+                        isIncome
+                          ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                          : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                      }`}>
+                        {(t.merchant || t.description || "?")[0].toUpperCase()}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                          {t.merchant || t.description || "Transaction"}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">{t.category || "Uncategorized"}</p>
+                      </div>
+                      <span className={`text-sm font-bold shrink-0 ${isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                        {isIncome ? "+" : "-"}{fmt(Math.abs(t.amount))}
+                      </span>
+                    </div>
+                  );
+                })}
+
+                {/* Upcoming bills */}
+                {selectedData?.upcomingBills.map((bill, i) => (
+                  <div key={`bill-${i}`} className="flex items-center gap-3 px-5 py-3 bg-orange-50/50 dark:bg-orange-900/10">
+                    <span className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 shrink-0">
+                      <Clock className="w-4 h-4" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                          {bill.merchant}
+                        </p>
+                        {bill.isSubscription && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full">
+                            Sub
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-orange-500 dark:text-orange-400">Upcoming bill</p>
+                    </div>
+                    <span className="text-sm font-bold text-orange-600 dark:text-orange-400 shrink-0">
+                      -{fmt(bill.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}

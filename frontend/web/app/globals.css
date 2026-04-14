@@ -5,6 +5,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Sidebar layout: --sidebar-w is set by Navigation.tsx via JS ── */
+/* On mobile/tablet (<1024px) the sidebar is hidden; no left padding. */
+:root { --sidebar-w: 15rem; }
+@media (max-width: 1023px) {
+  main { padding-left: 0 !important; }
+}
+
 /* ========== CSS VARIABLES - LIGHT MODE ==========  */
 :root {
   /* Colors - Primary */

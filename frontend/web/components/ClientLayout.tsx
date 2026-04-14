@@ -74,14 +74,20 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       console.error('Application error:', error, info);
     }}>
       <>
-        {/* Top Navigation */}
+        {/* Left Sidebar Navigation */}
         {!isAuthPage && isAuthenticated && <Navigation />}
 
         {/* Budget Alerts */}
         {!isAuthPage && isAuthenticated && <BudgetAlerts />}
 
-        {/* Page Content */}
-        <main suppressHydrationWarning>{children}</main>
+        {/* Page Content — offset right of sidebar on desktop, top on mobile */}
+        <main
+          suppressHydrationWarning
+          className={!isAuthPage && isAuthenticated ? 'pt-14 lg:pt-0 transition-[padding-left] duration-300' : ''}
+          style={!isAuthPage && isAuthenticated ? { paddingLeft: 'var(--sidebar-w, 15rem)' } as React.CSSProperties : undefined}
+        >
+          {children}
+        </main>
 
         {/* Bottom Mobile Navigation */}
         {!isAuthPage && isAuthenticated && <MobileBottomNav />}

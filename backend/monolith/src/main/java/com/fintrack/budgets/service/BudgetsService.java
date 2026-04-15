@@ -47,12 +47,14 @@ public class BudgetsService {
 
             if (!Double.valueOf(spentValue).equals(budget.getSpent())) {
                 budget.setSpent(spentValue);
-                budget = budgetRepository.save(budget);
+                Budget saved = budgetRepository.save(budget);
+                if (saved != null) budget = saved; // guard against unstubbed mock returning null
                 log.info("✅ Synced budget '{}' for user {}: spent = {}",
                         budget.getCategory(), budget.getUserId(), spentValue);
             }
         } catch (Exception e) {
-            log.error("⚠️ Failed to sync spent for budget {}: {}", budget.getId(), e.getMessage());
+            Long budgetId = budget != null ? budget.getId() : null;
+            log.error("⚠️ Failed to sync spent for budget {}: {}", budgetId, e.getMessage());
         }
         return budget;
     }

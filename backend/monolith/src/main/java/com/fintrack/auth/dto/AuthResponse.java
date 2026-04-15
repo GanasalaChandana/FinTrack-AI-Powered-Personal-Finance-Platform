@@ -14,6 +14,13 @@ import java.util.UUID;
 public class AuthResponse {
 
     private String token;
+
+    /** Opaque refresh token — use POST /api/auth/refresh to rotate. */
+    private String refreshToken;
+
+    /** ISO-8601 expiry of the refresh token (30 days from issue). */
+    private String refreshTokenExpiry;
+
     private UserDto user;
 
     @Data

@@ -573,6 +573,26 @@ export default function DashboardPage() {
               </Grid>
             )}
 
+            {/* ── AI Insights Row — PROMOTED above charts so it's seen immediately ── */}
+            {!loadingData && hasTransactions && (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold tracking-wide shadow-sm">
+                    <Brain className="w-3.5 h-3.5" />
+                    AI INSIGHTS
+                  </div>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Real-time analysis of your spending patterns
+                  </span>
+                </div>
+                <Grid columns={3} gap="lg">
+                  <AnomalyInsightsCard transactions={allTransactions} />
+                  <BudgetForecastCard transactions={allTransactions} budgets={allBudgets} />
+                  <MonthEndForecastCard transactions={allTransactions} />
+                </Grid>
+              </>
+            )}
+
             {/* ── Charts row 1 ── */}
             {loadingData ? (
               <Grid columns={2} gap="lg">
@@ -629,14 +649,9 @@ export default function DashboardPage() {
               </Grid>
             )}
 
-            {/* ── AI Insights Row ── */}
+            {/* ── Secondary AI widgets (below charts) ── */}
             {!loadingData && hasTransactions && (
               <>
-                <Grid columns={3} gap="lg">
-                  <AnomalyInsightsCard transactions={allTransactions} />
-                  <BudgetForecastCard transactions={allTransactions} budgets={allBudgets} />
-                  <MonthEndForecastCard transactions={allTransactions} />
-                </Grid>
                 {/* Bill Reminders — full-width so all upcoming bills are visible */}
                 <BillRemindersCard transactions={allTransactions} />
                 <Grid columns={2} gap="lg">

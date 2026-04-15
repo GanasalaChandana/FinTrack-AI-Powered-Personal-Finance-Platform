@@ -9,7 +9,7 @@ import {
   Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor,
   BarChart3, Wallet, Search, Calendar, CreditCard, TrendingUp,
   LayoutDashboard, ArrowLeftRight, Target, ChevronLeft, ChevronRight,
-  PiggyBank, DollarSign,
+  PiggyBank, DollarSign, Settings,
 } from "lucide-react";
 import { getToken, removeToken } from "@/lib/api";
 import { useThemePreference } from "@/lib/hooks/useThemePreference";
@@ -546,6 +546,16 @@ export default function Navigation() {
           collapsed={collapsed && !onClose}
           onClick={cycleTheme}
           title={`Theme: ${theme} — click to cycle`}
+        />
+
+        {/* Settings */}
+        <NavItem
+          href="/settings"
+          label="Settings"
+          icon={Settings}
+          collapsed={collapsed && !onClose}
+          active={pathname === '/settings' || (pathname?.startsWith('/settings') ?? false)}
+          onClick={onClose}
         />
 
         {/* Logout */}

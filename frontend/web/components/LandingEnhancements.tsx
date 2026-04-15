@@ -87,9 +87,9 @@ const InteractiveDashboard: React.FC = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'Balance', value: '$12,450', change: '+12.5%', icon: DollarSign, color: 'emerald' },
-              { label: 'Income', value: '$4,500', change: '+8.3%', icon: TrendingUp, color: 'blue' },
-              { label: 'Expenses', value: '$2,390', change: '-3.2%', icon: TrendingDown, color: 'red' },
+              { label: 'Balance', value: '$12,450', change: '+12.5%', icon: DollarSign, iconCls: 'text-emerald-400', changeCls: 'text-emerald-400' },
+              { label: 'Income',  value: '$4,500',  change: '+8.3%',  icon: TrendingUp,  iconCls: 'text-blue-400',   changeCls: 'text-blue-400' },
+              { label: 'Expenses',value: '$2,390',  change: '-3.2%',  icon: TrendingDown,iconCls: 'text-red-400',    changeCls: 'text-red-400' },
             ].map((item, idx) => (
               <div
                 key={idx}
@@ -101,10 +101,10 @@ const InteractiveDashboard: React.FC = () => {
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-slate-400 text-sm">{item.label}</span>
-                  <item.icon className={`w-5 h-5 text-${item.color}-400`} />
+                  <item.icon className={`w-5 h-5 ${item.iconCls}`} />
                 </div>
                 <div className="text-2xl font-bold text-white">{item.value}</div>
-                <div className={`text-sm text-${item.color}-400 mt-1`}>{item.change}</div>
+                <div className={`text-sm mt-1 ${item.changeCls}`}>{item.change}</div>
               </div>
             ))}
           </div>
@@ -307,16 +307,16 @@ const ExitIntentPopup: React.FC = () => {
 const TrustBadges: React.FC = () => {
   const badges = [
     { icon: Shield, label: 'SSL Secured', color: 'emerald' },
-    { icon: Star, label: '4.9/5 Rating', color: 'yellow' },
-    { icon: Users, label: '2,500+ Users', color: 'blue' },
-    { icon: Zap, label: 'Fast Setup', color: 'purple' },
+    { icon: Star,  label: '4.9/5 Rating', cls: 'text-yellow-500' },
+    { icon: Users, label: '2,500+ Users', cls: 'text-blue-500' },
+    { icon: Zap,   label: 'Fast Setup',   cls: 'text-purple-500' },
   ];
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {badges.map((badge, idx) => (
         <div key={idx} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 text-center hover:shadow-md transition-shadow">
-          <badge.icon className={`w-8 h-8 text-${badge.color}-500 mx-auto mb-2`} />
+          <badge.icon className={`w-8 h-8 mx-auto mb-2 ${badge.cls}`} />
           <div className="text-sm font-medium text-slate-700">{badge.label}</div>
         </div>
       ))}

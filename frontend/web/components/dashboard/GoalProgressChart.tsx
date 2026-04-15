@@ -2,6 +2,22 @@
 import React from 'react';
 import { Target, TrendingUp } from 'lucide-react';
 
+// Map goal.color strings to safe inline CSS gradients (avoids Tailwind purge in prod)
+const GOAL_GRADIENT: Record<string, string> = {
+  'from-blue-500 to-blue-600':     'linear-gradient(to right,#3B82F6,#2563EB)',
+  'from-green-500 to-green-600':   'linear-gradient(to right,#10B981,#059669)',
+  'from-purple-500 to-purple-600': 'linear-gradient(to right,#8B5CF6,#7C3AED)',
+  'from-orange-500 to-orange-600': 'linear-gradient(to right,#F97316,#EA580C)',
+  'from-pink-500 to-pink-600':     'linear-gradient(to right,#EC4899,#DB2777)',
+  'from-indigo-500 to-indigo-600': 'linear-gradient(to right,#6366F1,#4F46E5)',
+  'from-red-500 to-red-600':       'linear-gradient(to right,#EF4444,#DC2626)',
+  'from-yellow-500 to-yellow-600': 'linear-gradient(to right,#EAB308,#CA8A04)',
+  'from-teal-500 to-teal-600':     'linear-gradient(to right,#14B8A6,#0D9488)',
+  'from-cyan-500 to-cyan-600':     'linear-gradient(to right,#06B6D4,#0891B2)',
+};
+const COMPLETE_GRADIENT = 'linear-gradient(to right,#10B981,#059669)';
+const FALLBACK_GRADIENT = 'linear-gradient(to right,#6366F1,#4F46E5)';
+
 interface Goal {
   id: string;
   name: string;
@@ -72,10 +88,11 @@ export function GoalProgressChart({ goals }: GoalProgressChartProps) {
                 <div className="relative">
                   <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        isComplete ? 'bg-gradient-to-r from-green-500 to-green-600' : `bg-gradient-to-r ${goal.color}`
-                      }`}
-                      style={{ width: `${Math.min(progress, 100)}%` }}
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(progress, 100)}%`,
+                        background: isComplete ? COMPLETE_GRADIENT : (GOAL_GRADIENT[goal.color] ?? FALLBACK_GRADIENT),
+                      }}
                     />
                   </div>
                   <div className="absolute inset-0 flex items-center justify-center">

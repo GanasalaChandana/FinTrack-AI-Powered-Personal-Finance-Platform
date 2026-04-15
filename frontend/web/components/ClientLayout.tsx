@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { getToken } from "@/lib/api";
 
 import Navigation from "@/components/Navigation";
-import { MobileBottomNav } from "@/components/navigation/MobileBottomNav";
 import { BudgetAlerts } from "@/components/BudgetAlerts";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -89,8 +88,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
 
-        {/* Bottom Mobile Navigation */}
-        {!isAuthPage && isAuthenticated && <MobileBottomNav />}
+        {/* Mobile nav is handled by the hamburger drawer inside Navigation */}
       </>
     </ErrorBoundary>
   );

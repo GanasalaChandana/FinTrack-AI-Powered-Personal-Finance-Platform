@@ -168,23 +168,37 @@ export default function CalendarPage() {
         </div>
 
         {/* Monthly summary chips */}
+        {(() => {
+          const chipStyles: Record<string, { wrap: string; text: string }> = {
+            emerald: { wrap: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400", text: "text-emerald-600 dark:text-emerald-400" },
+            red:     { wrap: "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400",                text: "text-red-600 dark:text-red-400" },
+            indigo:  { wrap: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400",   text: "text-indigo-600 dark:text-indigo-400" },
+            orange:  { wrap: "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400",   text: "text-orange-600 dark:text-orange-400" },
+          };
+          const chips = [
+            { label: "Income",   value: monthlySummary.income,   color: "emerald", icon: <TrendingUp className="w-4 h-4" /> },
+            { label: "Expenses", value: monthlySummary.expenses, color: "red",     icon: <TrendingDown className="w-4 h-4" /> },
+            { label: "Net",      value: monthlySummary.net,      color: monthlySummary.net >= 0 ? "indigo" : "orange", icon: <DollarSign className="w-4 h-4" /> },
+          ];
+          return (
         <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Income", value: monthlySummary.income, color: "emerald", icon: <TrendingUp className="w-4 h-4" /> },
-            { label: "Expenses", value: monthlySummary.expenses, color: "red", icon: <TrendingDown className="w-4 h-4" /> },
-            { label: "Net", value: monthlySummary.net, color: monthlySummary.net >= 0 ? "indigo" : "orange", icon: <DollarSign className="w-4 h-4" /> },
-          ].map(({ label, value, color, icon }) => (
+          {chips.map(({ label, value, color, icon }) => {
+            const s = chipStyles[color];
+            return (
             <div key={label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
-              <span className={`w-9 h-9 rounded-lg flex items-center justify-center bg-${color}-100 dark:bg-${color}-900/30 text-${color}-600 dark:text-${color}-400 shrink-0`}>
+              <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${s.wrap}`}>
                 {icon}
               </span>
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-                <p className={`text-base font-bold text-${color}-600 dark:text-${color}-400`}>{fmt(Math.abs(value))}</p>
+                <p className={`text-base font-bold ${s.text}`}>{fmt(Math.abs(value))}</p>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
+          );
+        })()}
 
         {/* Calendar card */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">

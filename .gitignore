@@ -18,5 +18,8 @@ target/
 logs/
 .env*
 
+# TypeScript incremental build cache
+*.tsbuildinfo
+
 # Claude AI session data (local only)
 .claude/

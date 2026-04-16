@@ -577,22 +577,25 @@ export default function DashboardPage() {
             {/* ── AI Insights Section ── */}
             {!loadingData && hasTransactions && (
               <>
-                {/* Section header — prominent banner so it's impossible to miss */}
-                <div className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border border-indigo-100 dark:border-indigo-800/40">
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-bold shadow-sm flex-shrink-0">
-                    <Brain className="w-4 h-4" />
-                    AI INSIGHTS
+                {/* Section header — solid gradient banner, high contrast */}
+                <div className="flex items-center gap-4 px-5 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 shadow-md">
+                  <div className="flex items-center gap-2.5 flex-shrink-0">
+                    <div className="p-1.5 bg-white/20 rounded-lg">
+                      <Brain className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-extrabold text-white tracking-wide">AI INSIGHTS</span>
                   </div>
+                  <div className="w-px h-6 bg-white/30 flex-shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    <p className="text-sm font-semibold text-white">
                       Real-time analysis of your spending patterns
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    <p className="text-xs text-indigo-200 mt-0.5">
                       Anomaly detection · Budget forecasting · Next-month prediction — all client-side, zero latency
                     </p>
                   </div>
                   <div className="ml-auto flex-shrink-0">
-                    <span className="text-xs text-indigo-500 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1 rounded-full border border-indigo-100 dark:border-indigo-800/40">
+                    <span className="text-xs text-white font-semibold bg-white/20 px-3 py-1 rounded-full">
                       4 models active
                     </span>
                   </div>

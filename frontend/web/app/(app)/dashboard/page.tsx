@@ -577,25 +577,31 @@ export default function DashboardPage() {
             {/* ── AI Insights Section ── */}
             {!loadingData && hasTransactions && (
               <>
-                {/* Section header — solid gradient banner, high contrast */}
-                <div className="flex items-center gap-4 px-5 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 shadow-md">
+                {/* Section header — inline style gradient bypasses Tailwind purge */}
+                <div
+                  className="flex items-center gap-4 px-5 py-3.5 rounded-2xl shadow-md"
+                  style={{ background: 'linear-gradient(135deg, #4f46e5, #9333ea)' }}
+                >
                   <div className="flex items-center gap-2.5 flex-shrink-0">
-                    <div className="p-1.5 bg-white/20 rounded-lg">
+                    <div className="p-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.2)' }}>
                       <Brain className="w-4 h-4 text-white" />
                     </div>
                     <span className="text-sm font-extrabold text-white tracking-wide">AI INSIGHTS</span>
                   </div>
-                  <div className="w-px h-6 bg-white/30 flex-shrink-0" />
+                  <div className="w-px h-6 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.3)' }} />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-white">
                       Real-time analysis of your spending patterns
                     </p>
-                    <p className="text-xs text-indigo-200 mt-0.5">
+                    <p className="text-xs mt-0.5" style={{ color: '#c7d2fe' }}>
                       Anomaly detection · Budget forecasting · Next-month prediction — all client-side, zero latency
                     </p>
                   </div>
                   <div className="ml-auto flex-shrink-0">
-                    <span className="text-xs text-white font-semibold bg-white/20 px-3 py-1 rounded-full">
+                    <span
+                      className="text-xs font-semibold text-white px-3 py-1 rounded-full"
+                      style={{ background: 'rgba(255,255,255,0.2)' }}
+                    >
                       4 models active
                     </span>
                   </div>

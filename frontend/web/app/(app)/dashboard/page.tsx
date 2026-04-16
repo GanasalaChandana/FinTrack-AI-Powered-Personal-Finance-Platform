@@ -24,6 +24,7 @@ import { RecurringTransactionsCard } from "@/components/dashboard/RecurringTrans
 import { SpendingInsightsCard } from "@/components/dashboard/SpendingInsightsCard";
 import { SavingsGoalsCard } from "@/components/dashboard/SavingsGoalsCard";
 import { MonthEndForecastCard } from "@/components/dashboard/MonthEndForecastCard";
+import { NextMonthPredictionCard } from "@/components/dashboard/NextMonthPredictionCard";
 import { BillRemindersCard } from "@/components/dashboard/BillRemindersCard";
 import { BudgetAlertsCard } from "@/components/dashboard/BudgetAlertsCard";
 import { SavingsRateCard } from "@/components/dashboard/SavingsRateCard";
@@ -585,10 +586,11 @@ export default function DashboardPage() {
                     Real-time analysis of your spending patterns
                   </span>
                 </div>
-                <Grid columns={3} gap="lg">
+                <Grid columns={4} gap="lg">
                   <AnomalyInsightsCard transactions={allTransactions} />
                   <BudgetForecastCard transactions={allTransactions} budgets={allBudgets} />
                   <MonthEndForecastCard transactions={allTransactions} />
+                  <NextMonthPredictionCard transactions={allTransactions} />
                 </Grid>
               </>
             )}

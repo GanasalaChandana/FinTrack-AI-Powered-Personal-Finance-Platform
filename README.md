@@ -25,6 +25,7 @@
 > What separates FinTrack from standard CRUD finance apps:
 
 - **Statistical anomaly detection** — flags unusual spend using mean + 2σ per category. Runs 100% client-side, zero latency, zero API cost
+- **Next-month prediction** — 3-month weighted rolling average (weights 3-2-1) projects next month's income, expenses, and savings with trend momentum and a confidence rating
 - **Predictive budget forecasting** — daily burn rate × days remaining = end-of-month projection with per-category "at risk" warnings
 - **IP-based sliding window rate limiting** — 5 login attempts / 15 min per IP, no Redis needed (`ConcurrentHashMap` + `Deque<Long>`)
 - **Refresh token rotation with replay detection** — SHA-256 hashed, single-use; detecting a replayed token revokes ALL active sessions
@@ -48,6 +49,7 @@
 | | Feature | What it does |
 |---|---|---|
 | 🤖 | **AI Anomaly Detection** | Mean + 2σ per category — *"Housing ($1,200) is 277% above your $324 avg — review your largest category"* |
+| 🔮 | **Next-Month Prediction** | 3-month weighted forecast — *predicts income, expenses, savings rate with trend momentum and High/Medium/Low confidence* |
 | 📈 | **Budget Forecasting** | Burn rate projection — *"On track to spend $3,855 vs $3,150 budget — $705 over. Housing at 200%."* |
 | 🔔 | **Smart Alerts** | 8 rule types: large transactions, spending spikes, category concentration, income tracking |
 | 🔄 | **Recurring Detection** | Levenshtein similarity matching identifies subscriptions and projects future bills |
@@ -60,44 +62,50 @@
 
 ## 🏗️ Architecture
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                    FRONTEND  (Vercel)                    │
-│                                                          │
-│   Next.js 14 · TypeScript · Tailwind CSS · Recharts      │
-│                                                          │
-│   ┌─────────────┐  ┌──────────────┐  ┌───────────────┐  │
-│   │  Dashboard  │  │ Transactions │  │    Reports    │  │
-│   │  AI Insights│  │  Budgets     │  │    Alerts     │  │
-│   └─────────────┘  └──────────────┘  └───────────────┘  │
-│                                                          │
-│   Client-side AI Engine (zero API calls)                 │
-│   ├── aiInsights.ts     → mean + 2σ anomaly detection    │
-│   └── budgetForecast.ts → burn rate projection           │
-└──────────────────────────┬───────────────────────────────┘
-                           │  HTTPS · Bearer JWT
-┌──────────────────────────▼───────────────────────────────┐
-│                    BACKEND  (Render)                     │
-│                                                          │
-│   Spring Boot 3.2 · Java 17 · Spring Security · Maven   │
-│                                                          │
-│   LoginRateLimiter → JwtAuthFilter → Controller          │
-│        ↓                  ↓              ↓               │
-│   IP sliding window  HS256 verify   @Valid + ownership   │
-│   5 req / 15 min     check expiry   enforced per route   │
-│                                                          │
-│   /api/auth   /api/transactions   /api/budgets           │
-│   /api/reports   /api/alerts   /api/users                │
-└──────────────────────────┬───────────────────────────────┘
-                           │  JPA / Flyway migrations (V1–V9)
-┌──────────────────────────▼───────────────────────────────┐
-│               PostgreSQL  (Render managed)               │
-└──────────────────────────┬───────────────────────────────┘
-                           │  HTTP · optional
-┌──────────────────────────▼───────────────────────────────┐
-│          ML Classifier  (Python · FastAPI)               │
-│          POST /classify → spending category              │
-└──────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph FE["🌐 Frontend — Vercel (Next.js 14 · TypeScript · Tailwind)"]
+        direction TB
+        dash["Dashboard\nAI Insights · Forecast · Prediction"]
+        txn["Transactions\nCRUD · CSV Import · OCR"]
+        rep["Reports\n6-tab suite · Recharts"]
+        ale["Alerts · Notifications"]
+
+        subgraph AI["⚡ Client-side AI Engine (zero API cost)"]
+            ai1["aiInsights.ts\nmean + 2σ anomaly detection"]
+            ai2["budgetForecast.ts\nburn rate projection"]
+            ai3["NextMonthPrediction\n3-month weighted forecast"]
+        end
+    end
+
+    subgraph BE["☁️ Backend — Render (Spring Boot 3.2 · Java 17)"]
+        direction TB
+        rl["LoginRateLimiter\nIP sliding window · 5 req/15 min"]
+        jwt["JwtAuthFilter\nHS256 verify · expiry check"]
+        ctrl["Controllers\n@Valid · ownership enforced"]
+        svc["Services\nBusiness logic · ML tagging"]
+
+        subgraph API["REST Endpoints"]
+            a1["/api/auth"]
+            a2["/api/transactions"]
+            a3["/api/budgets"]
+            a4["/api/reports"]
+            a5["/api/alerts"]
+        end
+    end
+
+    subgraph DB["🗄️ PostgreSQL — Render managed"]
+        migrations["Flyway V1–V9 migrations"]
+    end
+
+    subgraph ML["🤖 ML Classifier — Python · FastAPI (optional)"]
+        classify["POST /classify\nmerchant → category"]
+    end
+
+    FE -- "HTTPS · Bearer JWT" --> BE
+    rl --> jwt --> ctrl --> svc --> API
+    svc -- "JPA" --> DB
+    svc -. "HTTP · optional" .-> ML
 ```
 
 ---
@@ -312,11 +320,13 @@ fintrack/
 │   │   ├── alerts/                  Smart alert feed with severity filters
 │   │   └── notifications/           Transaction-driven notification center
 │   ├── components/dashboard/
-│   │   ├── AnomalyInsightsCard.tsx  AI anomaly detection UI
-│   │   └── BudgetForecastCard.tsx   Month-end projection UI
+│   │   ├── AnomalyInsightsCard.tsx      AI anomaly detection UI
+│   │   ├── BudgetForecastCard.tsx       Month-end projection UI
+│   │   ├── MonthEndForecastCard.tsx     Daily burn rate card
+│   │   └── NextMonthPredictionCard.tsx  3-month weighted prediction UI
 │   └── lib/utils/
-│       ├── aiInsights.ts            mean + 2σ statistical engine
-│       └── budgetForecast.ts        burn rate projection engine
+│       ├── aiInsights.ts                mean + 2σ statistical engine
+│       └── budgetForecast.ts            burn rate projection engine
 │
 └── ml-classifier/                   Python FastAPI — merchant → category
 ```

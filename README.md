@@ -32,14 +32,14 @@
 
 ---
 
-## 📸 Demo
+## 📸 Screenshots
 
-👉 **[Live at fintrack-liart.vercel.app](https://fintrack-liart.vercel.app)** — register a free account or explore with sample data.
+| Dashboard + AI Insights | Smart Alerts | Reports & Forecast |
+|:---:|:---:|:---:|
+| ![Dashboard](https://raw.githubusercontent.com/GanasalaChandana/fintrack/main/docs/dashboard.png) | ![Alerts](https://raw.githubusercontent.com/GanasalaChandana/fintrack/main/docs/alerts.png) | ![Reports](https://raw.githubusercontent.com/GanasalaChandana/fintrack/main/docs/reports.png) |
+| AI anomaly cards + burn rate forecast visible above the fold | 8 rule types with severity badges and actionable context | 6-month spending forecast with trend line |
 
-The dashboard surfaces three AI cards immediately on login:
-- **Spending Anomalies** — highlights categories deviating >2σ from your personal baseline with exact % and dollar context
-- **Month-End Forecast** — projects your end-of-month total and flags categories on track to overspend
-- **Recurring Transactions** — detected subscriptions with projected next charge dates
+👉 **[Try the live demo → fintrack-liart.vercel.app](https://fintrack-liart.vercel.app)**
 
 ---
 

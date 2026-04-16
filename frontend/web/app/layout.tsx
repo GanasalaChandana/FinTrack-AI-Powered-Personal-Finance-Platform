@@ -104,6 +104,19 @@ export default function RootLayout({
           name="apple-mobile-web-app-status-bar-style"
           content="black-translucent"
         />
+        {/* ── Sidebar width + collapsed state — set BEFORE first paint so layout
+             never shifts on refresh. Must be inline (no defer/async). ── */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{
+              var w=parseInt(localStorage.getItem('fintrack-sidebar-w')||'0',10);
+              var col=localStorage.getItem('fintrack-sidebar-collapsed')==='true';
+              var final=(!isNaN(w)&&w>=64&&w<=380)?w:240;
+              if(col)final=64;
+              document.documentElement.style.setProperty('--sidebar-w',final+'px');
+            }catch(e){}}())`,
+          }}
+        />
       </head>
 
       <body className={inter.className}>

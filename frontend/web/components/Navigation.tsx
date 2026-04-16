@@ -162,8 +162,15 @@ function BottomBtn({
 export default function Navigation() {
   const [mounted,      setMounted]      = useState(false);
   const [hasToken,     setHasToken]     = useState(false);
-  const [collapsed,    setCollapsed]    = useState(false);
+  // Persist collapsed across refreshes
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('fintrack-sidebar-collapsed') === 'true';
+  });
   const [mobileOpen,   setMobileOpen]   = useState(false);
+  // Suppress the width CSS transition on the very first mount so the sidebar
+  // never animates from the skeleton width to the stored width on page load.
+  const [transitionReady, setTransitionReady] = useState(false);
   const [budgetAlerts, setBudgetAlerts] = useState(0);
   const [isPaletteOpen,setIsPaletteOpen]= useState(false);
 
@@ -209,13 +216,16 @@ export default function Navigation() {
       const next  = Math.min(Math.max(dragStartW.current + delta, MIN_W), MAX_W);
       setSidebarW(next);
       // snap collapsed state to icon-only when dragged very narrow
-      setCollapsed(next < SNAP_COLLAPSED);
-      document.documentElement.style.setProperty('--sidebar-w', `${next}px`);
+      const isCollapsed = next < SNAP_COLLAPSED;
+      setCollapsed(isCollapsed);
+      document.documentElement.style.setProperty('--sidebar-w', `${isCollapsed ? MIN_W : next}px`);
     };
     const onUp = (e: MouseEvent) => {
       setIsDragging(false);
       const final = Math.min(Math.max(dragStartW.current + (e.clientX - dragStartX.current), MIN_W), MAX_W);
+      const isCollapsed = final < SNAP_COLLAPSED;
       localStorage.setItem('fintrack-sidebar-w', String(final));
+      localStorage.setItem('fintrack-sidebar-collapsed', String(isCollapsed));
     };
     document.body.style.cursor    = 'col-resize';
     document.body.style.userSelect = 'none';
@@ -298,6 +308,12 @@ export default function Navigation() {
 
   // close mobile drawer on route change
   useEffect(() => setMobileOpen(false), [pathname]);
+
+  // Enable CSS transition after first paint (prevents mount animation glitch)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setTransitionReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   // sync sidebar width as CSS var so ClientLayout padding tracks it
   useEffect(() => {
@@ -408,10 +424,13 @@ export default function Navigation() {
   };
 
   // ── early returns ─────────────────────────────────────────────────────────
+  // Use var(--sidebar-w) so the placeholder always matches the inline script
+  // that was injected before first paint — no width flash on refresh.
   if (!mounted) return (
-    <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-60 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 items-center justify-center">
-      <span className="text-base font-bold text-indigo-600">FinTrack</span>
-    </aside>
+    <aside
+      className="hidden lg:block fixed left-0 top-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800"
+      style={{ width: 'var(--sidebar-w, 240px)' }}
+    />
   );
   if (isPublic(pathname) || !hasToken) return null;
 
@@ -443,7 +462,11 @@ export default function Navigation() {
         {/* collapse toggle (desktop only) */}
         {!onClose && (
           <button
-            onClick={() => setCollapsed(c => !c)}
+            onClick={() => setCollapsed(c => {
+              const next = !c;
+              localStorage.setItem('fintrack-sidebar-collapsed', String(next));
+              return next;
+            })}
             className={`p-1.5 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors ${collapsed ? 'mx-auto' : 'ml-auto'}`}
             title={collapsed ? 'Expand' : 'Collapse'}
           >
@@ -632,7 +655,9 @@ export default function Navigation() {
         className="hidden lg:flex flex-col fixed left-0 top-0 h-screen z-40 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 shadow-[1px_0_0_0_rgba(0,0,0,0.04)]"
         style={{
           width: collapsed ? MIN_W : sidebarW,
-          transition: isDragging ? 'none' : 'width 0.25s ease',
+          // No transition on mount (transitionReady=false) so stored width
+          // is applied instantly — never animates from skeleton on refresh.
+          transition: (!transitionReady || isDragging) ? 'none' : 'width 0.25s ease',
         }}
       >
         <Sidebar />

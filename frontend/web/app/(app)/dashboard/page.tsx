@@ -574,24 +574,37 @@ export default function DashboardPage() {
               </Grid>
             )}
 
-            {/* ── AI Insights Row — PROMOTED above charts so it's seen immediately ── */}
+            {/* ── AI Insights Section ── */}
             {!loadingData && hasTransactions && (
               <>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold tracking-wide shadow-sm">
-                    <Brain className="w-3.5 h-3.5" />
+                {/* Section header — prominent banner so it's impossible to miss */}
+                <div className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border border-indigo-100 dark:border-indigo-800/40">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-bold shadow-sm flex-shrink-0">
+                    <Brain className="w-4 h-4" />
                     AI INSIGHTS
                   </div>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    Real-time analysis of your spending patterns
-                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                      Real-time analysis of your spending patterns
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                      Anomaly detection · Budget forecasting · Next-month prediction — all client-side, zero latency
+                    </p>
+                  </div>
+                  <div className="ml-auto flex-shrink-0">
+                    <span className="text-xs text-indigo-500 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1 rounded-full border border-indigo-100 dark:border-indigo-800/40">
+                      4 models active
+                    </span>
+                  </div>
                 </div>
-                <Grid columns={4} gap="lg">
+
+                {/* 2-col on lg, 4-col on xl — cards get enough room at all sizes */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                   <AnomalyInsightsCard transactions={allTransactions} />
                   <BudgetForecastCard transactions={allTransactions} budgets={allBudgets} />
                   <MonthEndForecastCard transactions={allTransactions} />
                   <NextMonthPredictionCard transactions={allTransactions} />
-                </Grid>
+                </div>
               </>
             )}
 

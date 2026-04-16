@@ -46,11 +46,13 @@ export const generateAIInsights = (
   // 1. Detect spending anomalies
   const anomalies = detectAnomalies(transactions);
   anomalies.forEach((anomaly, index) => {
+    const pct = Math.round((anomaly.transaction.amount / (anomaly.expectedAmount || 1) - 1) * 100);
+    const tip = getCategoryTip(anomaly.transaction.category);
     insights.push({
       id: `anomaly-${index}`,
       type: 'warning',
-      title: 'Unusual Spending Detected',
-      message: `${anomaly.transaction.description} ($${anomaly.transaction.amount.toFixed(2)}) is ${anomaly.reason}`,
+      title: `Unusual ${anomaly.transaction.category} Spending`,
+      message: `${anomaly.transaction.description} ($${anomaly.transaction.amount.toFixed(2)}) is ${pct}% above your $${anomaly.expectedAmount.toFixed(0)} average for this category.${tip ? ` ${tip}` : ''}`,
       impact: anomaly.severity,
       category: anomaly.transaction.category,
       amount: anomaly.transaction.amount,
@@ -64,11 +66,12 @@ export const generateAIInsights = (
   const trends = analyzeTrends(transactions, previousPeriodTransactions);
   trends.forEach((trend, index) => {
     if (trend.trend === 'increasing' && trend.percentageChange > 20) {
+      const tip = getCategoryTip(trend.category);
       insights.push({
         id: `trend-${index}`,
         type: 'warning',
-        title: `${trend.category} Spending Increased`,
-        message: `Your ${trend.category} spending is up ${trend.percentageChange.toFixed(0)}% compared to last period. Average: $${trend.averageAmount.toFixed(2)}`,
+        title: `${trend.category} Up ${Math.round(trend.percentageChange)}% vs Last Period`,
+        message: `Your ${trend.category} spending increased by ${Math.round(trend.percentageChange)}% compared to last period (avg $${trend.averageAmount.toFixed(2)}/transaction).${tip ? ` ${tip}` : ''}`,
         impact: trend.percentageChange > 50 ? 'high' : 'medium',
         category: trend.category,
         amount: trend.averageAmount,
@@ -80,8 +83,8 @@ export const generateAIInsights = (
       insights.push({
         id: `trend-success-${index}`,
         type: 'success',
-        title: `Great Job! ${trend.category} Spending Down`,
-        message: `You've reduced ${trend.category} spending by ${Math.abs(trend.percentageChange).toFixed(0)}%! Keep it up!`,
+        title: `${trend.category} Down ${Math.abs(Math.round(trend.percentageChange))}% — Nice Work`,
+        message: `You reduced ${trend.category} spending by ${Math.abs(Math.round(trend.percentageChange))}% compared to last period. That's a positive trend — keep it up.`,
         impact: 'medium',
         category: trend.category,
         actionable: false,
@@ -93,14 +96,15 @@ export const generateAIInsights = (
   // 3. Find recurring patterns
   const recurring = findRecurringTransactions(transactions);
   if (recurring.length > 0) {
+    const recurringTotal = recurring.reduce((s, t) => s + t.amount, 0);
     insights.push({
       id: 'recurring-found',
       type: 'info',
-      title: 'Recurring Transactions Detected',
-      message: `Found ${recurring.length} potential recurring transactions. Consider setting up automatic tracking.`,
+      title: `${recurring.length} Recurring Transactions Detected`,
+      message: `Found ${recurring.length} likely subscription or recurring payments totalling $${recurringTotal.toFixed(2)}/month. Review for any unused services.`,
       impact: 'low',
       actionable: true,
-      actions: ['Review recurring', 'Set up auto-categorization'],
+      actions: ['Review recurring', 'Cancel unused subscriptions'],
       priority: 4,
     });
   }
@@ -124,16 +128,17 @@ export const generateAIInsights = (
   const topCategories = getTopSpendingCategories(transactions, 3);
   topCategories.forEach((cat, index) => {
     if (cat.percentage > 30 && index === 0) {
+      const tip = getCategoryTip(cat.category);
       insights.push({
         id: `top-category-${index}`,
         type: 'info',
-        title: `${cat.category} is Your Largest Expense`,
-        message: `${cat.category} accounts for ${cat.percentage.toFixed(0)}% of your spending ($${cat.amount.toFixed(2)}).`,
+        title: `${cat.category} Is ${cat.percentage.toFixed(0)}% of Your Spending`,
+        message: `${cat.category} accounts for ${cat.percentage.toFixed(0)}% of all expenses ($${cat.amount.toFixed(2)}) across ${cat.count} transactions.${tip ? ` ${tip}` : ''}`,
         impact: 'medium',
         category: cat.category,
         amount: cat.amount,
         actionable: true,
-        actions: ['Review category', 'Find savings opportunities'],
+        actions: ['Review category', 'Set a budget limit', 'Find alternatives'],
         priority: 3,
       });
     }
@@ -143,15 +148,16 @@ export const generateAIInsights = (
   const impulseTransactions = detectImpulseBuying(transactions);
   if (impulseTransactions.length > 5) {
     const totalImpulse = impulseTransactions.reduce((sum, t) => sum + t.amount, 0);
+    const avgImpulse = totalImpulse / impulseTransactions.length;
     insights.push({
       id: 'impulse-buying',
       type: 'warning',
-      title: 'Potential Impulse Purchases',
-      message: `Detected ${impulseTransactions.length} small transactions totaling $${totalImpulse.toFixed(2)}. These add up quickly!`,
+      title: `${impulseTransactions.length} Small Purchases Totalling $${totalImpulse.toFixed(2)}`,
+      message: `${impulseTransactions.length} transactions under $50 average $${avgImpulse.toFixed(2)} each — they add up to $${totalImpulse.toFixed(2)} total. Apply the 24-hour rule before small purchases.`,
       impact: 'medium',
       amount: totalImpulse,
       actionable: true,
-      actions: ['Review small purchases', 'Set spending rules', 'Use 24-hour rule'],
+      actions: ['Review small purchases', 'Set a daily cash limit', 'Use 24-hour rule'],
       priority: 2,
     });
   }
@@ -385,6 +391,26 @@ function calculateStringSimilarity(str1: string, str2: string): number {
   
   const editDistance = levenshteinDistance(longer, shorter);
   return (longer.length - editDistance) / longer.length;
+}
+
+/** Returns a short, actionable tip for a given spending category. */
+function getCategoryTip(category: string): string {
+  const cat = (category || '').toLowerCase();
+  if (cat.includes('food') || cat.includes('dining') || cat.includes('restaurant'))
+    return 'Consider meal prepping on weekends to reduce dining-out frequency.';
+  if (cat.includes('housing') || cat.includes('rent'))
+    return 'This is often your largest fixed cost — review for any negotiable line items.';
+  if (cat.includes('transport') || cat.includes('car') || cat.includes('fuel'))
+    return 'Combining errands and using public transit can reduce transport costs significantly.';
+  if (cat.includes('entertainment') || cat.includes('streaming'))
+    return 'Audit your subscriptions — unused services are the easiest savings to find.';
+  if (cat.includes('shopping') || cat.includes('clothing'))
+    return 'Try a 48-hour waiting period before non-essential purchases.';
+  if (cat.includes('health') || cat.includes('medical'))
+    return 'Check if your insurance covers any of these expenses.';
+  if (cat.includes('coffee') || cat.includes('cafe'))
+    return 'Brewing at home 3 days a week can save $50–100/month.';
+  return '';
 }
 
 function levenshteinDistance(str1: string, str2: string): number {

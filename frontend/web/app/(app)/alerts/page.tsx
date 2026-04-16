@@ -415,12 +415,14 @@ export default function AlertsPage() {
 
   // ── Auth ───────────────────────────────────────────────────────────────────
   useEffect(() => {
+    // ClientLayout + AuthGate (layout) already redirect unauthenticated users.
+    // This guard is a safety net; always clear the checking state.
+    setIsCheckingAuth(false);
     if (!isAuthenticated()) {
-      router.replace("/register?mode=signin");
-    } else {
-      setIsAuth(true);
-      setIsCheckingAuth(false);
+      router.replace("/login");
+      return;
     }
+    setIsAuth(true);
   }, [router]);
 
   // ── Fetch + generate + sync to backend ────────────────────────────────────

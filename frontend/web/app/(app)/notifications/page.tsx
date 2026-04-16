@@ -261,12 +261,14 @@ export default function NotificationsPage() {
 
   // ── Auth ───────────────────────────────────────────────────────────────────
   useEffect(() => {
+    // ClientLayout + AuthGate (layout) already redirect unauthenticated users.
+    // This guard is a safety net; always clear the checking state first.
+    setChecking(false);
     if (!isAuthenticated()) {
-      router.replace("/register?mode=signin");
-    } else {
-      setIsAuth(true);
-      setChecking(false);
+      router.replace("/login");
+      return;
     }
+    setIsAuth(true);
   }, [router]);
 
   // ── Fetch & generate ──────────────────────────────────────────────────────

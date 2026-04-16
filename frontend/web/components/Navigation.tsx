@@ -45,6 +45,8 @@ const NAV_TOOLS = [
   { href: "/health",        label: "Health Score",   icon: Activity },
   { href: "/insights",      label: "AI Insights",    icon: Brain },
   { href: "/receipts",      label: "Receipts",       icon: Camera },
+  { href: "/alerts",        label: "Alerts",         icon: Bell,   badgeKey: "alerts" },
+  { href: "/notifications", label: "Notifications",  icon: Mail,   badgeKey: "notifs" },
 ];
 
 // ── Reusable nav link ─────────────────────────────────────────────────────────
@@ -446,9 +448,10 @@ export default function Navigation() {
 
         {/* TOOLS */}
         <SectionLabel label="Tools" collapsed={collapsed && !onClose} />
-        {NAV_TOOLS.map(({ href, label, icon }) => (
+        {NAV_TOOLS.map(({ href, label, icon, badgeKey }) => (
           <NavItem
             key={href} href={href} label={label} icon={icon}
+            badge={badgeKey === 'budget' ? budgetAlerts : badgeKey === 'alerts' ? alertsUnread : badgeKey === 'notifs' ? notifsUnread : 0}
             collapsed={collapsed && !onClose}
             active={active(href)}
             onClick={onClose}

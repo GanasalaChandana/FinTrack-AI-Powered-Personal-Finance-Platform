@@ -44,6 +44,24 @@
 
 ---
 
+## 🎬 Demo
+
+<div align="center">
+
+[![▶ Watch Demo](https://img.shields.io/badge/▶%20Watch%20Demo-Loom%20Video-6366f1?style=for-the-badge&logo=loom)](https://fintrack-liart.vercel.app)
+&nbsp;
+[![Live App](https://img.shields.io/badge/🚀%20Try%20Live%20App-fintrack--liart.vercel.app-22c55e?style=for-the-badge&logo=vercel)](https://fintrack-liart.vercel.app)
+
+</div>
+
+**Key flows to explore in the live app:**
+- 🤖 **Dashboard → AI Insights row** — anomaly cards + burn rate forecast + next-month prediction
+- 📊 **Reports tab** — 6-tab suite with spending trend, budget comparison, category breakdown
+- 🔔 **Alerts page** — smart rule-based alerts with severity badges
+- 📥 **Transactions → Import CSV** — bulk upload with auto-tagging
+
+---
+
 ## ✨ Features
 
 | | Feature | What it does |
@@ -251,9 +269,12 @@ DELETE /api/alerts/{id}             Dismiss (ownership enforced)
 ```bash
 cd backend/monolith
 
+# DATABASE_URL must be a JDBC URL (jdbc:postgresql://...)
 export DATABASE_URL=jdbc:postgresql://localhost:5432/fintrack
 export DB_USERNAME=postgres
 export DB_PASSWORD=yourpassword
+# JWT_SECRET must be at least 32 characters (256 bits for HS256)
+# Generate one: openssl rand -base64 32
 export JWT_SECRET=your-256-bit-secret-min-32-chars
 
 mvn spring-boot:run
@@ -330,6 +351,110 @@ fintrack/
 │
 └── ml-classifier/                   Python FastAPI — merchant → category
 ```
+
+---
+
+## 🔧 Troubleshooting
+
+<details>
+<summary><strong>Backend won't start — "Connection refused" to PostgreSQL</strong></summary>
+
+Check your `DATABASE_URL` format. It must be a JDBC URL, **not** a plain host:
+
+```bash
+# ✅ Correct
+export DATABASE_URL=jdbc:postgresql://localhost:5432/fintrack
+
+# ❌ Wrong — will cause HikariPool connection failure
+export DATABASE_URL=postgresql://localhost:5432/fintrack
+```
+
+Also make sure PostgreSQL is running: `pg_isready -h localhost -p 5432`
+
+</details>
+
+<details>
+<summary><strong>JWT error — "SignatureException" or "secret must be at least 256 bits"</strong></summary>
+
+Your `JWT_SECRET` must be **at least 32 characters** (256 bits for HS256).
+
+```bash
+# Generate a safe secret
+openssl rand -base64 32
+```
+
+</details>
+
+<details>
+<summary><strong>Frontend API calls failing — CORS error in browser console</strong></summary>
+
+Make sure `NEXT_PUBLIC_API_URL` in `.env.local` matches where your backend is actually running:
+
+```bash
+# Local development
+NEXT_PUBLIC_API_URL=http://localhost:8080
+
+# If backend is on Render
+NEXT_PUBLIC_API_URL=https://your-app.onrender.com
+```
+
+The backend's CORS config in `SecurityConfig.java` allows all origins in dev — if you've restricted it, add your frontend URL.
+
+</details>
+
+<details>
+<summary><strong>Port 8080 or 3000 already in use</strong></summary>
+
+```bash
+# Find and kill the process on macOS/Linux
+lsof -ti:8080 | xargs kill -9
+lsof -ti:3000 | xargs kill -9
+
+# Windows
+netstat -ano | findstr :8080
+taskkill /PID <pid> /F
+```
+
+</details>
+
+<details>
+<summary><strong>Flyway migration error — "migration checksum mismatch"</strong></summary>
+
+If you've edited an existing migration file, Flyway will reject it. Either restore the original file or, in dev only, add to `application.properties`:
+
+```properties
+spring.flyway.repair=true
+```
+
+Never use `repair` in production.
+
+</details>
+
+<details>
+<summary><strong>ML classifier not tagging transactions</strong></summary>
+
+The ML service is **optional**. If it isn't running, transactions are saved without auto-categorisation — you can still assign categories manually. To start it:
+
+```bash
+cd ml-classifier
+pip install -r requirements.txt
+uvicorn main:app --port 8000
+```
+
+Then set `ML_CLASSIFIER_URL=http://localhost:8000` in your backend environment.
+
+</details>
+
+---
+
+## 👥 Contributors
+
+<a href="https://github.com/GanasalaChandana/fintrack/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=GanasalaChandana/fintrack" alt="Contributors" />
+</a>
+
+Built and maintained by **[Chandana Ganasala](https://github.com/GanasalaChandana)**.  
+Contributions, issues and feature requests are welcome — feel free to open a PR!
 
 ---
 

@@ -1,7 +1,7 @@
 // components/Navigation.tsx
 'use client';
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
@@ -179,6 +179,56 @@ export default function Navigation() {
 
   const pollFailures = useRef(0);
 
+  // ── Resizable sidebar ─────────────────────────────────────────────────────
+  const MIN_W = 64;   // px — icon-only floor
+  const MAX_W = 380;  // px — wide cap
+  const DEFAULT_W = 240;
+  const SNAP_COLLAPSED = 80; // snap to icon-only below this
+
+  const [sidebarW, setSidebarW] = useState<number>(() => {
+    if (typeof window === 'undefined') return DEFAULT_W;
+    const saved = parseInt(localStorage.getItem('fintrack-sidebar-w') || '', 10);
+    return isNaN(saved) ? DEFAULT_W : Math.min(Math.max(saved, MIN_W), MAX_W);
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartX  = useRef(0);
+  const dragStartW  = useRef(0);
+  const sidebarRef  = useRef<HTMLElement>(null);
+
+  const onDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragStartX.current = e.clientX;
+    dragStartW.current = sidebarRef.current?.offsetWidth ?? sidebarW;
+    setIsDragging(true);
+  }, [sidebarW]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const onMove = (e: MouseEvent) => {
+      const delta = e.clientX - dragStartX.current;
+      const next  = Math.min(Math.max(dragStartW.current + delta, MIN_W), MAX_W);
+      setSidebarW(next);
+      // snap collapsed state to icon-only when dragged very narrow
+      setCollapsed(next < SNAP_COLLAPSED);
+      document.documentElement.style.setProperty('--sidebar-w', `${next}px`);
+    };
+    const onUp = (e: MouseEvent) => {
+      setIsDragging(false);
+      const final = Math.min(Math.max(dragStartW.current + (e.clientX - dragStartX.current), MIN_W), MAX_W);
+      localStorage.setItem('fintrack-sidebar-w', String(final));
+    };
+    document.body.style.cursor    = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup',   onUp);
+    return () => {
+      document.body.style.cursor    = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isDragging]);
+
   const { theme, setTheme } = useThemePreference();
   const ThemeIcon = theme === 'dark' ? Moon : theme === 'system' ? Monitor : Sun;
   const cycleTheme = () => setTheme(theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light');
@@ -251,8 +301,9 @@ export default function Navigation() {
 
   // sync sidebar width as CSS var so ClientLayout padding tracks it
   useEffect(() => {
-    document.documentElement.style.setProperty('--sidebar-w', collapsed ? '4rem' : '15rem');
-  }, [collapsed]);
+    const w = collapsed ? MIN_W : sidebarW;
+    document.documentElement.style.setProperty('--sidebar-w', `${w}px`);
+  }, [collapsed, sidebarW]);
 
   // ── data ─────────────────────────────────────────────────────────────────
   const loadAlerts = async () => {
@@ -576,15 +627,36 @@ export default function Navigation() {
   return (
     <>
       {/* ── Desktop sidebar ────────────────────────────────────────────────── */}
-      <aside className={`
-        hidden lg:flex flex-col fixed left-0 top-0 h-screen z-40
-        bg-white dark:bg-gray-900
-        border-r border-gray-100 dark:border-gray-800
-        shadow-[1px_0_0_0_rgba(0,0,0,0.04)]
-        transition-[width] duration-300 ease-in-out
-        ${collapsed ? 'w-16' : 'w-60'}
-      `}>
+      <aside
+        ref={sidebarRef}
+        className="hidden lg:flex flex-col fixed left-0 top-0 h-screen z-40 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 shadow-[1px_0_0_0_rgba(0,0,0,0.04)]"
+        style={{
+          width: collapsed ? MIN_W : sidebarW,
+          transition: isDragging ? 'none' : 'width 0.25s ease',
+        }}
+      >
         <Sidebar />
+
+        {/* ── Drag-to-resize handle ── */}
+        <div
+          onMouseDown={onDragStart}
+          title="Drag to resize sidebar"
+          className={`
+            absolute top-0 right-0 w-1 h-full z-50 cursor-col-resize
+            group/handle flex items-center justify-center
+            hover:bg-indigo-400/30 dark:hover:bg-indigo-500/30
+            ${isDragging ? 'bg-indigo-400/40 dark:bg-indigo-500/40' : ''}
+            transition-colors duration-150
+          `}
+        >
+          {/* Visible pill that appears on hover / drag */}
+          <div className={`
+            w-1 rounded-full transition-all duration-150
+            ${isDragging
+              ? 'h-16 bg-indigo-500 opacity-100'
+              : 'h-8 bg-indigo-300 dark:bg-indigo-600 opacity-0 group-hover/handle:opacity-100'}
+          `} />
+        </div>
       </aside>
 
       {/* ── Mobile top bar ─────────────────────────────────────────────────── */}

@@ -23,3 +23,5 @@ logs/
 
 # Claude AI session data (local only)
 .claude/
+dashboard.png
+dashboard_files/

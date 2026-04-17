@@ -20,7 +20,7 @@ export function AnomalyInsightsCard({ transactions }: Props) {
   }, [transactions]);
 
   return (
-    <div className="rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col">
+    <div className="ai-card-hover rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col">
       {/* Coloured header band */}
       <div className={`px-5 py-4 flex items-center justify-between ${
         anomalies.length > 0

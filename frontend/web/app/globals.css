@@ -904,6 +904,84 @@ button {
 .dark .bg-red-500                  { background-color: #ef4444 !important; }
 .dark .bg-yellow-500               { background-color: #f59e0b !important; }
 
+/* ========== MICRO-INTERACTIONS — premium feel ==========
+   Applied globally so every card, button, and interactive element
+   responds to user input with smooth, satisfying feedback.
+   ============================================================= */
+
+/* Card hover lift — apply .card-lift to any clickable card */
+.card-lift {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.2s ease;
+  will-change: transform;
+}
+.card-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.10), 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+.dark .card-lift:hover {
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Button press — every non-disabled button gets a satisfying click feel */
+button:not(:disabled):active {
+  transform: scale(0.97);
+  transition: transform 0.08s ease;
+}
+
+/* AI insight cards — richer depth on hover */
+.ai-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.ai-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+.dark .ai-card-hover:hover {
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+}
+
+/* Stat card — subtle pulse glow on hover */
+.stat-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.stat-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+.dark .stat-card-hover:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Nav links — underline slide effect */
+.nav-underline {
+  position: relative;
+}
+.nav-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #6366f1;
+  border-radius: 1px;
+  transition: width 0.2s ease;
+}
+.nav-underline:hover::after {
+  width: 100%;
+}
+
+/* Keyframe for banner slide-in */
+@keyframes slide-down-banner {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-down {
+  animation: slide-down-banner 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
 /* ========== PRINT STYLES ==========  */
 @media print {
   .no-print {

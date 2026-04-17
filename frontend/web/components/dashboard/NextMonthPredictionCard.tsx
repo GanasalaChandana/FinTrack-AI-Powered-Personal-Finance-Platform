@@ -160,7 +160,7 @@ export function NextMonthPredictionCard({ transactions }: Props) {
   const savingsPositive = predictedSavings >= 0;
 
   return (
-    <div className="rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col">
+    <div className="ai-card-hover rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col">
       {/* Header band */}
       <div className="px-5 py-4 bg-gradient-to-r from-violet-600 to-indigo-600 flex items-center justify-between">
         <div className="flex items-center gap-2">

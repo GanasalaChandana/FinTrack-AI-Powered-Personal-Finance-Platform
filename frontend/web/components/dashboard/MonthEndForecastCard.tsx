@@ -118,7 +118,7 @@ export function MonthEndForecastCard({ transactions }: Props) {
   if (transactions.length === 0) return null;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
+    <div className="ai-card-hover bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
       {/* Accent bar */}
       <div className="h-1 w-full bg-gradient-to-r from-sky-500 to-indigo-500" />
 

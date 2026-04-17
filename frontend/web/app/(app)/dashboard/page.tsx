@@ -25,6 +25,7 @@ import { SpendingInsightsCard } from "@/components/dashboard/SpendingInsightsCar
 import { SavingsGoalsCard } from "@/components/dashboard/SavingsGoalsCard";
 import { MonthEndForecastCard } from "@/components/dashboard/MonthEndForecastCard";
 import { NextMonthPredictionCard } from "@/components/dashboard/NextMonthPredictionCard";
+import { AITopInsightBanner } from "@/components/dashboard/AITopInsightBanner";
 import { BillRemindersCard } from "@/components/dashboard/BillRemindersCard";
 import { BudgetAlertsCard } from "@/components/dashboard/BudgetAlertsCard";
 import { SavingsRateCard } from "@/components/dashboard/SavingsRateCard";
@@ -511,6 +512,11 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </Alert>
+            )}
+
+            {/* ── AI Top Insight Banner — signature wow feature, first thing seen ── */}
+            {!loadingData && hasTransactions && (
+              <AITopInsightBanner transactions={allTransactions} />
             )}
 
             {/* Date range picker */}

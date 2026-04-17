@@ -79,13 +79,13 @@ export function StatCard({
   return (
     <div
       className={`
+        stat-card-hover
         bg-white dark:bg-neutral-800
-        rounded-md
+        rounded-xl
         shadow-sm dark:shadow-sm
         border border-neutral-200 dark:border-neutral-700
         p-6
-        transition-all duration-300
-        ${onClick ? 'hover:shadow-md dark:hover:shadow-md hover:-translate-y-0.5 cursor-pointer' : 'hover:shadow-md dark:hover:shadow-md'}
+        ${onClick ? 'cursor-pointer' : ''}
       `}
       onClick={onClick}
       role={onClick ? 'button' : undefined}

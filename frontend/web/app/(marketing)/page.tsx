@@ -217,13 +217,28 @@ export default function LandingPage() {
               Sign in
             </button>
           </div>
-          <p className="fade-up" style={{fontSize:13,color:"#475569",marginBottom:56,animationDelay:"0.35s"}}>No credit card · Import from any bank · Free forever on basic plan</p>
+          <p className="fade-up" style={{fontSize:13,color:"#475569",marginBottom:40,animationDelay:"0.35s"}}>No credit card · Import from any bank · Free forever on basic plan</p>
+
+          {/* ── Financial benefit ticker — what users actually discover ── */}
+          <div className="fade-up" style={{maxWidth:760,margin:"0 auto 40px",display:"flex",flexWrap:"wrap",gap:10,justifyContent:"center",animationDelay:"0.38s"}}>
+            {[
+              {emoji:"💰", text:"Identified $73/mo in forgotten subscriptions"},
+              {emoji:"⚠️", text:"Dining spend 261% above normal — flagged instantly"},
+              {emoji:"🔮", text:"Predicted May expenses at $2,317 — 3 weeks in advance"},
+              {emoji:"📊", text:"Housing budget on track to exceed by $705 this month"},
+            ].map((item,i)=>(
+              <div key={i} style={{display:"inline-flex",alignItems:"center",gap:7,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:100,padding:"7px 14px",fontSize:13,color:"#94a3b8"}}>
+                <span>{item.emoji}</span>
+                <span>{item.text}</span>
+              </div>
+            ))}
+          </div>
 
           {/* ── Stats bar ── */}
           <div className="stats-grid fade-up" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,maxWidth:800,margin:"0 auto 64px",animationDelay:"0.4s"}}>
             {stats.map((s)=>(
-              <div key={s.label} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:"18px 12px",textAlign:"center"}}>
-                <p style={{fontFamily:"Fraunces,serif",fontSize:28,fontWeight:900,color:"#818cf8",lineHeight:1}}>{s.value}</p>
+              <div key={s.label} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:14,padding:"20px 12px",textAlign:"center"}}>
+                <p style={{fontFamily:"Fraunces,serif",fontSize:30,fontWeight:900,color:"#818cf8",lineHeight:1}}>{s.value}</p>
                 <p style={{fontSize:12,color:"#475569",marginTop:6,lineHeight:1.4}}>{s.label}</p>
               </div>
             ))}

@@ -162,7 +162,10 @@ export function NextMonthPredictionCard({ transactions }: Props) {
   return (
     <div className="ai-card-hover rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col">
       {/* Header band */}
-      <div className="px-5 py-4 bg-gradient-to-r from-violet-600 to-indigo-600 flex items-center justify-between">
+      <div
+        className="px-5 py-4 flex items-center justify-between"
+        style={{ background: 'linear-gradient(to right, #7c3aed, #4f46e5)' }}
+      >
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-white/20 rounded-lg">
             <Sparkles className="w-4 h-4 text-white" />

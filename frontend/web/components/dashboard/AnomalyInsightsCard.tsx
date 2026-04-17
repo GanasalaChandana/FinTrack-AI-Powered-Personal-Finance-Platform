@@ -22,11 +22,13 @@ export function AnomalyInsightsCard({ transactions }: Props) {
   return (
     <div className="ai-card-hover rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col">
       {/* Coloured header band */}
-      <div className={`px-5 py-4 flex items-center justify-between ${
-        anomalies.length > 0
-          ? "bg-gradient-to-r from-orange-500 to-red-500"
-          : "bg-gradient-to-r from-emerald-500 to-teal-500"
-      }`}>
+      <div
+        className="px-5 py-4 flex items-center justify-between"
+        style={{ background: anomalies.length > 0
+          ? 'linear-gradient(to right, #f97316, #ef4444)'
+          : 'linear-gradient(to right, #10b981, #14b8a6)'
+        }}
+      >
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-white/20 rounded-lg">
             {anomalies.length > 0

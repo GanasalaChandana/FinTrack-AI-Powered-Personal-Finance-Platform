@@ -116,7 +116,7 @@ export function RecurringTransactionsCard({ transactions }: Props) {
             >
               {/* Left: icon + name */}
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}>
                   {item.merchant.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">

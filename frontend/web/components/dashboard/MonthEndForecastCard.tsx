@@ -120,7 +120,7 @@ export function MonthEndForecastCard({ transactions }: Props) {
   return (
     <div className="ai-card-hover bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
       {/* Accent bar */}
-      <div className="h-1 w-full bg-gradient-to-r from-sky-500 to-indigo-500" />
+      <div className="h-1 w-full" style={{ background: 'linear-gradient(to right, #0ea5e9, #6366f1)' }} />
 
       <div className="p-5 flex flex-col gap-4 flex-1">
         {/* Header */}

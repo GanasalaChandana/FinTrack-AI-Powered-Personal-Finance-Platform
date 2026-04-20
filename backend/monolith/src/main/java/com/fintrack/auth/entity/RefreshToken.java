@@ -15,7 +15,7 @@ import java.util.UUID;
  * new one. A second use of the same token returns 401 (replay detected).
  */
 @Entity
-@Table(name = "refresh_tokens", schema = "users")
+@Table(name = "refresh_tokens")
 @Data
 @Builder
 @NoArgsConstructor

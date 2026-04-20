@@ -9,7 +9,7 @@ import java.util.UUID;
 
 @Entity
 @Data
-@Table(schema = "reports", name = "spending_summary_cache")
+@Table(name = "spending_summary_cache")
 public class SpendingSummaryCache {
 
     @Id

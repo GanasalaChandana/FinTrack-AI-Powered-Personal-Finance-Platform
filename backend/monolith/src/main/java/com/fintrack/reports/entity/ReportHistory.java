@@ -9,7 +9,7 @@ import org.hibernate.type.SqlTypes;
 
 @Entity
 @Data
-@Table(name = "report_history", schema = "reports")
+@Table(name = "report_history")
 public class ReportHistory {
 
     @Id

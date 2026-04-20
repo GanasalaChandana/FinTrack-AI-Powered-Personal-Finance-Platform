@@ -395,7 +395,7 @@ function AuthPageContent() {
       password: '',
       confirmPassword: ''
     });
-    googleInitialized.current = false;
+    // Don't reset googleInitialized — Google GSI only needs one initialization
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

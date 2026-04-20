@@ -406,7 +406,7 @@ function AuthPageContent() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #4a1d96 50%, #0f172a 100%)' }}>
         <div className="max-w-md w-full bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-500/20 p-8 text-center">
           <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-12 h-12 text-green-400" />
@@ -429,12 +429,12 @@ function AuthPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #4a1d96 50%, #0f172a 100%)' }}>
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-6">
             <DollarSign className="w-10 h-10 text-purple-400" />
-            <span className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <span className="text-3xl font-bold" style={{ background: 'linear-gradient(to right, #c084fc, #f472b6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               FinTrack
             </span>
           </div>
@@ -452,21 +452,19 @@ function AuthPageContent() {
           <div className="flex gap-2 mb-6 bg-slate-900/50 p-1 rounded-xl">
             <button
               onClick={() => switchMode('signin')}
-              className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
-                mode === 'signin'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white'
-              }`}
+              className="flex-1 py-3 px-4 rounded-lg font-semibold transition-all"
+              style={mode === 'signin'
+                ? { background: 'linear-gradient(to right, #a855f7, #ec4899)', color: '#fff', boxShadow: '0 4px 14px rgba(168,85,247,0.4)' }
+                : { color: '#9ca3af' }}
             >
               Sign In
             </button>
             <button
               onClick={() => switchMode('signup')}
-              className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
-                mode === 'signup'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white'
-              }`}
+              className="flex-1 py-3 px-4 rounded-lg font-semibold transition-all"
+              style={mode === 'signup'
+                ? { background: 'linear-gradient(to right, #a855f7, #ec4899)', color: '#fff', boxShadow: '0 4px 14px rgba(168,85,247,0.4)' }
+                : { color: '#9ca3af' }}
             >
               Sign Up
             </button>
@@ -642,7 +640,8 @@ function AuthPageContent() {
             <button
               onClick={() => handleSubmit()}
               disabled={loading || wakingUp}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3.5 rounded-xl font-semibold hover:shadow-2xl hover:shadow-purple-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
+              className="w-full text-white py-3.5 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
+              style={{ background: 'linear-gradient(to right, #a855f7, #ec4899)' }}
             >
               {(loading || wakingUp) ? (
                 <>
@@ -688,7 +687,7 @@ function AuthPageContent() {
 export default function AuthPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #4a1d96 50%, #0f172a 100%)' }}>
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
           <p className="text-gray-400">Loading...</p>

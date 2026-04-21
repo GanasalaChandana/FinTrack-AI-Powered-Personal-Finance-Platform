@@ -30,6 +30,7 @@ import {
   type Transaction as ApiTransaction,
 } from "@/lib/api";
 import { detectRecurring } from "@/lib/utils/recurringDetection";
+import { parseNLQuery, applyNLFilter, type NLFilter } from "@/lib/utils/nlSearch";
 
 import { BulkActions } from "./BulkActions";
 import { Button } from "@/components/ui/Button";
@@ -231,6 +232,7 @@ export default function TransactionManager() {
   const [editTagsStr, setEditTagsStr] = React.useState("");
 
   const [showAdd, setShowAdd] = React.useState(false);
+  const [nlFilter, setNlFilter] = React.useState<NLFilter | null>(null);
   // Initialize filters from URL params (supports ?category=Food&type=expense&search=starbucks)
   const [activeFilters, setActiveFilters] = React.useState<TxFilters>(() => {
     const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
@@ -657,39 +659,58 @@ export default function TransactionManager() {
     return count;
   }, [activeFilters]);
 
+  // NL search keywords that trigger smart parsing
+  const NL_TRIGGERS = /\b(last|this|past|over|under|between|more than|less than|expensive|income|expense|spent|food|travel|entertainment|shopping|month|week|year|days?)\b/i;
+
   // Filter + sort effect
   React.useEffect(() => {
     let filtered = [...transactions];
-    if (activeFilters.search) {
-      const q = activeFilters.search.toLowerCase();
-      filtered = filtered.filter((t) => (t.merchant || "").toLowerCase().includes(q) || t.description.toLowerCase().includes(q));
+    const searchTerm = activeFilters.search || "";
+
+    // ── Natural-language search ───────────────────────────────────────────────
+    const isNL = searchTerm.trim().split(/\s+/).length > 1 && NL_TRIGGERS.test(searchTerm);
+    if (searchTerm && isNL) {
+      const parsed = parseNLQuery(searchTerm);
+      setNlFilter(parsed);
+      filtered = applyNLFilter(filtered as any, parsed) as any;
+    } else {
+      setNlFilter(null);
+      if (searchTerm) {
+        const q = searchTerm.toLowerCase();
+        filtered = filtered.filter((t) =>
+          (t.merchant || "").toLowerCase().includes(q) ||
+          t.description.toLowerCase().includes(q) ||
+          (t.category || "").toLowerCase().includes(q)
+        );
+      }
+      // Standard filters (only when not using NL mode)
+      if (activeFilters.type && activeFilters.type !== "all") {
+        filtered = filtered.filter((t) => t.type === activeFilters.type);
+      }
+      if (activeFilters.category) {
+        const catId = mapCategoryToUI(activeFilters.category);
+        filtered = filtered.filter((t) => t.category === catId);
+      }
+      if (activeFilters.dateFrom) filtered = filtered.filter((t) => t.date >= activeFilters.dateFrom!);
+      if (activeFilters.dateTo)   filtered = filtered.filter((t) => t.date <= activeFilters.dateTo!);
+      if (activeFilters.minAmount !== undefined) filtered = filtered.filter((t) => Math.abs(t.amount) >= activeFilters.minAmount!);
+      if (activeFilters.maxAmount !== undefined) filtered = filtered.filter((t) => Math.abs(t.amount) <= activeFilters.maxAmount!);
     }
-    if (activeFilters.type && activeFilters.type !== "all") {
-      filtered = filtered.filter((t) => t.type === activeFilters.type);
-    }
-    if (activeFilters.category) {
-      const catId = mapCategoryToUI(activeFilters.category);
-      filtered = filtered.filter((t) => t.category === catId);
-    }
-    if (activeFilters.dateFrom) filtered = filtered.filter((t) => t.date >= activeFilters.dateFrom!);
-    if (activeFilters.dateTo) filtered = filtered.filter((t) => t.date <= activeFilters.dateTo!);
-    if (activeFilters.minAmount !== undefined) filtered = filtered.filter((t) => Math.abs(t.amount) >= activeFilters.minAmount!);
-    if (activeFilters.maxAmount !== undefined) filtered = filtered.filter((t) => Math.abs(t.amount) <= activeFilters.maxAmount!);
 
     const sort = activeFilters.sort || "date-desc";
     filtered = filtered.sort((a, b) => {
       switch (sort) {
-        case "date-desc": return +new Date(b.date) - +new Date(a.date);
-        case "date-asc": return +new Date(a.date) - +new Date(b.date);
+        case "date-desc":   return +new Date(b.date) - +new Date(a.date);
+        case "date-asc":    return +new Date(a.date) - +new Date(b.date);
         case "amount-desc": return Math.abs(b.amount) - Math.abs(a.amount);
-        case "amount-asc": return Math.abs(a.amount) - Math.abs(b.amount);
+        case "amount-asc":  return Math.abs(a.amount) - Math.abs(b.amount);
         default: return 0;
       }
     });
 
     setFilteredTransactions(filtered);
     setSelectedTransactions([]);
-    setCurrentPage(1); // ✅ Reset to page 1 on filter change
+    setCurrentPage(1);
   }, [transactions, activeFilters]);
 
   /* =========================
@@ -735,13 +756,22 @@ export default function TransactionManager() {
           description={`${filteredTransactions.length} of ${transactions.length} transactions${activeFilterCount > 0 ? ` (${activeFilterCount} active)` : ""}`}
           actions={
             <div className="flex flex-wrap items-center gap-2">
-              <Input
-                placeholder="Search transactions..."
-                value={activeFilters.search || ""}
-                onChange={(e) => setActiveFilters((prev) => ({ ...prev, search: e.target.value }))}
-                size="sm"
-                icon={<Search className="w-4 h-4" />}
-              />
+              <div className="flex flex-col gap-1">
+                <Input
+                  placeholder='Search or ask: "food last month", "over $100"…'
+                  value={activeFilters.search || ""}
+                  onChange={(e) => setActiveFilters((prev) => ({ ...prev, search: e.target.value }))}
+                  size="sm"
+                  icon={<Sparkles className="w-4 h-4 text-violet-400" />}
+                  className="min-w-[260px]"
+                />
+                {nlFilter && (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-900/30 px-2 py-0.5 rounded-full w-fit">
+                    <Sparkles className="w-3 h-3" />
+                    {nlFilter.description}
+                  </span>
+                )}
+              </div>
               <Button
                 variant={showFilters || activeFilterCount > 0 ? "secondary" : "ghost"}
                 size="sm"

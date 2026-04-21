@@ -45,6 +45,25 @@ const MERCHANT_KEYWORDS: { keywords: string[]; category: string }[] = [
   { keywords: ["haircut", "salon", "spa", "beauty", "barber", "nail"], category: "Personal Care" },
 ];
 
+// Income keyword lookup
+const INCOME_KEYWORDS: { keywords: string[]; category: string }[] = [
+  { keywords: ["salary", "payroll", "paycheck", "direct deposit", "employer", "wages", "compensation"], category: "Salary" },
+  { keywords: ["freelance", "client", "invoice", "consulting", "contract", "upwork", "fiverr", "project"], category: "Freelance" },
+  { keywords: ["dividend", "interest", "investment", "stock", "etf", "robinhood", "fidelity", "schwab", "vanguard"], category: "Investments" },
+  { keywords: ["refund", "return", "cashback", "reimbursement", "amazon refund"], category: "Refunds" },
+  { keywords: ["rental", "airbnb", "tenant", "rent income"], category: "Rental Income" },
+  { keywords: ["bonus", "award", "incentive", "commission"], category: "Bonus" },
+  { keywords: ["transfer", "zelle", "venmo", "paypal", "wire"], category: "Transfers" },
+];
+
+function incomeKeywordMatch(text: string): string | null {
+  const lower = text.toLowerCase();
+  for (const { keywords, category } of INCOME_KEYWORDS) {
+    if (keywords.some((k) => lower.includes(k))) return category;
+  }
+  return null;
+}
+
 function keywordMatch(text: string): string | null {
   const lower = text.toLowerCase();
   for (const { keywords, category } of MERCHANT_KEYWORDS) {
@@ -94,15 +113,27 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
     }
   }, [transaction, mode, isOpen]);
 
-  // Auto-categorize when merchant or description changes (expense only)
+  // Auto-categorize when merchant or description changes (expenses + income)
   useEffect(() => {
     if (mode === "edit") return;
-    if (formData.type !== "expense") return;
 
     const text = [formData.merchant, formData.description].filter(Boolean).join(" ").trim();
     if (text.length < 2) return;
 
-    // Step 1: instant local keyword match — no debounce, no API call
+    // Income categorization — instant keyword match
+    if (formData.type === "income") {
+      const local = incomeKeywordMatch(text);
+      if (local) {
+        setFormData((prev) => {
+          if (prev.category && !aiSuggested) return prev;
+          return { ...prev, category: local };
+        });
+        setAiSuggested(true);
+      }
+      return;
+    }
+
+    // Expense: Step 1 — instant local keyword match
     const local = keywordMatch(text);
     if (local) {
       setFormData((prev) => {
@@ -114,7 +145,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
       return;
     }
 
-    // Step 2: unknown merchant — debounce then call ML API
+    // Expense: Step 2 — debounced ML API fallback
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(async () => {
       setPredicting(true);

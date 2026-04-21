@@ -20,6 +20,7 @@ import { GoalProgressChart } from "@/components/dashboard/GoalProgressChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { AnomalyInsightsCard } from "@/components/dashboard/AnomalyInsightsCard";
 import { BudgetForecastCard } from "@/components/dashboard/BudgetForecastCard";
+import { HealthScoreWidget } from "@/components/dashboard/HealthScoreWidget";
 import { RecurringTransactionsCard } from "@/components/dashboard/RecurringTransactionsCard";
 import { SpendingInsightsCard } from "@/components/dashboard/SpendingInsightsCard";
 import { SavingsGoalsCard } from "@/components/dashboard/SavingsGoalsCard";
@@ -691,6 +692,10 @@ export default function DashboardPage() {
                 <Grid columns={2} gap="lg">
                   <SavingsRateCard transactions={allTransactions} />
                   <NoSpendStreakCard transactions={allTransactions} />
+                </Grid>
+                <Grid columns={2} gap="lg">
+                  <HealthScoreWidget transactions={allTransactions} budgets={allBudgets} />
+                  <SpendingInsightsCard transactions={allTransactions} />
                 </Grid>
               </>
             )}

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { isAuthenticated } from "@/lib/api";
 import { reportsService, type ReportsData, type ReportsRange } from "@/lib/api/services/reports.service";
+import { exportMonthlyReport } from "@/lib/utils/pdfExport";
 import { CheckCircle } from "lucide-react";
 import { IncomeExpenseComparison } from "@/components/charts/AdvancedCharts";
 import { Button } from "@/components/ui/Button";
@@ -336,17 +337,37 @@ const EnhancedFinancialReports: React.FC = () => {
     return { projected6, growthPct: Math.round(growthPct * 10) / 10, buffer };
   }, [allReportsData, reportsData]);
 
-  const handleExport = async () => {
+  const handleExport = () => {
+    if (!reportsData) { setExportError("No data to export yet."); return; }
     setIsExporting(true);
     try {
-      const blob = await reportsService.exportReportPDF(dateRange as ReportsRange);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = `report-${dateRange}.pdf`;
-      document.body.appendChild(a); a.click();
-      window.URL.revokeObjectURL(url); document.body.removeChild(a);
-    } catch { setExportError("Export failed. Please try again."); }
-    finally { setIsExporting(false); }
+      // Build period label from current date range
+      const periodMap: Record<string, string> = {
+        "last-7-days": "Last 7 Days", "last-30-days": "Last 30 Days",
+        "last-3-months": "Last 3 Months", "last-6-months": "Last 6 Months",
+        "last-year": "Last 12 Months", "custom": "Custom Range",
+      };
+      const period = periodMap[dateRange] ?? "Financial Report";
+      const txns = [
+        ...(reportsData.topExpenses ?? []).map((e: any) => ({
+          date: e.date ?? new Date().toISOString().split("T")[0],
+          merchant: e.description ?? e.name ?? "—",
+          category: e.category ?? "Other",
+          amount: Math.abs(e.amount ?? 0),
+          type: "expense",
+        })),
+      ];
+      const budgets = (reportsData.budgetPerformance ?? []).map((b: any) => ({
+        category: b.category ?? b.name ?? "Other",
+        budget: b.budget ?? b.limit ?? 0,
+        spent: b.spent ?? b.actual ?? 0,
+      }));
+      exportMonthlyReport(txns, budgets, period);
+    } catch (err) {
+      setExportError("Export failed. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // ── Category detail from real data ────────────────────────────────────────

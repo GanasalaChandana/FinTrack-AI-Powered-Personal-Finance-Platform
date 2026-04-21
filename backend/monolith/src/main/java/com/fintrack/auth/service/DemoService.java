@@ -42,12 +42,23 @@ public class DemoService {
 
         String userId = demo.getId().toString();
 
-        // Seed data only once
-        if (transactionRepository.findByUserId(userId).isEmpty()) {
-            seedTransactions(userId);
-            seedBudgets(userId);
-            log.info("✅ Demo data seeded for user {}", userId);
+        // Always wipe and re-seed so every demo session starts fresh.
+        // The demo account is shared — any visitor could add/import data,
+        // so we reset on every login to keep a consistent experience.
+        List<Transaction> existing = transactionRepository.findByUserId(userId);
+        if (!existing.isEmpty()) {
+            transactionRepository.deleteAll(existing);
+            log.info("🗑️ Cleared {} stale demo transactions for user {}", existing.size(), userId);
         }
+        List<Budget> existingBudgets = budgetRepository.findByUserId(userId);
+        if (!existingBudgets.isEmpty()) {
+            budgetRepository.deleteAll(existingBudgets);
+            log.info("🗑️ Cleared {} stale demo budgets for user {}", existingBudgets.size(), userId);
+        }
+
+        seedTransactions(userId);
+        seedBudgets(userId);
+        log.info("✅ Demo data re-seeded for user {}", userId);
 
         String token = jwtUtil.generateToken(demo);
 

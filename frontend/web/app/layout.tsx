@@ -4,6 +4,8 @@ import "./globals.css";
 import { DarkModeProvider } from "@/components/providers/DarkModeProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ClientLayout } from "@/components/ClientLayout";
+import { PWAProvider } from "@/components/providers/PWAProvider";
+import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -77,9 +79,12 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/icons/icon.svg",
   },
   manifest: "/site.webmanifest",
 };
@@ -122,7 +127,10 @@ export default function RootLayout({
       <body className={inter.className}>
         <DarkModeProvider>
           <ToastProvider>
-            <ClientLayout>{children}</ClientLayout>
+            <PWAProvider>
+              <ClientLayout>{children}</ClientLayout>
+              <PWAInstallBanner />
+            </PWAProvider>
           </ToastProvider>
         </DarkModeProvider>
       </body>

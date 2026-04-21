@@ -1,8 +1,50 @@
 {
-  "name": "FinTrack",
+  "name": "FinTrack – Smart Financial Management",
   "short_name": "FinTrack",
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
+  "description": "Track expenses, analyze spending patterns, and manage budgets intelligently.",
+  "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
-  "start_url": "/"
+  "orientation": "portrait-primary",
+  "theme_color": "#4f46e5",
+  "background_color": "#ffffff",
+  "categories": ["finance", "productivity"],
+  "lang": "en-US",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your financial overview",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Transactions",
+      "short_name": "Transactions",
+      "description": "View and manage transactions",
+      "url": "/transactions",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Budgets",
+      "short_name": "Budgets",
+      "description": "Track your budgets",
+      "url": "/budgets",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+    }
+  ]
 }

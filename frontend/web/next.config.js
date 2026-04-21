@@ -41,6 +41,14 @@ const nextConfig = {
         ],
       },
       {
+        // Service worker must never be cached — browsers need the latest version
+        source: '/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Service-Worker-Allowed', value: '/' },
+        ],
+      },
+      {
         source: '/api/:path*',
         headers: [{ key: 'Cache-Control', value: 'no-store, must-revalidate' }],
       },

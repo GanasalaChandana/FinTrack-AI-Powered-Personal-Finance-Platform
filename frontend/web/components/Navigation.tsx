@@ -9,8 +9,9 @@ import {
   Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor,
   BarChart3, Wallet, Search, Calendar, CreditCard, TrendingUp,
   LayoutDashboard, ArrowLeftRight, Target, ChevronLeft, ChevronRight,
-  PiggyBank, DollarSign, Settings,
+  PiggyBank, DollarSign, Settings, Download,
 } from "lucide-react";
+import { usePWA } from "@/components/providers/PWAProvider";
 import { getToken, removeToken } from "@/lib/api";
 import { useThemePreference } from "@/lib/hooks/useThemePreference";
 import { CommandPalette } from "@/components/CommandPalette";
@@ -160,6 +161,7 @@ function BottomBtn({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Navigation() {
+  const { isInstallable, promptInstall } = usePWA();
   const [mounted,      setMounted]      = useState(false);
   const [hasToken,     setHasToken]     = useState(false);
   // Persist collapsed across refreshes
@@ -624,6 +626,17 @@ export default function Navigation() {
           onClick={cycleTheme}
           title={`Theme: ${theme} — click to cycle`}
         />
+
+        {/* Install app (PWA) */}
+        {isInstallable && (
+          <BottomBtn
+            icon={Download}
+            label="Install App"
+            collapsed={collapsed && !onClose}
+            onClick={promptInstall}
+            title="Install FinTrack on your device"
+          />
+        )}
 
         {/* Settings */}
         <NavItem

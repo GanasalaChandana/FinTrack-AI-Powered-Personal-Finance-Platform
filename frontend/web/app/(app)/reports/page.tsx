@@ -14,7 +14,7 @@ import {
   FileText, type LucideIcon,
 } from "lucide-react";
 import { isAuthenticated } from "@/lib/api";
-import { reportsService, type ReportsData, type ReportsRange } from "@/lib/api/services/reports.service";
+import { reportsService, type ReportsData, type ReportsRange, type CategoryBreakdown } from "@/lib/api/services/reports.service";
 import { exportMonthlyReport } from "@/lib/utils/pdfExport";
 import { CheckCircle } from "lucide-react";
 import { IncomeExpenseComparison } from "@/components/charts/AdvancedCharts";
@@ -348,19 +348,17 @@ const EnhancedFinancialReports: React.FC = () => {
         "last-year": "Last 12 Months", "custom": "Custom Range",
       };
       const period = periodMap[dateRange] ?? "Financial Report";
-      const txns = [
-        ...(reportsData.topExpenses ?? []).map((e: any) => ({
-          date: e.date ?? new Date().toISOString().split("T")[0],
-          merchant: e.description ?? e.name ?? "—",
-          category: e.category ?? "Other",
-          amount: Math.abs(e.amount ?? 0),
-          type: "expense",
-        })),
-      ];
-      const budgets = (reportsData.budgetPerformance ?? []).map((b: any) => ({
-        category: b.category ?? b.name ?? "Other",
-        budget: b.budget ?? b.limit ?? 0,
-        spent: b.spent ?? b.actual ?? 0,
+      const txns = (reportsData.topExpenses ?? []).map((e: any) => ({
+        date: e.date ?? new Date().toISOString().split("T")[0],
+        merchant: e.vendor ?? e.description ?? e.name ?? "—",
+        category: e.category ?? "Other",
+        amount: Math.abs(e.amount ?? 0),
+        type: "expense",
+      }));
+      const budgets = (reportsData.categoryBreakdown ?? []).map((b: CategoryBreakdown) => ({
+        category: b.name,
+        budget: b.budget ?? 0,
+        spent: b.amount ?? 0,
       }));
       exportMonthlyReport(txns, budgets, period);
     } catch (err) {

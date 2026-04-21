@@ -433,14 +433,9 @@ export default function DashboardPage() {
         isOpen={showCsvModal}
         onClose={() => setShowCsvModal(false)}
         onImport={handleImportTransactions}
-        requiredHeaders={["Date", "Merchant", "Description", "Amount", "Category", "Type"]}
-        title="Import Transactions from CSV"
-        description="Upload a CSV export from your bank."
+        title="Import Bank Transactions"
+        description="Upload a CSV from any bank — columns are detected automatically."
         maxFileSize={10}
-        sampleData={[
-          { Date: "2024-01-15", Merchant: "Starbucks", Description: "Morning coffee", Amount: -5.5,  Category: "Food & Dining", Type: "expense" },
-          { Date: "2024-01-15", Merchant: "Salary",    Description: "Monthly salary", Amount: 5000,  Category: "Income",        Type: "income"  },
-        ]}
       />
 
       <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">

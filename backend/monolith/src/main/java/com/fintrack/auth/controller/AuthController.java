@@ -6,6 +6,7 @@ import com.fintrack.auth.dto.RegisterRequest;
 import com.fintrack.auth.dto.AuthResponse;
 import com.fintrack.auth.security.LoginRateLimiter;
 import com.fintrack.auth.service.AuthService;
+import com.fintrack.auth.service.DemoService;
 import com.fintrack.auth.service.GoogleAuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final GoogleAuthService googleAuthService;
+    private final DemoService demoService;
     private final LoginRateLimiter rateLimiter;
 
     // ── POST /api/auth/register ───────────────────────────────────────────────
@@ -178,6 +180,22 @@ public class AuthController {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", e.getMessage(), "message", "Google authentication failed. Please try again."));
+        }
+    }
+
+    // ── POST /api/auth/demo ───────────────────────────────────────────────────
+
+    @PostMapping("/demo")
+    public ResponseEntity<?> demoLogin() {
+        try {
+            log.info("Demo login requested");
+            AuthResponse response = demoService.loginAsDemo();
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Demo login failed: {}", e.getMessage(), e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Demo login failed", "message", e.getMessage()));
         }
     }
 

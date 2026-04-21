@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { getToken } from "@/lib/api";
+import { DemoBanner } from "@/components/dashboard/DemoBanner";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -48,5 +49,13 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return null; // Will redirect in useEffect
   }
 
-  return <>{children}</>;
+  const isDemo =
+    typeof window !== "undefined" && localStorage.getItem("isDemo") === "true";
+
+  return (
+    <>
+      {isDemo && <DemoBanner />}
+      {children}
+    </>
+  );
 }

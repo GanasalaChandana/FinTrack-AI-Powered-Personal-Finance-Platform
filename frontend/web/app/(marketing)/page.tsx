@@ -6,8 +6,9 @@ import {
   BarChart3, Shield, Zap, TrendingUp, TrendingDown, Upload, Bell,
   Target, RefreshCw, ChevronDown, ArrowRight, Check, X, Menu,
   Lock, FileText, Brain, DollarSign, PieChart, CreditCard,
-  AlertTriangle, Sparkles, Activity, CalendarDays, Minus,
+  AlertTriangle, Sparkles, Activity, CalendarDays, Minus, Loader2,
 } from "lucide-react";
+import { authAPI } from "@/lib/api";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -15,6 +16,20 @@ export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError, setDemoError] = useState<string | null>(null);
+
+  async function handleDemoLogin() {
+    setDemoLoading(true);
+    setDemoError(null);
+    try {
+      await authAPI.demoLogin();
+      router.push("/dashboard");
+    } catch (err: any) {
+      setDemoError("Demo unavailable — try again in a moment.");
+      setDemoLoading(false);
+    }
+  }
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
@@ -124,6 +139,7 @@ export default function LandingPage() {
         .faq-answer{color:#94a3b8;font-size:15px;line-height:1.7;padding-bottom:20px;max-width:680px;}
         .example-quote{background:rgba(255,255,255,0.04);border-left:3px solid;border-radius:0 8px 8px 0;padding:10px 14px;font-size:12.5px;color:#94a3b8;line-height:1.6;margin-top:12px;font-style:italic;}
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+        @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
         .fade-up{animation:fadeUp 0.6s ease both;}
         @media(max-width:768px){
           .hero-title{font-size:40px!important;}
@@ -162,6 +178,16 @@ export default function LandingPage() {
 
           <div className="hide-mobile" style={{display:"flex",alignItems:"center",gap:12}}>
             <button className="btn-ghost" style={{padding:"9px 18px",fontSize:14}} onClick={()=>router.push("/login?mode=signin")}>Log in</button>
+            <button
+              className="btn-ghost"
+              style={{padding:"9px 18px",fontSize:14,display:"inline-flex",alignItems:"center",gap:6,
+                      border:"1px solid rgba(139,92,246,0.4)",color:"#c4b5fd",background:"rgba(139,92,246,0.1)"}}
+              onClick={handleDemoLogin}
+              disabled={demoLoading}
+            >
+              {demoLoading ? <Loader2 size={13} style={{animation:"spin 1s linear infinite"}}/> : <Sparkles size={13}/>}
+              Try Demo
+            </button>
             <button className="btn-primary" style={{padding:"9px 18px",fontSize:14}} onClick={()=>router.push("/login?mode=signup")}>Get started free</button>
           </div>
 
@@ -177,6 +203,16 @@ export default function LandingPage() {
             ))}
             <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:16}}>
               <button className="btn-ghost" style={{width:"100%"}} onClick={()=>router.push("/login?mode=signin")}>Log in</button>
+              <button
+                className="btn-ghost"
+                style={{width:"100%",justifyContent:"center",display:"flex",alignItems:"center",gap:8,
+                        border:"1px solid rgba(139,92,246,0.4)",color:"#c4b5fd",background:"rgba(139,92,246,0.1)"}}
+                onClick={handleDemoLogin}
+                disabled={demoLoading}
+              >
+                {demoLoading ? <Loader2 size={14} style={{animation:"spin 1s linear infinite"}}/> : <Sparkles size={14}/>}
+                Try Demo — no signup
+              </button>
               <button className="btn-primary" style={{width:"100%",justifyContent:"center"}} onClick={()=>router.push("/login?mode=signup")}>Get started free</button>
             </div>
           </div>
@@ -209,14 +245,30 @@ export default function LandingPage() {
             Spring Boot 3.2 · Next.js 14 · PostgreSQL · 52 tests · JWT + rate limiting
           </p>
 
-          <div className="fade-up" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",marginBottom:20,animationDelay:"0.3s"}}>
+          <div className="fade-up" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",marginBottom:12,animationDelay:"0.3s"}}>
             <button className="btn-primary" style={{fontSize:16,padding:"15px 32px"}} onClick={()=>router.push("/login?mode=signup")}>
-              Try live demo <ArrowRight size={16}/>
+              Get started free <ArrowRight size={16}/>
+            </button>
+            {/* Demo CTA — instant access, no signup required */}
+            <button
+              className="btn-ghost"
+              style={{fontSize:16,padding:"15px 32px",display:"inline-flex",alignItems:"center",gap:8,
+                      border:"1px solid rgba(139,92,246,0.4)",color:"#c4b5fd",
+                      background:"rgba(139,92,246,0.08)"}}
+              onClick={handleDemoLogin}
+              disabled={demoLoading}
+            >
+              {demoLoading
+                ? <><Loader2 size={16} style={{animation:"spin 1s linear infinite"}}/> Loading demo…</>
+                : <><Sparkles size={16}/> Try Demo — no signup</>}
             </button>
             <button className="btn-ghost" style={{fontSize:16,padding:"15px 32px"}} onClick={()=>router.push("/login?mode=signin")}>
               Sign in
             </button>
           </div>
+          {demoError && (
+            <p style={{fontSize:13,color:"#f87171",marginBottom:8,textAlign:"center"}}>{demoError}</p>
+          )}
           <p className="fade-up" style={{fontSize:13,color:"#475569",marginBottom:40,animationDelay:"0.35s"}}>No credit card · Import from any bank · Free forever on basic plan</p>
 
           {/* ── Financial benefit ticker — what users actually discover ── */}
@@ -573,9 +625,21 @@ export default function LandingPage() {
             Ready to take control of your{" "}<em style={{color:"#818cf8",fontStyle:"italic"}}>finances?</em>
           </h2>
           <p style={{fontSize:18,color:"#64748b",marginBottom:40}}>Import your first transactions in under 2 minutes. AI insights activate immediately.</p>
-          <button className="btn-primary" style={{fontSize:17,padding:"16px 36px"}} onClick={()=>router.push("/login?mode=signup")}>
-            Get started for free <ArrowRight size={18}/>
-          </button>
+          <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+            <button className="btn-primary" style={{fontSize:17,padding:"16px 36px"}} onClick={()=>router.push("/login?mode=signup")}>
+              Get started for free <ArrowRight size={18}/>
+            </button>
+            <button
+              className="btn-ghost"
+              style={{fontSize:17,padding:"16px 36px",display:"inline-flex",alignItems:"center",gap:8,
+                      border:"1px solid rgba(139,92,246,0.4)",color:"#c4b5fd",background:"rgba(139,92,246,0.08)"}}
+              onClick={handleDemoLogin}
+              disabled={demoLoading}
+            >
+              {demoLoading ? <Loader2 size={16} style={{animation:"spin 1s linear infinite"}}/> : <Sparkles size={16}/>}
+              Try Demo instead
+            </button>
+          </div>
           <p style={{marginTop:16,fontSize:13,color:"#475569"}}>No credit card · Free forever on the basic plan</p>
         </div>
       </section>

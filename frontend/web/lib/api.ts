@@ -164,6 +164,7 @@ export function removeToken(): void {
   localStorage.removeItem(LEGACY_TOKEN_KEY);
   localStorage.removeItem("user");
   localStorage.removeItem("userId");
+  localStorage.removeItem("isDemo");
   sessionStorage.removeItem(PRIMARY_TOKEN_KEY);
   document.cookie = `${PRIMARY_TOKEN_KEY}=; path=/; max-age=0`;
 }
@@ -503,6 +504,19 @@ export const authAPI = {
       method: "POST",
       body: JSON.stringify(data),
     }, false);
+  },
+
+  demoLogin: async (): Promise<AuthResponse> => {
+    const response = await apiRequest<AuthResponse>("/api/auth/demo", {
+      method: "POST",
+    }, false);
+    if (response.token) setToken(response.token);
+    if (response.user) setUser(response.user);
+    // Mark this session as a demo so the banner shows
+    if (typeof window !== "undefined") {
+      localStorage.setItem("isDemo", "true");
+    }
+    return response;
   },
 };
 

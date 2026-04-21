@@ -29,7 +29,7 @@ export function BudgetForecastCard({ transactions, budgets }: Props) {
       : "bg-emerald-500";
 
   return (
-    <div className="rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 p-5 flex flex-col gap-4">
+    <div className="ai-card-hover rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 p-5 flex flex-col gap-4">
       <div className="flex items-center gap-2">
         <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30">
           <BarChart3 className="w-4 h-4 text-indigo-500" />

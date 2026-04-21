@@ -287,8 +287,9 @@ export default function DashboardPage() {
     } catch {}
     setIsAuthenticated(true);
     setIsLoading(false);
-    // Show onboarding wizard for first-time users
-    if (shouldShowOnboarding()) setShowOnboarding(true);
+    // Show onboarding wizard for first-time users (skip for demo accounts)
+    const isDemo = typeof window !== "undefined" && localStorage.getItem("isDemo") === "true";
+    if (!isDemo && shouldShowOnboarding()) setShowOnboarding(true);
   }, [router]);
 
   // ── Keyboard shortcuts ───────────────────────────────────────────────────

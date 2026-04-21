@@ -3,23 +3,86 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  DollarSign, Target, PiggyBank, Check, ChevronRight, X,
-  TrendingUp, Loader2,
+  DollarSign, Target, PiggyBank, Check, X,
+  TrendingUp, Loader2, Upload, BarChart3, Brain,
+  Bell, ArrowRight, Sparkles, ChevronRight,
 } from "lucide-react";
-import { transactionsAPI, budgetsAPI, goalsAPI } from "@/lib/api";
+import { transactionsAPI, budgetsAPI, goalsAPI, getUser } from "@/lib/api";
 
 const ONBOARDING_KEY = "fintrack-onboarding-done";
 
-interface OnboardingWizardProps {
-  onComplete: () => void;
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 0 — Welcome
+// ─────────────────────────────────────────────────────────────────────────────
+function StepWelcome({ onNext, onSkip, userName }: { onNext: () => void; onSkip: () => void; userName: string }) {
+  const highlights = [
+    { icon: BarChart3, color: "#6366f1", bg: "rgba(99,102,241,0.12)", label: "Live dashboard",    desc: "Income, expenses & net worth at a glance" },
+    { icon: Brain,     color: "#8b5cf6", bg: "rgba(139,92,246,0.12)", label: "4 AI models",       desc: "Anomaly detection, forecasts, predictions" },
+    { icon: Target,    color: "#10b981", bg: "rgba(16,185,129,0.12)", label: "Budgets & goals",   desc: "Set limits, track progress automatically" },
+    { icon: Bell,      color: "#f59e0b", bg: "rgba(245,158,11,0.12)", label: "Smart alerts",      desc: "Unusual spending caught before it hurts" },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <div className="text-center">
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+          style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+        >
+          <Sparkles className="w-8 h-8 text-white" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          Welcome{userName ? `, ${userName}` : ""}! 🎉
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+          FinTrack is your AI-powered money dashboard. Let's take 60 seconds to personalise it for you.
+        </p>
+      </div>
+
+      {/* Feature highlights */}
+      <div className="grid grid-cols-2 gap-2.5">
+        {highlights.map(({ icon: Icon, color, bg, label, desc }) => (
+          <div
+            key={label}
+            className="flex flex-col gap-2 p-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
+          >
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: bg }}>
+              <Icon className="w-4 h-4" style={{ color }} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{label}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-snug mt-0.5">{desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-3 pt-1">
+        <button
+          onClick={onSkip}
+          className="py-2.5 px-4 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+        >
+          Skip setup
+        </button>
+        <button
+          onClick={onNext}
+          className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition hover:opacity-90"
+          style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+        >
+          Let's get started <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
 }
 
-// ── Step 1: Add Income ────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 1 — Income
+// ─────────────────────────────────────────────────────────────────────────────
 function StepIncome({ onNext }: { onNext: () => void }) {
   const [salary, setSalary] = useState("");
   const [frequency, setFrequency] = useState<"monthly" | "biweekly" | "weekly">("monthly");
   const [saving, setSaving] = useState(false);
-  const [skipped, setSkipped] = useState(false);
 
   const handleSave = async () => {
     const amount = parseFloat(salary.replace(/,/g, ""));
@@ -41,14 +104,14 @@ function StepIncome({ onNext }: { onNext: () => void }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="text-center">
         <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <TrendingUp className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
         </div>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">What's your income?</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Start by adding your primary income source so we can build your budget.
+          We'll use this to build smart budgets and track your savings rate.
         </p>
       </div>
 
@@ -63,8 +126,10 @@ function StepIncome({ onNext }: { onNext: () => void }) {
               type="number"
               value={salary}
               onChange={e => setSalary(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleSave()}
               placeholder="0.00"
               className="w-full pl-8 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-lg font-semibold"
+              autoFocus
             />
           </div>
         </div>
@@ -84,7 +149,7 @@ function StepIncome({ onNext }: { onNext: () => void }) {
                     : "border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-emerald-400"
                 }`}
               >
-                {f.charAt(0).toUpperCase() + f.slice(1)}
+                {f === "biweekly" ? "Bi-weekly" : f.charAt(0).toUpperCase() + f.slice(1)}
               </button>
             ))}
           </div>
@@ -94,31 +159,33 @@ function StepIncome({ onNext }: { onNext: () => void }) {
       <div className="flex gap-3">
         <button
           onClick={onNext}
-          className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+          className="py-2.5 px-4 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
         >
-          Skip for now
+          Skip
         </button>
         <button
           onClick={handleSave}
           disabled={saving}
           className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition flex items-center justify-center gap-2"
         >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          Save & Continue
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+          {saving ? "Saving…" : "Save & Continue"}
         </button>
       </div>
     </div>
   );
 }
 
-// ── Step 2: Set Budget ────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 2 — Budgets
+// ─────────────────────────────────────────────────────────────────────────────
 const BUDGET_PRESETS = [
-  { category: "Food & Dining", icon: "🍔", suggested: 400 },
-  { category: "Transportation", icon: "🚗", suggested: 200 },
-  { category: "Entertainment", icon: "🎮", suggested: 100 },
-  { category: "Shopping", icon: "🛍️", suggested: 150 },
-  { category: "Bills & Utilities", icon: "💡", suggested: 200 },
-  { category: "Healthcare", icon: "⚕️", suggested: 100 },
+  { category: "Food & Dining",    icon: "🍽️", color: "#f97316", suggested: 500 },
+  { category: "Transportation",   icon: "🚗", color: "#10b981", suggested: 200 },
+  { category: "Entertainment",    icon: "🎬", color: "#8b5cf6", suggested: 100 },
+  { category: "Shopping",         icon: "🛍️", color: "#f59e0b", suggested: 200 },
+  { category: "Bills & Utilities",icon: "💡", color: "#0ea5e9", suggested: 250 },
+  { category: "Health & Fitness", icon: "💪", color: "#ec4899", suggested: 100 },
 ];
 
 function StepBudget({ onNext }: { onNext: () => void }) {
@@ -129,17 +196,19 @@ function StepBudget({ onNext }: { onNext: () => void }) {
 
   const handleSave = async () => {
     setSaving(true);
-    const entries = Object.entries(budgets).filter(([, v]) => parseFloat(v) > 0);
+    const entries = BUDGET_PRESETS.filter(p => parseFloat(budgets[p.category] || "0") > 0);
     try {
-      await Promise.all(entries.map(([category, amount]) =>
-        budgetsAPI.create({
-          category,
-          budget: parseFloat(amount),
-          spent: 0,
-          icon: "📦",
-          color: "#6366f1",
-        }).catch(() => {})
-      ));
+      await Promise.all(
+        entries.map(p =>
+          budgetsAPI.create({
+            category: p.category,
+            budget: parseFloat(budgets[p.category]),
+            spent: 0,
+            icon: p.icon,
+            color: p.color,
+          }).catch(() => {})
+        )
+      );
     } catch { /* proceed anyway */ }
     setSaving(false);
     onNext();
@@ -151,14 +220,14 @@ function StepBudget({ onNext }: { onNext: () => void }) {
         <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <Target className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Set your monthly budget</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Set your monthly limits</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          We've suggested amounts based on typical spending. Adjust as you like.
+          We'll alert you before you overspend. Adjust any amount — or set to 0 to skip a category.
         </p>
       </div>
 
-      <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-        {BUDGET_PRESETS.map(({ category, icon }) => (
+      <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+        {BUDGET_PRESETS.map(({ category, icon, color }) => (
           <div key={category} className="flex items-center gap-3">
             <span className="text-xl w-8 text-center shrink-0">{icon}</span>
             <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{category}</span>
@@ -168,7 +237,8 @@ function StepBudget({ onNext }: { onNext: () => void }) {
                 type="number"
                 value={budgets[category]}
                 onChange={e => setBudgets(prev => ({ ...prev, [category]: e.target.value }))}
-                className="w-full pl-6 pr-2 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-6 pr-2 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-right text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                style={{ focusBorderColor: color } as any}
               />
             </div>
           </div>
@@ -178,9 +248,9 @@ function StepBudget({ onNext }: { onNext: () => void }) {
       <div className="flex gap-3">
         <button
           onClick={onNext}
-          className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+          className="py-2.5 px-4 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
         >
-          Skip for now
+          Skip
         </button>
         <button
           onClick={handleSave}
@@ -188,22 +258,24 @@ function StepBudget({ onNext }: { onNext: () => void }) {
           className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition flex items-center justify-center gap-2"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          Set Budgets
+          {saving ? "Saving…" : "Set Budgets"}
         </button>
       </div>
     </div>
   );
 }
 
-// ── Step 3: Create Goal ───────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 3 — Goal
+// ─────────────────────────────────────────────────────────────────────────────
 const GOAL_TEMPLATES = [
   { name: "Emergency Fund", icon: "🛡️", target: 5000 },
-  { name: "Vacation", icon: "✈️", target: 2000 },
-  { name: "New Car", icon: "🚗", target: 15000 },
-  { name: "Down Payment", icon: "🏠", target: 30000 },
+  { name: "Vacation",       icon: "✈️",  target: 2000 },
+  { name: "New Car",        icon: "🚗", target: 15000 },
+  { name: "Down Payment",   icon: "🏠", target: 30000 },
 ];
 
-function StepGoal({ onComplete }: { onComplete: () => void }) {
+function StepGoal({ onNext }: { onNext: () => void }) {
   const [goalName, setGoalName] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -217,7 +289,7 @@ function StepGoal({ onComplete }: { onComplete: () => void }) {
 
   const handleSave = async () => {
     const amount = parseFloat(targetAmount);
-    if (!goalName.trim() || !amount || amount <= 0) { onComplete(); return; }
+    if (!goalName.trim() || !amount || amount <= 0) { onNext(); return; }
     setSaving(true);
     try {
       await goalsAPI.create({
@@ -229,7 +301,7 @@ function StepGoal({ onComplete }: { onComplete: () => void }) {
       });
     } catch { /* proceed anyway */ }
     setSaving(false);
-    onComplete();
+    onNext();
   };
 
   return (
@@ -240,11 +312,10 @@ function StepGoal({ onComplete }: { onComplete: () => void }) {
         </div>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create a savings goal</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          What are you saving toward? Pick a template or create your own.
+          Pick a template or name your own. Track progress right on the dashboard.
         </p>
       </div>
 
-      {/* Templates */}
       <div className="grid grid-cols-2 gap-2">
         {GOAL_TEMPLATES.map(tpl => (
           <button
@@ -253,7 +324,7 @@ function StepGoal({ onComplete }: { onComplete: () => void }) {
             className={`flex items-center gap-2 p-3 rounded-xl border text-left transition-colors ${
               selectedTemplate === tpl.name
                 ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20"
-                : "border-gray-200 dark:border-gray-600 hover:border-amber-300"
+                : "border-gray-200 dark:border-gray-600 hover:border-amber-300 dark:hover:border-amber-600"
             }`}
           >
             <span className="text-xl">{tpl.icon}</span>
@@ -265,13 +336,12 @@ function StepGoal({ onComplete }: { onComplete: () => void }) {
         ))}
       </div>
 
-      {/* Custom input */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <input
           type="text"
           value={goalName}
           onChange={e => { setGoalName(e.target.value); setSelectedTemplate(null); }}
-          placeholder="Goal name (e.g. New Laptop)"
+          placeholder="Or name your own goal…"
           className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
         />
         <div className="relative">
@@ -288,10 +358,10 @@ function StepGoal({ onComplete }: { onComplete: () => void }) {
 
       <div className="flex gap-3">
         <button
-          onClick={onComplete}
-          className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+          onClick={onNext}
+          className="py-2.5 px-4 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
         >
-          Skip for now
+          Skip
         </button>
         <button
           onClick={handleSave}
@@ -299,93 +369,211 @@ function StepGoal({ onComplete }: { onComplete: () => void }) {
           className="flex-1 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:bg-amber-600 transition flex items-center justify-center gap-2"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-          {saving ? "Saving…" : "Finish Setup"}
+          {saving ? "Saving…" : "Create Goal"}
         </button>
       </div>
     </div>
   );
 }
 
-// ── Main Wizard ───────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 4 — All done!
+// ─────────────────────────────────────────────────────────────────────────────
+function StepDone({ onComplete }: { onComplete: () => void }) {
+  const router = useRouter();
+
+  const actions = [
+    {
+      icon: Upload,
+      color: "#10b981",
+      bg: "rgba(16,185,129,0.1)",
+      label: "Import transactions",
+      desc: "Upload a CSV from your bank — ML auto-categorises every row",
+      onClick: () => { onComplete(); /* CSV import modal is on the dashboard */ },
+    },
+    {
+      icon: DollarSign,
+      color: "#6366f1",
+      bg: "rgba(99,102,241,0.1)",
+      label: "Add a transaction",
+      desc: "Manually log income or an expense right now",
+      onClick: () => { onComplete(); },
+    },
+    {
+      icon: BarChart3,
+      color: "#8b5cf6",
+      bg: "rgba(139,92,246,0.1)",
+      label: "Explore dashboard",
+      desc: "See your AI insights, spending charts, and budget overview",
+      onClick: () => { onComplete(); },
+    },
+  ];
+
+  return (
+    <div className="space-y-5">
+      {/* Confetti header */}
+      <div className="text-center">
+        <div className="text-5xl mb-3">🎉</div>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">You're all set!</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+          Your account is personalised. Here are the best next steps to get real value fast.
+        </p>
+      </div>
+
+      {/* Quick action cards */}
+      <div className="space-y-2.5">
+        {actions.map(({ icon: Icon, color, bg, label, desc, onClick }) => (
+          <button
+            key={label}
+            onClick={onClick}
+            className="w-full flex items-center gap-3 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:border-indigo-300 dark:hover:border-indigo-600 text-left transition group"
+          >
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: bg }}>
+              <Icon className="w-4.5 h-4.5" style={{ color }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{label}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-snug mt-0.5 truncate">{desc}</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 transition shrink-0" />
+          </button>
+        ))}
+      </div>
+
+      <button
+        onClick={onComplete}
+        className="w-full py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition hover:opacity-90"
+        style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+      >
+        Go to Dashboard <ArrowRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Wizard
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface OnboardingWizardProps {
+  onComplete: () => void;
+}
+
+const STEP_META = [
+  { title: "Welcome"  },
+  { title: "Income"   },
+  { title: "Budgets"  },
+  { title: "Goal"     },
+  { title: "Done"     },
+];
 
 export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState(0);
-
-  const steps = [
-    { title: "Add Income", icon: <TrendingUp className="w-4 h-4" /> },
-    { title: "Set Budget", icon: <Target className="w-4 h-4" /> },
-    { title: "Create Goal", icon: <PiggyBank className="w-4 h-4" /> },
-  ];
+  const userName = (() => {
+    try { return getUser()?.firstName || getUser()?.name?.split(" ")[0] || ""; } catch { return ""; }
+  })();
 
   const handleComplete = () => {
     localStorage.setItem(ONBOARDING_KEY, "true");
     onComplete();
   };
 
-  const nextStep = () => {
-    if (step < 2) setStep(s => s + 1);
-    else handleComplete();
-  };
+  const next = () => setStep(s => Math.min(s + 1, STEP_META.length - 1));
+
+  // Progress indicator — only show dots for steps 1-3 (data collection)
+  const dataSteps = STEP_META.slice(1, 4); // Income, Budgets, Goal
+  const dataStep  = step - 1;             // 0-indexed within data steps
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={step === 0 ? handleComplete : undefined} />
 
       {/* Modal */}
       <div className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5">
+
+        {/* Gradient header */}
+        <div
+          className="px-6 py-5"
+          style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)" }}
+        >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-indigo-200 text-xs font-semibold uppercase tracking-widest">Welcome to FinTrack</p>
-              <h1 className="text-white text-lg font-bold mt-0.5">Let's get you set up</h1>
+              <p className="text-indigo-200 text-xs font-semibold uppercase tracking-widest">FinTrack Setup</p>
+              <h1 className="text-white text-lg font-bold mt-0.5">
+                {step === 0 ? "Welcome aboard" : step === 4 ? "Setup complete" : `Step ${step} of 3`}
+              </h1>
             </div>
             <button
               onClick={handleComplete}
-              className="p-1.5 text-indigo-200 hover:text-white hover:bg-white/10 rounded-lg transition"
-              title="Skip setup"
+              className="p-1.5 rounded-lg transition"
+              style={{ color: "rgba(199,210,254,0.8)", background: "transparent" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)"; (e.currentTarget as HTMLElement).style.color = "white"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "rgba(199,210,254,0.8)"; }}
+              title="Close setup"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Step progress */}
-          <div className="flex items-center gap-2">
-            {steps.map((s, i) => (
-              <div key={i} className="flex items-center gap-2 flex-1">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                  i < step ? "bg-white text-indigo-600" : i === step ? "bg-indigo-400 text-white ring-2 ring-white" : "bg-indigo-700/50 text-indigo-300"
-                }`}>
-                  {i < step ? <Check className="w-3.5 h-3.5" /> : i + 1}
+          {/* Progress dots — shown only during data-collection steps */}
+          {step >= 1 && step <= 3 && (
+            <div className="flex items-center gap-2">
+              {dataSteps.map((s, i) => (
+                <div key={i} className="flex items-center gap-2 flex-1">
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                    style={{
+                      background: i < dataStep ? "white" : i === dataStep ? "rgba(165,180,252,0.9)" : "rgba(79,70,229,0.4)",
+                      color:      i < dataStep ? "#4f46e5" : "white",
+                      boxShadow:  i === dataStep ? "0 0 0 2px white" : "none",
+                    }}
+                  >
+                    {i < dataStep ? <Check className="w-3.5 h-3.5" /> : i + 1}
+                  </div>
+                  {i < dataSteps.length - 1 && (
+                    <div
+                      className="flex-1 h-0.5 rounded transition-all"
+                      style={{ background: i < dataStep ? "white" : "rgba(79,70,229,0.3)" }}
+                    />
+                  )}
                 </div>
-                {i < steps.length - 1 && (
-                  <div className={`flex-1 h-0.5 rounded ${i < step ? "bg-white" : "bg-indigo-700/50"}`} />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between mt-1.5">
-            {steps.map((s, i) => (
-              <span key={i} className={`text-[10px] font-medium ${i === step ? "text-white" : "text-indigo-300"}`}>
-                {s.title}
-              </span>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+          {step >= 1 && step <= 3 && (
+            <div className="flex justify-between mt-1.5">
+              {dataSteps.map((s, i) => (
+                <span
+                  key={i}
+                  className="text-[10px] font-medium"
+                  style={{ color: i === dataStep ? "white" : "rgba(165,180,252,0.7)" }}
+                >
+                  {s.title}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Step content */}
         <div className="p-6">
-          {step === 0 && <StepIncome onNext={nextStep} />}
-          {step === 1 && <StepBudget onNext={nextStep} />}
-          {step === 2 && <StepGoal onComplete={handleComplete} />}
+          {step === 0 && <StepWelcome onNext={next} onSkip={handleComplete} userName={userName} />}
+          {step === 1 && <StepIncome onNext={next} />}
+          {step === 2 && <StepBudget onNext={next} />}
+          {step === 3 && <StepGoal onNext={next} />}
+          {step === 4 && <StepDone onComplete={handleComplete} />}
         </div>
       </div>
     </div>
   );
 }
 
-/** Check if onboarding should show for this user */
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Returns true when onboarding should show for this user (first session only). */
 export function shouldShowOnboarding(): boolean {
   if (typeof window === "undefined") return false;
   return !localStorage.getItem(ONBOARDING_KEY);

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Loader2, Plus, Trash2, Pencil, Target, TrendingUp,
-  CheckCircle2, Circle, CalendarDays, X, ChevronRight, Sparkles,
+  CheckCircle2, Circle, CalendarDays, X, ChevronRight, Sparkles, Wand2,
 } from "lucide-react";
 import { BudgetManager, type Budget } from "@/components/budgets/BudgetManager";
 import { SmartBudgetSuggestionsModal, type AppliedBudget } from "@/components/budgets/SmartBudgetSuggestionsModal";
@@ -99,6 +99,41 @@ const daysUntil = (deadline: string): number => {
   const d = new Date(deadline);
   return Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 };
+
+// ── Contribution history helpers (localStorage) ───────────────────────────────
+
+const CONTRIB_PREFIX = "fintrack-goal-contributions-";
+
+interface ContribEntry { date: string; amount: number }
+
+function logContribution(goalId: string, amount: number) {
+  try {
+    const key  = CONTRIB_PREFIX + goalId;
+    const prev = JSON.parse(localStorage.getItem(key) ?? "[]") as ContribEntry[];
+    prev.push({ date: new Date().toISOString().slice(0, 10), amount });
+    localStorage.setItem(key, JSON.stringify(prev.slice(-24))); // keep ~2 years
+  } catch {}
+}
+
+function getContributionHistory(goalId: string): ContribEntry[] {
+  try {
+    return JSON.parse(localStorage.getItem(CONTRIB_PREFIX + goalId) ?? "[]");
+  } catch { return []; }
+}
+
+// ── Budget rollover helpers (localStorage) ─────────────────────────────────────
+
+const ROLLOVER_KEY = "fintrack-budget-rollover";
+
+interface RolloverStore { month: string; data: Record<string, number> }
+
+function loadRolloverStore(): RolloverStore | null {
+  try { return JSON.parse(localStorage.getItem(ROLLOVER_KEY) ?? "null"); } catch { return null; }
+}
+
+function saveRolloverStore(store: RolloverStore) {
+  try { localStorage.setItem(ROLLOVER_KEY, JSON.stringify(store)); } catch {}
+}
 
 // ── Goal Form Modal ────────────────────────────────────────────────────────────
 
@@ -464,6 +499,24 @@ interface GoalCardProps {
 }
 
 function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalCardProps) {
+  // Contribution history from localStorage
+  const [contribHistory, setContribHistory] = useState<ContribEntry[]>([]);
+  useEffect(() => {
+    setContribHistory(getContributionHistory(goal.id));
+  }, [goal.id, goal.current]); // refresh whenever current amount changes
+
+  // Group by month for mini chart
+  const contribByMonth = useMemo(() => {
+    const map: Record<string, number> = {};
+    contribHistory.forEach(({ date, amount }) => {
+      const mo = date.slice(0, 7);
+      map[mo] = (map[mo] || 0) + amount;
+    });
+    const months = Object.keys(map).sort().slice(-6);
+    const maxVal = Math.max(1, ...months.map(m => map[m]));
+    return { months, map, maxVal };
+  }, [contribHistory]);
+
   const progress  = Math.min(100, goal.progress ?? (goal.target > 0 ? (goal.current / goal.target) * 100 : 0));
   const achieved  = goal.achieved || progress >= 100;
   const remaining = Math.max(0, goal.target - goal.current);
@@ -582,6 +635,36 @@ function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalCardProps) {
         </div>
       )}
 
+      {/* Contribution history mini chart */}
+      {contribByMonth.months.length >= 2 && (
+        <div className="mb-3">
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1.5 flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" /> Contribution history
+          </p>
+          <div className="flex items-end gap-1 h-10">
+            {contribByMonth.months.map(mo => {
+              const h = Math.max(4, Math.round((contribByMonth.map[mo] / contribByMonth.maxVal) * 36));
+              return (
+                <div key={mo} className="flex-1 flex flex-col items-center gap-0.5 group relative">
+                  <div
+                    className="w-full rounded-t-sm transition-all"
+                    style={{ height: h, backgroundColor: `${goal.color}99` }}
+                  />
+                  {/* tooltip */}
+                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-[9px] bg-gray-800 text-white rounded px-1.5 py-0.5 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10">
+                    {mo.slice(5)}/{mo.slice(0,4).slice(2)}: {fmt(contribByMonth.map[mo])}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-600 mt-0.5">
+            <span>{contribByMonth.months[0]?.slice(5)}/{contribByMonth.months[0]?.slice(2,4)}</span>
+            <span>{contribByMonth.months[contribByMonth.months.length - 1]?.slice(5)}/{contribByMonth.months[contribByMonth.months.length - 1]?.slice(2,4)}</span>
+          </div>
+        </div>
+      )}
+
       {/* Footer row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -603,6 +686,170 @@ function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalCardProps) {
             Contribute
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── 50/30/20 Wizard ───────────────────────────────────────────────────────────
+
+const WIZARD_NEEDS    = ["Housing / Rent", "Groceries", "Transportation", "Utilities", "Insurance", "Healthcare"];
+const WIZARD_WANTS    = ["Dining Out", "Entertainment", "Shopping", "Travel", "Subscriptions", "Personal Care"];
+const WIZARD_SAVINGS  = ["Emergency Fund", "Retirement / 401k", "Investments", "Other Savings"];
+
+// Suggested weight distribution within each bucket
+const NEEDS_WEIGHTS   = [0.35, 0.20, 0.15, 0.12, 0.10, 0.08];
+const WANTS_WEIGHTS   = [0.30, 0.25, 0.20, 0.12, 0.08, 0.05];
+const SAVINGS_WEIGHTS = [0.40, 0.35, 0.20, 0.05];
+
+function WizardModal5030({ onApply, onClose }: { onApply: (b: AppliedBudget[]) => Promise<void>; onClose: () => void }) {
+  const [income, setIncome]           = useState("");
+  const [alloc,  setAlloc]            = useState<Record<string, number>>({});
+  const [saving, setSaving]           = useState(false);
+
+  const monthly = parseFloat(income) || 0;
+  const needs50  = monthly * 0.5;
+  const wants30  = monthly * 0.3;
+  const save20   = monthly * 0.2;
+
+  // Auto-distribute when income changes
+  useEffect(() => {
+    if (monthly <= 0) { setAlloc({}); return; }
+    const next: Record<string, number> = {};
+    WIZARD_NEEDS.forEach((c, i)   => { next[c] = Math.round((needs50 * NEEDS_WEIGHTS[i])   / 5) * 5; });
+    WIZARD_WANTS.forEach((c, i)   => { next[c] = Math.round((wants30 * WANTS_WEIGHTS[i])   / 5) * 5; });
+    WIZARD_SAVINGS.forEach((c, i) => { next[c] = Math.round((save20  * SAVINGS_WEIGHTS[i]) / 5) * 5; });
+    setAlloc(next);
+  }, [monthly, needs50, wants30, save20]);
+
+  const handleApply = async () => {
+    setSaving(true);
+    try {
+      const budgets: AppliedBudget[] = Object.entries(alloc)
+        .filter(([, amt]) => amt > 0)
+        .map(([category, budget]) => ({
+          category,
+          budget,
+          icon:  category.includes("Fund") || category.includes("Saving") || category.includes("Invest") || category.includes("401") ? "💰" :
+                 category.includes("Hous") || category.includes("Rent") ? "🏠" :
+                 category.includes("Groc") ? "🛒" :
+                 category.includes("Trans") ? "🚗" :
+                 category.includes("Util") ? "💡" :
+                 category.includes("Health") || category.includes("Insur") ? "🏥" :
+                 category.includes("Dining") ? "🍽️" :
+                 category.includes("Entertain") ? "🎬" :
+                 category.includes("Shop") ? "🛍️" :
+                 category.includes("Travel") ? "✈️" :
+                 category.includes("Sub") ? "📱" : "💳",
+          color: category.includes("Fund") || category.includes("Saving") || category.includes("Invest") || category.includes("401") ? "#10b981" :
+                 category.includes("Hous") || category.includes("Rent") || category.includes("Util") ? "#3b82f6" :
+                 category.includes("Health") || category.includes("Insur") ? "#ef4444" :
+                 category.includes("Shop") || category.includes("Entertain") || category.includes("Travel") ? "#f59e0b" :
+                 "#6366f1",
+        }));
+      await onApply(budgets);
+    } finally {
+      setSaving(false);
+    }
+    onClose();
+  };
+
+  const buckets = [
+    { title: "🏠 Needs",   pct: 50, amount: needs50, cats: WIZARD_NEEDS,   tagCls: "bg-blue-50   dark:bg-blue-900/20   border-blue-100   dark:border-blue-800/30",   textCls: "text-blue-700   dark:text-blue-300"   },
+    { title: "🎉 Wants",   pct: 30, amount: wants30, cats: WIZARD_WANTS,   tagCls: "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800/30", textCls: "text-purple-700 dark:text-purple-300" },
+    { title: "💰 Savings", pct: 20, amount: save20,  cats: WIZARD_SAVINGS, tagCls: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/30", textCls: "text-emerald-700 dark:text-emerald-300" },
+  ];
+
+  const totalApply = Object.values(alloc).filter(v => v > 0).length;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">50 / 30 / 20 Budget Wizard</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">50% Needs · 30% Wants · 20% Savings</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {/* Income input */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Monthly Take-Home Income</label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">$</span>
+              <input
+                type="number" min="0" value={income}
+                onChange={e => setIncome(e.target.value)}
+                placeholder="5 000"
+                className="w-full pl-8 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+              />
+            </div>
+          </div>
+
+          {monthly > 0 && (
+            <>
+              {/* Bucket summary */}
+              <div className="grid grid-cols-3 gap-3">
+                {buckets.map(b => (
+                  <div key={b.title} className={`${b.tagCls} border rounded-xl p-3 text-center`}>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">{b.title.split(" ").slice(1).join(" ")}</p>
+                    <p className={`text-xl font-black ${b.textCls}`}>{b.pct}%</p>
+                    <p className={`text-xs font-semibold ${b.textCls}`}>{fmt(b.amount)}/mo</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Category allocations per bucket */}
+              {buckets.map(({ title, amount: bucketAmt, cats, textCls }) => {
+                const allocated = cats.reduce((s, c) => s + (alloc[c] || 0), 0);
+                return (
+                  <div key={title}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className={`text-sm font-bold ${textCls}`}>{title}</h3>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{fmt(allocated)} / {fmt(bucketAmt)}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {cats.map(cat => (
+                        <div key={cat} className="flex items-center gap-3">
+                          <span className="text-xs text-gray-600 dark:text-gray-400 w-36 shrink-0 truncate">{cat}</span>
+                          <div className="relative flex-1">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
+                            <input
+                              type="number" min="0" step="5"
+                              value={alloc[cat] ?? ""}
+                              onChange={e => setAlloc(p => ({ ...p, [cat]: parseFloat(e.target.value) || 0 }))}
+                              className="w-full pl-6 pr-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t dark:border-gray-700 flex gap-3 shrink-0">
+          <button onClick={onClose} className="flex-1 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+            Cancel
+          </button>
+          <button
+            onClick={handleApply}
+            disabled={!monthly || totalApply === 0 || saving}
+            className="flex-1 bg-indigo-600 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-indigo-700 transition disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            Apply {totalApply} Budget{totalApply !== 1 ? "s" : ""}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -660,6 +907,7 @@ function GoalsSection() {
       method: "PATCH",
       body: JSON.stringify({ amount }),
     });
+    logContribution(contributeGoal.id, amount); // persist to localStorage for history chart
     await fetchGoals();
   };
 
@@ -788,6 +1036,8 @@ export default function GoalsBudgetsPage() {
   const [budgets,         setBudgets]         = useState<Budget[]>([]);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showWizard5030,  setShowWizard5030]  = useState(false);
+  const [rolloverCredits, setRolloverCredits] = useState<Record<string, number>>({});
   const [activeTab,       setActiveTab]       = useState<Tab>(
     tabParam === "budgets" ? "budgets" : "goals"
   );
@@ -810,6 +1060,28 @@ export default function GoalsBudgetsPage() {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
+
+  // Rollover: detect when a new month starts and surface last month's surplus/deficit
+  useEffect(() => {
+    const currentMonth = getLocalYearMonth();
+    const stored = loadRolloverStore();
+    if (stored && stored.month !== currentMonth) {
+      // We have data from a previous month → these become rollover credits
+      setRolloverCredits(stored.data);
+    }
+  }, []);
+
+  // Persist current month's budget/spent data so next month can compute rollover
+  useEffect(() => {
+    if (budgets.length === 0) return;
+    const currentMonth = getLocalYearMonth();
+    const data: Record<string, number> = {};
+    budgets.forEach(b => {
+      const surplus = Math.round((b.budget - (b.spent || 0)) * 100) / 100;
+      data[b.category] = surplus;
+    });
+    saveRolloverStore({ month: currentMonth, data });
+  }, [budgets]);
 
   const fetchBudgets = useCallback(async (options: { silent?: boolean } = {}): Promise<void> => {
     if (!options.silent) setIsLoading(true);
@@ -940,8 +1212,15 @@ export default function GoalsBudgetsPage() {
 
           {activeTab === "budgets" && (
             <>
-              {/* ── AI Suggest button — shown above the manager ── */}
-              <div className="flex justify-end mb-4">
+              {/* ── Action buttons row ── */}
+              <div className="flex flex-wrap gap-2 justify-end mb-4">
+                <button
+                  onClick={() => setShowWizard5030(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400 border-2 border-emerald-200 dark:border-emerald-700 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
+                >
+                  <Wand2 className="w-4 h-4" />
+                  50/30/20 Wizard
+                </button>
                 <button
                   onClick={() => setShowSuggestions(true)}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-2 border-indigo-200 dark:border-indigo-700 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
@@ -950,6 +1229,47 @@ export default function GoalsBudgetsPage() {
                   Suggest Budgets with AI
                 </button>
               </div>
+
+              {/* ── Rollover credits from last month ── */}
+              {Object.keys(rolloverCredits).length > 0 && (
+                <div className="mb-6 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30 rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">🔄</span>
+                      <div>
+                        <h3 className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Budget Rollover from Last Month</h3>
+                        <p className="text-[11px] text-emerald-600 dark:text-emerald-500">Unspent amounts you can carry forward · overspend shown in red</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setRolloverCredits({})}
+                      className="text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 transition"
+                      title="Dismiss rollover panel"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {Object.entries(rolloverCredits)
+                      .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a))
+                      .map(([cat, amount]) => (
+                        <div
+                          key={cat}
+                          className={`rounded-xl px-3 py-2 text-xs border ${
+                            amount >= 0
+                              ? "bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800/30"
+                              : "bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30"
+                          }`}
+                        >
+                          <p className="text-gray-600 dark:text-gray-400 truncate">{cat}</p>
+                          <p className={`font-bold ${amount >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                            {amount >= 0 ? "+" : ""}{fmt(amount)}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
 
               <BudgetManager
                 budgets={budgets}
@@ -968,6 +1288,14 @@ export default function GoalsBudgetsPage() {
             existingCategories={budgets.map((b) => b.category)}
             onApply={handleApplySuggestions}
             onClose={() => setShowSuggestions(false)}
+          />
+        )}
+
+        {/* ── 50/30/20 Wizard Modal ── */}
+        {showWizard5030 && (
+          <WizardModal5030
+            onApply={handleApplySuggestions}
+            onClose={() => setShowWizard5030(false)}
           />
         )}
       </PageContent>

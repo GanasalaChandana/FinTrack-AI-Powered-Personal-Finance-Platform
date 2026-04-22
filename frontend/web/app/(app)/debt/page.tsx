@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { CreditCard, Plus, Trash2, TrendingDown, DollarSign, Calendar, Zap, Target } from "lucide-react";
 
@@ -169,6 +169,75 @@ export default function DebtPayoffPage() {
       monthsSaved: minMonths - month,
     };
   }, [orderedDebts, extraPayment]);
+
+  // ── Side-by-side strategy comparison (always runs both) ──────────────────────
+  const comparison = useMemo(() => {
+    if (debts.length === 0) return null;
+    const totalMin  = debts.reduce((s, d) => s + d.minimumPayment, 0);
+    const totalPay  = totalMin + extraPayment;
+
+    const runSim = (ordered: Debt[]) => {
+      let balances = ordered.map(d => ({ ...d, bal: d.balance }));
+      let month = 0;
+      let totalInterest = 0;
+      const timeline: Array<{ month: number; balance: number }> = [];
+
+      while (balances.some(d => d.bal > 0) && month < 600) {
+        month++;
+        let remaining = totalPay;
+
+        // minimums on non-focus debts
+        for (let i = 1; i < balances.length; i++) {
+          if (balances[i].bal <= 0) continue;
+          const rate     = balances[i].interestRate / 100 / 12;
+          const interest = balances[i].bal * rate;
+          totalInterest += interest;
+          const payment  = Math.min(balances[i].minimumPayment, balances[i].bal + interest);
+          balances[i].bal = Math.max(0, balances[i].bal + interest - payment);
+          remaining -= payment;
+        }
+        // extra on focus debt
+        for (let i = 0; i < balances.length; i++) {
+          if (balances[i].bal <= 0) continue;
+          const rate     = balances[i].interestRate / 100 / 12;
+          const interest = balances[i].bal * rate;
+          totalInterest += interest;
+          const payment  = Math.min(remaining, balances[i].bal + interest);
+          balances[i].bal = Math.max(0, balances[i].bal + interest - payment);
+          remaining -= payment;
+          if (remaining <= 0) break;
+        }
+        timeline.push({ month, balance: Math.round(balances.reduce((s, d) => s + d.bal, 0)) });
+      }
+      return { months: month, totalInterest: Math.round(totalInterest), timeline };
+    };
+
+    const avOrdered = [...debts].sort((a, b) => b.interestRate - a.interestRate);
+    const snOrdered = [...debts].sort((a, b) => a.balance - b.balance);
+    const av = runSim(avOrdered);
+    const sn = runSim(snOrdered);
+
+    // Merge timelines at regular sample intervals
+    const maxMonths = Math.max(av.months, sn.months);
+    const step = maxMonths > 120 ? 12 : maxMonths > 48 ? 6 : maxMonths > 24 ? 3 : 2;
+    const chartData: Array<{ month: number; avalanche: number; snowball: number }> = [];
+    for (let m = 0; m <= maxMonths + step; m += step) {
+      const avBal = av.timeline[Math.min(m, av.timeline.length - 1)]?.balance ?? 0;
+      const snBal = sn.timeline[Math.min(m, sn.timeline.length - 1)]?.balance ?? 0;
+      chartData.push({ month: m, avalanche: avBal, snowball: snBal });
+      if (avBal === 0 && snBal === 0 && m > 0) break;
+    }
+
+    const interestSaved = sn.totalInterest - av.totalInterest;
+    const monthsSaved   = sn.months - av.months;
+
+    return {
+      av, sn, chartData,
+      interestSaved: Math.max(0, interestSaved),
+      monthsSaved:   Math.max(0, monthsSaved),
+      avalancheBetter: av.totalInterest <= sn.totalInterest,
+    };
+  }, [debts, extraPayment]);
 
   const totalDebt = debts.reduce((s, d) => s + d.balance, 0);
   const totalMinimum = debts.reduce((s, d) => s + d.minimumPayment, 0);
@@ -356,6 +425,90 @@ export default function DebtPayoffPage() {
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
+
+                {/* ── Strategy Comparison ── */}
+                {comparison && (
+                  <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-1">
+                      <div>
+                        <h3 className="text-base font-bold text-gray-900 dark:text-white">Snowball vs Avalanche</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Both strategies compared with your current extra payment</p>
+                      </div>
+                      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0 ${comparison.avalancheBetter ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300" : "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300"}`}>
+                        {comparison.avalancheBetter ? "💡 Avalanche wins" : "⚡ Equal result"}
+                      </span>
+                    </div>
+
+                    {/* Winner callout tiles */}
+                    {comparison.interestSaved > 0 && (
+                      <div className="grid grid-cols-2 gap-3 my-4">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-xl p-3 text-center">
+                          <p className="text-[10px] text-blue-500 dark:text-blue-400 uppercase tracking-wide">Avalanche saves</p>
+                          <p className="text-xl font-black text-blue-700 dark:text-blue-300">{fmt(comparison.interestSaved)}</p>
+                          <p className="text-[10px] text-blue-500 dark:text-blue-400">in total interest</p>
+                        </div>
+                        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30 rounded-xl p-3 text-center">
+                          <p className="text-[10px] text-indigo-500 dark:text-indigo-400 uppercase tracking-wide">Finishes</p>
+                          <p className="text-xl font-black text-indigo-700 dark:text-indigo-300">{comparison.monthsSaved} mo earlier</p>
+                          <p className="text-[10px] text-indigo-500 dark:text-indigo-400">than snowball</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Dual-line chart */}
+                    <ResponsiveContainer width="100%" height={240}>
+                      <LineChart data={comparison.chartData} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+                        <defs>
+                          <linearGradient id="avGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.15} />
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis
+                          dataKey="month"
+                          stroke="#9ca3af" fontSize={11} tickLine={false}
+                          label={{ value: "Months", position: "insideBottom", offset: -12, fontSize: 11, fill: "#9ca3af" }}
+                        />
+                        <YAxis
+                          stroke="#9ca3af" fontSize={11} tickLine={false}
+                          tickFormatter={v => `$${(v / 1000).toFixed(0)}k`}
+                        />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "white", border: "1px solid #e5e7eb", borderRadius: 12, fontSize: 12 }}
+                          formatter={(v: number, name: string) => [fmt(v), name === "avalanche" ? "Avalanche" : "Snowball"]}
+                          labelFormatter={v => `Month ${v}`}
+                        />
+                        <Legend
+                          wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                          formatter={v => v === "avalanche" ? "Avalanche — High APR First" : "Snowball — Low Balance First"}
+                        />
+                        <Line type="monotone" dataKey="avalanche" stroke="#3b82f6" strokeWidth={2.5} dot={false} name="avalanche" />
+                        <Line type="monotone" dataKey="snowball"  stroke="#8b5cf6" strokeWidth={2.5} dot={false} strokeDasharray="6 3" name="snowball" />
+                      </LineChart>
+                    </ResponsiveContainer>
+
+                    {/* Per-strategy stat tiles */}
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                      {[
+                        { label: "Avalanche", color: "#3b82f6", bg: "bg-blue-50 dark:bg-blue-900/10", border: "border-blue-100 dark:border-blue-800/30", months: comparison.av.months, interest: comparison.av.totalInterest },
+                        { label: "Snowball",  color: "#8b5cf6", bg: "bg-purple-50 dark:bg-purple-900/10", border: "border-purple-100 dark:border-purple-800/30", months: comparison.sn.months, interest: comparison.sn.totalInterest },
+                      ].map(s => (
+                        <div key={s.label} className={`${s.bg} border ${s.border} rounded-xl p-3`}>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
+                            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{s.label}</span>
+                          </div>
+                          <p className="text-base font-black text-gray-900 dark:text-white">
+                            {Math.floor(s.months / 12)}y {s.months % 12}m
+                          </p>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400">{fmt(s.interest)} total interest</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Payoff order */}
                 <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">

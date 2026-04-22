@@ -1216,7 +1216,7 @@ export default function GoalsBudgetsPage() {
               <div className="flex flex-wrap gap-2 justify-end mb-4">
                 <button
                   onClick={() => setShowWizard5030(true)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400 border-2 border-emerald-200 dark:border-emerald-700 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-2 border-indigo-200 dark:border-indigo-700 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
                 >
                   <Wand2 className="w-4 h-4" />
                   50/30/20 Wizard

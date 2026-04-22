@@ -606,11 +606,11 @@ interface BudgetModalProps {
 function BudgetModal({ mode, form, errors, isSaving, onChange, onClose, onSubmit }: BudgetModalProps) {
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
-      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5 flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="bg-indigo-600 px-6 py-5 flex items-center justify-between shrink-0">
           <div>
             <h3 className="text-lg font-bold text-white">{mode === "add" ? "Create Budget" : "Edit Budget"}</h3>
-            <p className="text-indigo-200 text-xs mt-0.5">
+            <p className="text-indigo-100 text-xs mt-0.5">
               {mode === "add" ? "Set a new spending limit" : "Update your spending limit"}
             </p>
           </div>
@@ -620,7 +620,7 @@ function BudgetModal({ mode, form, errors, isSaving, onChange, onClose, onSubmit
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="px-6 py-5 space-y-5">
+        <form onSubmit={onSubmit} className="px-6 py-5 space-y-5 overflow-y-auto">
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Category</label>
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
@@ -678,7 +678,7 @@ function BudgetModal({ mode, form, errors, isSaving, onChange, onClose, onSubmit
               Cancel
             </button>
             <button type="submit" disabled={isSaving}
-              className="flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-bold text-white hover:opacity-90 transition shadow-lg shadow-indigo-200 disabled:opacity-60 flex items-center justify-center gap-2">
+              className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 py-2.5 text-sm font-bold text-white transition shadow-lg disabled:opacity-60 flex items-center justify-center gap-2">
               {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
               {mode === "add" ? "Create Budget" : "Save Changes"}
             </button>

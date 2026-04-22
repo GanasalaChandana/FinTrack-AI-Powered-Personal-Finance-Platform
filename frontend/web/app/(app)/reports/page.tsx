@@ -70,11 +70,11 @@ const CHART_TOOLTIP_STYLE = {
 function ChartEmptyState({ message = "Add transactions to see your data here" }: { message?: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4">
-      <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-        <BarChart3 className="w-8 h-8 text-slate-300" />
+      <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+        <BarChart3 className="w-8 h-8 text-slate-300 dark:text-gray-500" />
       </div>
-      <p className="text-sm font-semibold text-slate-400 text-center">{message}</p>
-      <p className="text-xs text-slate-300 mt-1 text-center">Data will appear once you log transactions</p>
+      <p className="text-sm font-semibold text-slate-400 dark:text-gray-500 text-center">{message}</p>
+      <p className="text-xs text-slate-300 dark:text-gray-600 mt-1 text-center">Data will appear once you log transactions</p>
     </div>
   );
 }
@@ -91,14 +91,16 @@ function StatCard({
   const isPositive = trend === "up";
 
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between">
         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${bgAccent}`}>
           <Icon className={`w-5 h-5 ${textAccent}`} />
         </div>
         {hasChange && (
           <div className={`flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${
-            isPositive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+            isPositive
+              ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+              : "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
           }`}>
             {isPositive ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
             {change}
@@ -106,8 +108,8 @@ function StatCard({
         )}
       </div>
       <div>
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{title}</p>
-        <p className="text-2xl font-extrabold text-gray-900 tracking-tight">{value}</p>
+        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">{title}</p>
+        <p className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">{value}</p>
       </div>
     </div>
   );
@@ -119,13 +121,13 @@ function Card({ title, subtitle, children, accentColor = "#6366f1" }: {
   title?: string; subtitle?: string; children: React.ReactNode; accentColor?: string;
 }) {
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
       <div className="h-1 w-full" style={{ backgroundColor: accentColor }} />
       <div className="p-6">
         {title && (
           <div className="mb-5">
-            <h3 className="text-base font-bold text-gray-900">{title}</h3>
-            {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+            <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{title}</h3>
+            {subtitle && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{subtitle}</p>}
           </div>
         )}
         {children}
@@ -148,12 +150,12 @@ function LoadingSpinner() {
 
 function ErrorMessage({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="bg-red-50 border border-red-200 rounded-3xl p-8 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
+    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40 rounded-3xl p-8 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center mx-auto mb-4">
         <AlertCircle className="w-7 h-7 text-red-500" />
       </div>
-      <h3 className="text-base font-bold text-red-800 mb-2">Couldn't load data</h3>
-      <p className="text-sm text-red-600 mb-4">{message}</p>
+      <h3 className="text-base font-bold text-red-800 dark:text-red-300 mb-2">Couldn't load data</h3>
+      <p className="text-sm text-red-600 dark:text-red-400 mb-4">{message}</p>
       {onRetry && (
         <button onClick={onRetry}
           className="px-5 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition">
@@ -535,19 +537,21 @@ const EnhancedFinancialReports: React.FC = () => {
                     <div className="flex items-center justify-between text-sm">
                       <button
                         onClick={() => { setSelectedCategory(cat.name); fetchCategoryDetail(cat.name); }}
-                        className="flex items-center gap-2 font-semibold text-gray-700 hover:text-indigo-600 transition-colors">
+                        className="flex items-center gap-2 font-semibold text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                         <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
                         {cat.name}
                         <ChevronRight className="w-3.5 h-3.5 opacity-50" />
                       </button>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-gray-500 text-xs">{fmt(cat.amount)}</span>
+                        <span className="text-gray-500 dark:text-gray-400 text-xs">{fmt(cat.amount)}</span>
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                          cat.amount > cat.budget ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"
+                          cat.amount > cat.budget
+                            ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                            : "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
                         }`}>{cat.percentage}%</span>
                       </div>
                     </div>
-                    <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-1.5 rounded-full bg-slate-100 dark:bg-gray-700 overflow-hidden">
                       <div className="h-full rounded-full transition-all duration-500"
                         style={{
                           width: `${Math.min((cat.amount / cat.budget) * 100, 100)}%`,
@@ -573,20 +577,20 @@ const EnhancedFinancialReports: React.FC = () => {
               <div className="space-y-3">
                 {topExpenses.map((exp, i) => (
                   <div key={exp.vendor}
-                    className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors">
+                    className="flex items-center justify-between p-3 bg-slate-50 dark:bg-gray-700/50 rounded-2xl hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-extrabold text-white flex-shrink-0"
                         style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
                         {i + 1}
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900 text-sm">{exp.vendor}</p>
-                        <p className="text-xs text-gray-400">{exp.category} · {exp.frequency}x</p>
+                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{exp.vendor}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">{exp.category} · {exp.frequency}x</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-extrabold text-gray-900 text-sm">{fmt(exp.amount)}</p>
-                      <p className="text-[10px] text-gray-400">{fmt(exp.amount / exp.frequency)}/txn</p>
+                      <p className="font-extrabold text-gray-900 dark:text-gray-100 text-sm">{fmt(exp.amount)}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500">{fmt(exp.amount / exp.frequency)}/txn</p>
                     </div>
                   </div>
                 ))}
@@ -599,17 +603,17 @@ const EnhancedFinancialReports: React.FC = () => {
 
         {/* Key Insights */}
         {insights?.length > 0 && (
-          <div className="bg-white rounded-3xl border border-indigo-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-indigo-100 dark:border-indigo-900/40 shadow-sm overflow-hidden">
             <div className="h-1 w-full" style={{ background: "linear-gradient(to right,#6366f1,#8b5cf6,#a855f7)" }} />
             <div className="p-6 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
                 <Sparkles className="w-5 h-5 text-indigo-500" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900 mb-3">Key Insights</h3>
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-3">Key Insights</h3>
                 <ul className="space-y-2">
                   {insights.map((insight, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm text-gray-600">
+                    <li key={idx} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
                       <span className="text-indigo-400 font-bold mt-0.5">•</span>
                       <span>{insight}</span>
                     </li>
@@ -694,15 +698,15 @@ const EnhancedFinancialReports: React.FC = () => {
       <Card title="Build Custom Report" subtitle="Configure and generate a tailored report" accentColor="#10b981">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="md:col-span-2">
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Report Name</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Report Name</label>
             <input type="text" value={customConfig.name}
               onChange={(e) => setCustomConfig({ ...customConfig, name: e.target.value })}
-              className="w-full rounded-xl border-2 border-gray-100 px-4 py-2.5 text-sm focus:border-indigo-500 outline-none bg-slate-50 focus:bg-white transition"
+              className="w-full rounded-xl border-2 border-gray-100 dark:border-gray-600 px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-indigo-500 outline-none bg-slate-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 transition placeholder-gray-400 dark:placeholder-gray-500"
               placeholder="My Custom Report" />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Metrics</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Metrics</label>
             <div className="space-y-2">
               {["income", "expenses", "savings", "net-worth"].map((m) => (
                 <label key={m} className="flex items-center gap-3 cursor-pointer">
@@ -714,7 +718,9 @@ const EnhancedFinancialReports: React.FC = () => {
                       setCustomConfig({ ...customConfig, metrics: nm });
                     }}
                     className={`w-5 h-5 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${
-                      customConfig.metrics.includes(m) ? "bg-indigo-600 border-indigo-600" : "border-gray-200 bg-white"
+                      customConfig.metrics.includes(m)
+                        ? "bg-indigo-600 border-indigo-600"
+                        : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
                     }`}>
                     {customConfig.metrics.includes(m) && (
                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -722,7 +728,7 @@ const EnhancedFinancialReports: React.FC = () => {
                       </svg>
                     )}
                   </div>
-                  <span className="text-sm text-gray-700 capitalize">{m.replace("-", " ")}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">{m.replace("-", " ")}</span>
                 </label>
               ))}
             </div>
@@ -730,10 +736,10 @@ const EnhancedFinancialReports: React.FC = () => {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Chart Type</label>
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Chart Type</label>
               <select value={customConfig.chartType}
                 onChange={(e) => setCustomConfig({ ...customConfig, chartType: e.target.value as ChartType })}
-                className="w-full rounded-xl border-2 border-gray-100 px-4 py-2.5 text-sm focus:border-indigo-500 outline-none bg-slate-50 focus:bg-white transition">
+                className="w-full rounded-xl border-2 border-gray-100 dark:border-gray-600 px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-indigo-500 outline-none bg-slate-50 dark:bg-gray-700 transition">
                 <option value="line">Line Chart</option>
                 <option value="bar">Bar Chart</option>
                 <option value="area">Area Chart</option>
@@ -741,10 +747,10 @@ const EnhancedFinancialReports: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Group By</label>
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Group By</label>
               <select value={customConfig.groupBy}
                 onChange={(e) => setCustomConfig({ ...customConfig, groupBy: e.target.value as any })}
-                className="w-full rounded-xl border-2 border-gray-100 px-4 py-2.5 text-sm focus:border-indigo-500 outline-none bg-slate-50 focus:bg-white transition">
+                className="w-full rounded-xl border-2 border-gray-100 dark:border-gray-600 px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-indigo-500 outline-none bg-slate-50 dark:bg-gray-700 transition">
                 <option value="day">Daily</option>
                 <option value="week">Weekly</option>
                 <option value="month">Monthly</option>
@@ -752,10 +758,10 @@ const EnhancedFinancialReports: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Date Range</label>
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Date Range</label>
               <select value={customConfig.dateRange}
                 onChange={(e) => setCustomConfig({ ...customConfig, dateRange: e.target.value as DateRange })}
-                className="w-full rounded-xl border-2 border-gray-100 px-4 py-2.5 text-sm focus:border-indigo-500 outline-none bg-slate-50 focus:bg-white transition">
+                className="w-full rounded-xl border-2 border-gray-100 dark:border-gray-600 px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-indigo-500 outline-none bg-slate-50 dark:bg-gray-700 transition">
                 <option value="last-7-days">Last 7 Days</option>
                 <option value="last-30-days">Last 30 Days</option>
                 <option value="last-3-months">Last 3 Months</option>
@@ -766,14 +772,14 @@ const EnhancedFinancialReports: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex gap-3 mt-6 pt-5 border-t border-gray-100">
+        <div className="flex gap-3 mt-6 pt-5 border-t border-gray-100 dark:border-gray-700">
           <button onClick={() => setExportError(null)}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-200 hover:opacity-90 transition">
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-200/50 hover:opacity-90 transition">
             <FileText className="w-4 h-4" /> Generate Report
           </button>
           <button
             onClick={() => setCustomConfig({ name: "My Custom Report", dateRange: "last-year", metrics: ["income", "expenses"], groupBy: "month", chartType: "line", includeCategories: [] })}
-            className="rounded-xl border-2 border-gray-200 px-5 py-2.5 text-sm font-bold text-gray-500 hover:bg-gray-50 transition">
+            className="rounded-xl border-2 border-gray-200 dark:border-gray-600 px-5 py-2.5 text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             Reset
           </button>
         </div>
@@ -815,14 +821,14 @@ const EnhancedFinancialReports: React.FC = () => {
             {trendAnalysis.increasing.length > 0 ? (
               <div className="space-y-3">
                 {trendAnalysis.increasing.map(item => (
-                  <div key={item.name} className="flex items-center justify-between p-3 bg-red-50 rounded-2xl">
-                    <span className="text-sm font-semibold text-gray-700">{item.name}</span>
-                    <span className="text-sm font-extrabold text-red-600">{item.pct}</span>
+                  <div key={item.name} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/25 rounded-2xl">
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{item.name}</span>
+                    <span className="text-sm font-extrabold text-red-600 dark:text-red-400">{item.pct}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-400 text-center py-6">No increasing categories — great job! 🎉</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6">No increasing categories — great job! 🎉</p>
             )}
           </Card>
 
@@ -830,14 +836,14 @@ const EnhancedFinancialReports: React.FC = () => {
             {trendAnalysis.decreasing.length > 0 ? (
               <div className="space-y-3">
                 {trendAnalysis.decreasing.map(item => (
-                  <div key={item.name} className="flex items-center justify-between p-3 bg-emerald-50 rounded-2xl">
-                    <span className="text-sm font-semibold text-gray-700">{item.name}</span>
-                    <span className="text-sm font-extrabold text-emerald-600">{item.pct}</span>
+                  <div key={item.name} className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/25 rounded-2xl">
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{item.name}</span>
+                    <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">{item.pct}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-400 text-center py-6">No decreasing categories this period.</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6">No decreasing categories this period.</p>
             )}
           </Card>
         </div>
@@ -855,10 +861,10 @@ const EnhancedFinancialReports: React.FC = () => {
           return (
             <Card title="Cumulative Net Savings" subtitle="Running total of income minus expenses over time" accentColor="#10b981">
               <div className="flex items-center gap-3 mb-4">
-                <span className={`text-2xl font-extrabold ${finalVal >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                <span className={`text-2xl font-extrabold ${finalVal >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                   {finalVal >= 0 ? "+" : ""}{fmt(finalVal)}
                 </span>
-                <span className="text-xs text-gray-400">total net over this period</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">total net over this period</span>
               </div>
               <ResponsiveContainer width="100%" height={260}>
                 <ComposedChart data={cumData}>
@@ -931,7 +937,7 @@ const EnhancedFinancialReports: React.FC = () => {
                       label: `${yoyData.currentYear - 1} Total Spend`,
                       value: fmt(yoyData.lyTotal),
                       sub: "Last 12 months",
-                      color: "text-gray-700", bg: "bg-gray-50",
+                      color: "text-gray-700 dark:text-gray-300", bg: "bg-gray-50 dark:bg-gray-700/50",
                     },
                     {
                       label: "YoY Change",
@@ -942,17 +948,17 @@ const EnhancedFinancialReports: React.FC = () => {
                         ? (yoyData.pctChange > 0 ? "Spending up" : "Spending down")
                         : "No prior data",
                       color: yoyData.pctChange !== null
-                        ? (yoyData.pctChange > 0 ? "text-red-600" : "text-emerald-600")
-                        : "text-gray-400",
+                        ? (yoyData.pctChange > 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400")
+                        : "text-gray-400 dark:text-gray-500",
                       bg: yoyData.pctChange !== null
-                        ? (yoyData.pctChange > 0 ? "bg-red-50" : "bg-emerald-50")
-                        : "bg-gray-50",
+                        ? (yoyData.pctChange > 0 ? "bg-red-50 dark:bg-red-900/25" : "bg-emerald-50 dark:bg-emerald-900/25")
+                        : "bg-gray-50 dark:bg-gray-700/50",
                     },
                   ].map((s) => (
                     <div key={s.label} className={`rounded-2xl p-4 ${s.bg}`}>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{s.label}</p>
+                      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">{s.label}</p>
                       <p className={`text-xl font-extrabold ${s.color}`}>{s.value}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{s.sub}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{s.sub}</p>
                     </div>
                   ))}
                 </div>
@@ -1103,16 +1109,16 @@ const EnhancedFinancialReports: React.FC = () => {
         {forecastStats && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { label: "Projected Month 6", value: fmt(forecastStats.projected6), icon: Target, bg: "bg-violet-50", text: "text-violet-600" },
-              { label: "Expected Change", value: `${forecastStats.growthPct > 0 ? "+" : ""}${forecastStats.growthPct}%`, icon: TrendingUp, bg: "bg-orange-50", text: "text-orange-500" },
-              { label: "Suggested Buffer", value: fmt(forecastStats.buffer), icon: Award, bg: "bg-emerald-50", text: "text-emerald-600" },
+              { label: "Projected Month 6", value: fmt(forecastStats.projected6), icon: Target, bg: "bg-violet-50 dark:bg-violet-900/30", text: "text-violet-600 dark:text-violet-400" },
+              { label: "Expected Change", value: `${forecastStats.growthPct > 0 ? "+" : ""}${forecastStats.growthPct}%`, icon: TrendingUp, bg: "bg-orange-50 dark:bg-orange-900/30", text: "text-orange-500 dark:text-orange-400" },
+              { label: "Suggested Buffer", value: fmt(forecastStats.buffer), icon: Award, bg: "bg-emerald-50 dark:bg-emerald-900/30", text: "text-emerald-600 dark:text-emerald-400" },
             ].map(item => (
-              <div key={item.label} className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
+              <div key={item.label} className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 flex items-center gap-4">
                 <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${item.bg}`}>
                   <item.icon className={`w-5 h-5 ${item.text}`} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{item.label}</p>
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{item.label}</p>
                   <p className={`text-xl font-extrabold mt-0.5 ${item.text}`}>{item.value}</p>
                 </div>
               </div>
@@ -1214,7 +1220,7 @@ const EnhancedFinancialReports: React.FC = () => {
     if (!selectedCategory || !categoryDetail) return null;
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-100 dark:border-gray-700">
           <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5 flex items-center justify-between flex-shrink-0">
             <div>
               <h2 className="text-lg font-bold text-white">{selectedCategory}</h2>
@@ -1232,11 +1238,11 @@ const EnhancedFinancialReports: React.FC = () => {
                 { label: "Total Spent", value: fmt(categoryDetail.total) },
                 { label: "Transactions", value: String(categoryDetail.transactions) },
                 { label: "Avg per Txn", value: fmt(categoryDetail.avgTransaction) },
-                { label: "Trend", value: fmtPct(categoryDetail.trend), color: categoryDetail.trend < 0 ? "text-emerald-600" : "text-red-600" },
+                { label: "Trend", value: fmtPct(categoryDetail.trend), color: categoryDetail.trend < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400" },
               ].map(item => (
-                <div key={item.label} className="bg-slate-50 rounded-2xl p-4">
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">{item.label}</p>
-                  <p className={`text-xl font-extrabold ${item.color ?? "text-gray-900"}`}>{item.value}</p>
+                <div key={item.label} className="bg-slate-50 dark:bg-gray-700 rounded-2xl p-4">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wide mb-1">{item.label}</p>
+                  <p className={`text-xl font-extrabold ${item.color ?? "text-gray-900 dark:text-gray-100"}`}>{item.value}</p>
                 </div>
               ))}
             </div>
@@ -1244,7 +1250,7 @@ const EnhancedFinancialReports: React.FC = () => {
             <Card title="Spending Over Time" accentColor="#6366f1">
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={categoryDetail.breakdown}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
                   <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} />
                   <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} />
                   <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number) => fmt(v)} />
@@ -1257,19 +1263,19 @@ const EnhancedFinancialReports: React.FC = () => {
               <Card title="Top Merchants" accentColor="#f97316">
                 <div className="space-y-2">
                   {categoryDetail.topMerchants.map((m, i) => (
-                    <div key={m.name} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
+                    <div key={m.name} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-gray-700/50 rounded-2xl">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-extrabold text-sm">
+                        <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-extrabold text-sm">
                           {i + 1}
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">{m.name}</p>
-                          <p className="text-xs text-gray-400">{m.count} transactions</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{m.name}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{m.count} transactions</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-extrabold text-gray-900">{fmt(m.amount)}</p>
-                        <p className="text-[10px] text-gray-400">{fmt(m.amount / m.count)}/avg</p>
+                        <p className="text-sm font-extrabold text-gray-900 dark:text-gray-100">{fmt(m.amount)}</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500">{fmt(m.amount / m.count)}/avg</p>
                       </div>
                     </div>
                   ))}
@@ -1286,7 +1292,7 @@ const EnhancedFinancialReports: React.FC = () => {
 
   if (isCheckingAuth || !isAuth) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex items-center justify-center">
         <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
       </div>
     );
@@ -1642,7 +1648,7 @@ const EnhancedFinancialReports: React.FC = () => {
         .tab-content { animation: fadeIn 0.3s ease both; }
       `}</style>
 
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900">
         <PageContent>
           <PageHeader
             title="Financial Reports"

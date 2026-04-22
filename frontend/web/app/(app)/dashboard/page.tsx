@@ -23,6 +23,7 @@ import { BudgetForecastCard } from "@/components/dashboard/BudgetForecastCard";
 import { HealthScoreWidget } from "@/components/dashboard/HealthScoreWidget";
 import { RecurringTransactionsCard } from "@/components/dashboard/RecurringTransactionsCard";
 import { SpendingInsightsCard } from "@/components/dashboard/SpendingInsightsCard";
+import { DailySpendCard } from "@/components/dashboard/DailySpendCard";
 import { SavingsGoalsCard } from "@/components/dashboard/SavingsGoalsCard";
 import { MonthEndForecastCard } from "@/components/dashboard/MonthEndForecastCard";
 import { NextMonthPredictionCard } from "@/components/dashboard/NextMonthPredictionCard";
@@ -695,7 +696,7 @@ export default function DashboardPage() {
                 </Grid>
                 <Grid columns={2} gap="lg">
                   <HealthScoreWidget transactions={allTransactions} budgets={allBudgets} />
-                  <SpendingInsightsCard transactions={allTransactions} />
+                  <DailySpendCard transactions={allTransactions} />
                 </Grid>
               </>
             )}

@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Loader2, Plus, Trash2, Pencil, Target, TrendingUp,
-  CheckCircle2, Circle, CalendarDays, X, ChevronRight,
+  CheckCircle2, Circle, CalendarDays, X, ChevronRight, Sparkles,
 } from "lucide-react";
 import { BudgetManager, type Budget } from "@/components/budgets/BudgetManager";
+import { SmartBudgetSuggestionsModal, type AppliedBudget } from "@/components/budgets/SmartBudgetSuggestionsModal";
 import { apiRequest, getUser } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
@@ -785,6 +786,8 @@ export default function GoalsBudgetsPage() {
   const [isLoading,       setIsLoading]       = useState(true);
   const [isFetching,      setIsFetching]      = useState(false);
   const [budgets,         setBudgets]         = useState<Budget[]>([]);
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeTab,       setActiveTab]       = useState<Tab>(
     tabParam === "budgets" ? "budgets" : "goals"
   );
@@ -817,6 +820,9 @@ export default function GoalsBudgetsPage() {
         apiRequest<any[]>("/api/budgets", { method: "GET" }),
         apiRequest<any[]>("/api/transactions", { method: "GET" }).catch(() => [] as any[]),
       ]);
+
+      // Store all transactions so the AI suggestion modal can analyse them
+      setAllTransactions(Array.isArray(transactions) ? transactions : []);
 
       const allExpenses  = Array.isArray(transactions)
         ? transactions.filter((t: any) => t.type === "expense" || t.type === "EXPENSE")
@@ -868,6 +874,24 @@ export default function GoalsBudgetsPage() {
     await fetchBudgets({ silent: true });
   };
 
+  // Apply AI-suggested budgets — create each one sequentially
+  const handleApplySuggestions = async (suggestions: AppliedBudget[]) => {
+    for (const s of suggestions) {
+      await apiRequest("/api/budgets", {
+        method: "POST",
+        body: JSON.stringify({
+          category: s.category,
+          budget:   s.budget,
+          icon:     s.icon,
+          color:    s.color,
+          spent:    0,
+          month:    getLocalYearMonth(),
+        }),
+      });
+    }
+    await fetchBudgets({ silent: true });
+  };
+
   if (isLoading && activeTab === "budgets") {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -912,17 +936,40 @@ export default function GoalsBudgetsPage() {
 
         <Section>
           {/* Tab content */}
-        {activeTab === "goals" && <GoalsSection />}
+          {activeTab === "goals" && <GoalsSection />}
 
-        {activeTab === "budgets" && (
-          <BudgetManager
-            budgets={budgets}
-            onAddBudget={handleAddBudget}
-            onUpdateBudget={handleUpdateBudget}
-            onDeleteBudget={handleDeleteBudget}
+          {activeTab === "budgets" && (
+            <>
+              {/* ── AI Suggest button — shown above the manager ── */}
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => setShowSuggestions(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-2 border-indigo-200 dark:border-indigo-700 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Suggest Budgets with AI
+                </button>
+              </div>
+
+              <BudgetManager
+                budgets={budgets}
+                onAddBudget={handleAddBudget}
+                onUpdateBudget={handleUpdateBudget}
+                onDeleteBudget={handleDeleteBudget}
+              />
+            </>
+          )}
+        </Section>
+
+        {/* ── AI Budget Suggestions Modal ── */}
+        {showSuggestions && (
+          <SmartBudgetSuggestionsModal
+            transactions={allTransactions}
+            existingCategories={budgets.map((b) => b.category)}
+            onApply={handleApplySuggestions}
+            onClose={() => setShowSuggestions(false)}
           />
         )}
-        </Section>
       </PageContent>
     </div>
   );

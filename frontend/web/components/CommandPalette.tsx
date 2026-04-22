@@ -6,7 +6,7 @@ import {
   Search, LayoutDashboard, ArrowRightLeft, Target, FileText,
   Camera, Activity, Brain, RefreshCw, BarChart3, Wallet,
   LogOut, Sun, Moon, Monitor, Calendar, CreditCard, TrendingUp,
-  X, ChevronRight, Loader2,
+  X, ChevronRight, Loader2, Store, Receipt,
 } from "lucide-react";
 import { transactionsAPI } from "@/lib/api";
 
@@ -51,7 +51,10 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Net Worth", href: "/net-worth", icon: <Wallet className="w-4 h-4" />, keywords: ["assets", "liabilities", "wealth"] },
   { label: "Health Score", href: "/health", icon: <Activity className="w-4 h-4" />, keywords: ["financial health", "score"] },
   { label: "AI Insights", href: "/insights", icon: <Brain className="w-4 h-4" />, keywords: ["ai", "anomaly", "smart"] },
-  { label: "Recurring", href: "/recurring", icon: <RefreshCw className="w-4 h-4" />, keywords: ["subscriptions", "bills", "recurring"] },
+  { label: "Subscriptions", href: "/subscriptions", icon: <RefreshCw className="w-4 h-4" />, keywords: ["subscriptions", "netflix", "spotify", "cancel", "recurring charges"] },
+  { label: "Merchants", href: "/merchants", icon: <Store className="w-4 h-4" />, keywords: ["merchants", "stores", "payees", "where i spend"] },
+  { label: "Tax Report", href: "/reports", icon: <Receipt className="w-4 h-4" />, keywords: ["tax", "deductible", "tax year", "business expense"] },
+  { label: "Recurring", href: "/recurring", icon: <RefreshCw className="w-4 h-4" />, keywords: ["recurring", "bills"] },
   { label: "Receipt Scanner", href: "/receipts", icon: <Camera className="w-4 h-4" />, keywords: ["scan", "ocr", "photo"] },
   { label: "Calendar", href: "/calendar", icon: <Calendar className="w-4 h-4" />, keywords: ["calendar", "bills", "schedule", "upcoming"] },
   { label: "Debt Payoff", href: "/debt", icon: <CreditCard className="w-4 h-4" />, keywords: ["debt", "loan", "credit card", "payoff", "avalanche", "snowball"] },

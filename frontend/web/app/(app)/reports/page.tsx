@@ -11,9 +11,10 @@ import {
   TrendingUp, TrendingDown, Download, DollarSign, Target, Award,
   AlertCircle, ArrowUp, ArrowDown, Loader2, ChevronRight, Calendar,
   BarChart3, PieChart as PieChartIcon, Settings, X, Sparkles,
-  FileText, type LucideIcon,
+  FileText, type LucideIcon, Receipt, Check, Tag,
 } from "lucide-react";
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
+import { useTaxStore, TAX_CATEGORY_META, type TaxCategory } from "@/lib/stores/taxStore";
 import { reportsService, type ReportsData, type ReportsRange, type CategoryBreakdown } from "@/lib/api/services/reports.service";
 import { exportMonthlyReport } from "@/lib/utils/pdfExport";
 import { CheckCircle } from "lucide-react";
@@ -26,7 +27,7 @@ import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/Pag
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ReportTab = "overview" | "custom" | "trends" | "comparison" | "forecast" | "budget-history";
+type ReportTab = "overview" | "custom" | "trends" | "comparison" | "forecast" | "budget-history" | "tax";
 type DateRange = "last-7-days" | "last-30-days" | "last-3-months" | "last-6-months" | "last-year" | "custom";
 type ChartType = "line" | "bar" | "area" | "pie";
 
@@ -182,6 +183,7 @@ const EnhancedFinancialReports: React.FC = () => {
   const [dataError, setDataError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [activeTaxFilter, setActiveTaxFilter] = useState<TaxCategory | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryDetail, setCategoryDetail] = useState<CategoryDetail | null>(null);
   const [customConfig, setCustomConfig] = useState<CustomReportConfig>({
@@ -1416,6 +1418,212 @@ const EnhancedFinancialReports: React.FC = () => {
     );
   };
 
+  // ── Tax Report ────────────────────────────────────────────────────────────────
+
+  const taxStore = useTaxStore();
+
+  const renderTax = () => {
+    if (dataLoading) return <LoadingSpinner />;
+
+    // All expenses from rawTransactions
+    const expenses = rawTransactions.filter(
+      (t) => (t.type === "expense" || t.type === "EXPENSE") && t.id
+    );
+
+    // Current year only for the summary
+    const currentYear = new Date().getFullYear();
+    const thisYearExpenses = expenses.filter((t) =>
+      (t.date ?? "").startsWith(String(currentYear))
+    );
+
+    // Deductible transactions (this year)
+    const deductible = thisYearExpenses.filter((t) => taxStore.isMarked(t.id!));
+    const totalDeductible = deductible.reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
+
+    // Group deductible by tax category
+    const byTaxCat: Record<TaxCategory, number> = {
+      business: 0, medical: 0, charitable: 0, education: 0, home_office: 0, other: 0,
+    };
+    for (const t of deductible) {
+      const entry = taxStore.getEntry(t.id!);
+      if (entry) byTaxCat[entry.taxCategory] += Math.abs(t.amount ?? 0);
+    }
+
+    // Sort all expenses (this year) by date desc for the tagging table
+    const sortedExpenses = [...thisYearExpenses].sort(
+      (a, b) => b.date.localeCompare(a.date)
+    );
+
+    const taxCatFilter    = activeTaxFilter;
+    const setTaxCatFilter = setActiveTaxFilter;
+
+    const displayedExpenses = taxCatFilter
+      ? sortedExpenses.filter((t) => {
+          const entry = taxStore.getEntry(t.id!);
+          return entry?.taxCategory === taxCatFilter;
+        })
+      : sortedExpenses;
+
+    return (
+      <div className="space-y-6">
+        {/* Header callout */}
+        <div className="flex items-start gap-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl p-5">
+          <Receipt className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
+              {currentYear} Tax Year — ${fmt(totalDeductible)} marked deductible
+            </p>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+              Mark transactions below as tax-deductible. All selections are saved locally and can be exported.
+              This is not tax advice — consult a professional for your situation.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              const rows = deductible.map((t) => {
+                const entry = taxStore.getEntry(t.id!);
+                return `${t.date.slice(0,10)},${t.merchant || t.description},$${Math.abs(t.amount).toFixed(2)},${entry?.taxCategory ?? ""},${entry?.note ?? ""}`;
+              }).join("\n");
+              const csv = `Date,Merchant,Amount,Tax Category,Note\n${rows}`;
+              const blob = new Blob([csv], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = `tax-deductions-${currentYear}.csv`; a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="ml-auto flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" /> Export CSV
+          </button>
+        </div>
+
+        {/* Summary pills */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {(Object.entries(byTaxCat) as [TaxCategory, number][]).map(([cat, amt]) => {
+            const meta = TAX_CATEGORY_META[cat];
+            const isActive = taxCatFilter === cat;
+            return (
+              <button
+                key={cat}
+                onClick={() => setTaxCatFilter(isActive ? null : cat)}
+                className={`flex flex-col gap-1 p-3 rounded-xl border text-left transition-all ${
+                  isActive
+                    ? `${meta.bg} ${meta.border} shadow-sm`
+                    : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600"
+                }`}
+              >
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${meta.color}`}>
+                  {meta.label}
+                </span>
+                <span className="text-sm font-extrabold text-gray-900 dark:text-gray-100">
+                  {amt > 0 ? `$${amt.toFixed(0)}` : "—"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Transaction tagging table */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                {currentYear} Expenses
+                {taxCatFilter && (
+                  <span className={`ml-2 text-xs font-semibold px-2 py-0.5 rounded-full ${TAX_CATEGORY_META[taxCatFilter].bg} ${TAX_CATEGORY_META[taxCatFilter].color}`}>
+                    {TAX_CATEGORY_META[taxCatFilter].label}
+                  </span>
+                )}
+              </h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                {deductible.length} of {thisYearExpenses.length} transactions marked deductible
+              </p>
+            </div>
+            {taxCatFilter && (
+              <button
+                onClick={() => setTaxCatFilter(null)}
+                className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex items-center gap-1"
+              >
+                Clear filter
+              </button>
+            )}
+          </div>
+
+          {displayedExpenses.length === 0 ? (
+            <div className="py-12 text-center">
+              <Tag className="w-8 h-8 text-gray-200 dark:text-gray-700 mx-auto mb-3" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">No expenses found for {currentYear}.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50 dark:divide-gray-700/50 max-h-[520px] overflow-y-auto">
+              {displayedExpenses.map((t) => {
+                const marked = taxStore.isMarked(t.id!);
+                const entry = taxStore.getEntry(t.id!);
+                const meta = entry ? TAX_CATEGORY_META[entry.taxCategory] : null;
+
+                return (
+                  <div
+                    key={t.id}
+                    className={`flex items-center gap-4 px-5 py-3.5 transition-colors ${
+                      marked ? "bg-emerald-50/50 dark:bg-emerald-900/10" : "hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                    }`}
+                  >
+                    {/* Checkbox */}
+                    <button
+                      onClick={() => {
+                        if (marked) { taxStore.unmark(t.id!); }
+                        else { taxStore.mark(t.id!, "business"); }
+                      }}
+                      className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 transition-colors ${
+                        marked
+                          ? "bg-emerald-500 border-emerald-500"
+                          : "border-gray-300 dark:border-gray-600 hover:border-emerald-400"
+                      }`}
+                    >
+                      {marked && <Check className="w-3 h-3 text-white" />}
+                    </button>
+
+                    {/* Date */}
+                    <span className="text-xs text-gray-400 dark:text-gray-500 w-20 flex-shrink-0">
+                      {new Date(`${t.date.slice(0,10)}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
+
+                    {/* Merchant */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                        {t.merchant || t.description || "Transaction"}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{t.category}</p>
+                    </div>
+
+                    {/* Tax category selector (only when marked) */}
+                    {marked && (
+                      <select
+                        value={entry?.taxCategory ?? "business"}
+                        onChange={(e) => taxStore.mark(t.id!, e.target.value as TaxCategory)}
+                        onClick={(e) => e.stopPropagation()}
+                        className={`text-xs font-semibold px-2 py-1 rounded-lg border ${meta?.bg ?? ""} ${meta?.color ?? ""} ${meta?.border ?? ""} focus:outline-none`}
+                      >
+                        {(Object.keys(TAX_CATEGORY_META) as TaxCategory[]).map((cat) => (
+                          <option key={cat} value={cat}>{TAX_CATEGORY_META[cat].label}</option>
+                        ))}
+                      </select>
+                    )}
+
+                    {/* Amount */}
+                    <span className={`text-sm font-bold flex-shrink-0 ${marked ? "text-emerald-700 dark:text-emerald-400" : "text-gray-900 dark:text-gray-100"}`}>
+                      {fmt(Math.abs(t.amount ?? 0))}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const TABS = [
@@ -1425,6 +1633,7 @@ const EnhancedFinancialReports: React.FC = () => {
     { id: "comparison",     label: "Comparison",       icon: PieChartIcon },
     { id: "forecast",       label: "Forecast",         icon: Target },
     { id: "budget-history", label: "Budget History",   icon: Calendar },
+    { id: "tax",            label: "Tax Report",       icon: Receipt },
   ] as const;
 
   return (
@@ -1495,6 +1704,7 @@ const EnhancedFinancialReports: React.FC = () => {
             {selectedReport === "comparison"      && renderComparison()}
             {selectedReport === "forecast"        && renderForecast()}
             {selectedReport === "budget-history"  && renderBudgetHistory()}
+            {selectedReport === "tax"             && renderTax()}
           </div>
         </PageContent>
       </div>

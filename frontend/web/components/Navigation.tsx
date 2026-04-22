@@ -9,7 +9,7 @@ import {
   Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor,
   BarChart3, Wallet, Search, Calendar, CreditCard, TrendingUp,
   LayoutDashboard, ArrowLeftRight, Target, ChevronLeft, ChevronRight,
-  PiggyBank, DollarSign, Settings, Download,
+  PiggyBank, DollarSign, Settings, Download, Store, Receipt,
 } from "lucide-react";
 import { usePWA } from "@/components/providers/PWAProvider";
 import { getToken, removeToken } from "@/lib/api";
@@ -38,16 +38,18 @@ const NAV_MAIN = [
 ];
 
 const NAV_TOOLS = [
-  { href: "/income",        label: "Income",         icon: DollarSign },
-  { href: "/debt",          label: "Debt Payoff",    icon: CreditCard },
-  { href: "/analytics",     label: "Analytics",      icon: BarChart3 },
-  { href: "/net-worth",     label: "Net Worth",      icon: Wallet },
-  { href: "/recurring",     label: "Recurring",      icon: RefreshCw },
-  { href: "/health",        label: "Health Score",   icon: Activity },
-  { href: "/insights",      label: "AI Insights",    icon: Brain },
-  { href: "/receipts",      label: "Receipts",       icon: Camera },
-  { href: "/alerts",        label: "Alerts",         icon: Bell,   badgeKey: "alerts" },
-  { href: "/notifications", label: "Notifications",  icon: Mail,   badgeKey: "notifs" },
+  { href: "/income",         label: "Income",          icon: DollarSign },
+  { href: "/debt",           label: "Debt Payoff",     icon: CreditCard },
+  { href: "/analytics",      label: "Analytics",       icon: BarChart3 },
+  { href: "/net-worth",      label: "Net Worth",       icon: Wallet },
+  { href: "/subscriptions",  label: "Subscriptions",   icon: RefreshCw },
+  { href: "/merchants",      label: "Merchants",       icon: Store },
+  { href: "/recurring",      label: "Recurring",       icon: RefreshCw },
+  { href: "/health",         label: "Health Score",    icon: Activity },
+  { href: "/insights",       label: "AI Insights",     icon: Brain },
+  { href: "/receipts",       label: "Receipts",        icon: Camera },
+  { href: "/alerts",         label: "Alerts",          icon: Bell,   badgeKey: "alerts" },
+  { href: "/notifications",  label: "Notifications",   icon: Mail,   badgeKey: "notifs" },
 ];
 
 // ── Reusable nav link ─────────────────────────────────────────────────────────

@@ -13,7 +13,7 @@ import {
   BarChart3, PieChart as PieChartIcon, Settings, X, Sparkles,
   FileText, type LucideIcon,
 } from "lucide-react";
-import { isAuthenticated } from "@/lib/api";
+import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 import { reportsService, type ReportsData, type ReportsRange, type CategoryBreakdown } from "@/lib/api/services/reports.service";
 import { exportMonthlyReport } from "@/lib/utils/pdfExport";
 import { CheckCircle } from "lucide-react";
@@ -177,6 +177,7 @@ const EnhancedFinancialReports: React.FC = () => {
 
   const [reportsData, setReportsData] = useState<ReportsData | null>(null);
   const [allReportsData, setAllReportsData] = useState<ReportsData | null>(null); // always full dataset for forecast
+  const [rawTransactions, setRawTransactions] = useState<Transaction[]>([]); // all-time transactions for YoY
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -218,6 +219,10 @@ const EnhancedFinancialReports: React.FC = () => {
       } else {
         setAllReportsData(data);
       }
+
+      // Fetch ALL transactions for Year-over-Year comparison (needs 2 years of data)
+      const txns = await transactionsAPI.getAll().catch(() => [] as Transaction[]);
+      setRawTransactions(Array.isArray(txns) ? txns : []);
     } catch (err) {
       setDataError(err instanceof Error ? err.message : "Failed to load reports data");
     } finally {
@@ -282,6 +287,64 @@ const EnhancedFinancialReports: React.FC = () => {
       previousIncome: i >= half ? (months[i - half]?.income ?? 0) : 0,
     }));
   }, [reportsData]);
+
+  // ── Derived: Year-over-Year data — computed from all raw transactions ────────
+  const yoyData = useMemo(() => {
+    if (rawTransactions.length === 0) return null;
+    const now  = new Date();
+    const SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+    // Build 12 months: same month in current year vs same month in previous year
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const d  = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const cy = d.getFullYear();
+      const mo = d.getMonth();
+      const cyKey = `${cy}-${String(mo + 1).padStart(2, "0")}`;
+      const lyKey = `${cy - 1}-${String(mo + 1).padStart(2, "0")}`;
+
+      const isExp = (t: Transaction) => t.type === "expense" || t.type === "EXPENSE";
+      const isInc = (t: Transaction) => t.type === "income"  || t.type === "INCOME";
+      const sum   = (txns: Transaction[]) =>
+        txns.reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
+
+      const cyTxns = rawTransactions.filter(t => (t.date ?? "").startsWith(cyKey));
+      const lyTxns = rawTransactions.filter(t => (t.date ?? "").startsWith(lyKey));
+
+      months.push({
+        month:          SHORT[mo],
+        thisYearExp:    Math.round(sum(cyTxns.filter(isExp)) * 100) / 100,
+        lastYearExp:    Math.round(sum(lyTxns.filter(isExp)) * 100) / 100,
+        thisYearInc:    Math.round(sum(cyTxns.filter(isInc)) * 100) / 100,
+        lastYearInc:    Math.round(sum(lyTxns.filter(isInc)) * 100) / 100,
+      });
+    }
+
+    const cyTotal  = months.reduce((s, m) => s + m.thisYearExp, 0);
+    const lyTotal  = months.reduce((s, m) => s + m.lastYearExp, 0);
+    const hasLYData = lyTotal > 0;
+    const pctChange = lyTotal > 0 ? ((cyTotal - lyTotal) / lyTotal) * 100 : null;
+
+    // Current-month callout
+    const curr  = months[months.length - 1];
+    const currMonthPct = curr.lastYearExp > 0
+      ? ((curr.thisYearExp - curr.lastYearExp) / curr.lastYearExp) * 100
+      : null;
+
+    // Income YoY totals
+    const cyIncTotal = months.reduce((s, m) => s + m.thisYearInc, 0);
+    const lyIncTotal = months.reduce((s, m) => s + m.lastYearInc, 0);
+    const incPctChange = lyIncTotal > 0 ? ((cyIncTotal - lyIncTotal) / lyIncTotal) * 100 : null;
+
+    const currentMonthName = SHORT[now.getMonth()];
+    const currentYear      = now.getFullYear();
+
+    return {
+      months, cyTotal, lyTotal, hasLYData, pctChange,
+      cyIncTotal, lyIncTotal, incPctChange,
+      curr, currMonthPct, currentMonthName, currentYear,
+    };
+  }, [rawTransactions]);
 
   // ── Derived: Forecast data — always uses full dataset for meaningful projections
   const forecastData = useMemo(() => {
@@ -843,6 +906,103 @@ const EnhancedFinancialReports: React.FC = () => {
 
     return (
       <div className="space-y-6">
+
+        {/* ── Year-over-Year section ── */}
+        {yoyData && (
+          <Card title={`Year-over-Year: ${yoyData.currentYear - 1} vs ${yoyData.currentYear}`}
+            subtitle="Monthly expenses — this year side-by-side with the same months last year"
+            accentColor="#6366f1">
+
+            {yoyData.hasLYData ? (
+              <div className="space-y-5">
+                {/* 3 summary stat pills */}
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    {
+                      label: `${yoyData.currentYear} Total Spend`,
+                      value: fmt(yoyData.cyTotal),
+                      sub: "This 12 months",
+                      color: "text-indigo-600", bg: "bg-indigo-50",
+                    },
+                    {
+                      label: `${yoyData.currentYear - 1} Total Spend`,
+                      value: fmt(yoyData.lyTotal),
+                      sub: "Last 12 months",
+                      color: "text-gray-700", bg: "bg-gray-50",
+                    },
+                    {
+                      label: "YoY Change",
+                      value: yoyData.pctChange !== null
+                        ? `${yoyData.pctChange > 0 ? "+" : ""}${yoyData.pctChange.toFixed(1)}%`
+                        : "—",
+                      sub: yoyData.pctChange !== null
+                        ? (yoyData.pctChange > 0 ? "Spending up" : "Spending down")
+                        : "No prior data",
+                      color: yoyData.pctChange !== null
+                        ? (yoyData.pctChange > 0 ? "text-red-600" : "text-emerald-600")
+                        : "text-gray-400",
+                      bg: yoyData.pctChange !== null
+                        ? (yoyData.pctChange > 0 ? "bg-red-50" : "bg-emerald-50")
+                        : "bg-gray-50",
+                    },
+                  ].map((s) => (
+                    <div key={s.label} className={`rounded-2xl p-4 ${s.bg}`}>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{s.label}</p>
+                      <p className={`text-xl font-extrabold ${s.color}`}>{s.value}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{s.sub}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Side-by-side bar chart */}
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={yoyData.months} barGap={3} barCategoryGap="28%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `$${v}`} />
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number) => fmt(v)} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar dataKey="thisYearExp" fill="#6366f1" name={`${yoyData.currentYear}`} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="lastYearExp" fill="#c7d2fe"  name={`${yoyData.currentYear - 1}`} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+
+                {/* Current-month callout */}
+                {yoyData.currMonthPct !== null && (
+                  <div className={`flex items-center gap-3 rounded-xl px-4 py-3 border ${
+                    yoyData.currMonthPct > 0
+                      ? "bg-red-50 border-red-200 text-red-700"
+                      : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                  }`}>
+                    {yoyData.currMonthPct > 0
+                      ? <ArrowUp className="w-4 h-4 flex-shrink-0" />
+                      : <ArrowDown className="w-4 h-4 flex-shrink-0" />
+                    }
+                    <p className="text-sm font-medium">
+                      <strong>{yoyData.currentMonthName} {yoyData.currentYear}</strong> spending is{" "}
+                      <strong>{Math.abs(yoyData.currMonthPct).toFixed(1)}%</strong>{" "}
+                      {yoyData.currMonthPct > 0 ? "higher" : "lower"} than{" "}
+                      {yoyData.currentMonthName} {yoyData.currentYear - 1}
+                      {" "}({fmt(yoyData.curr.lastYearExp)} last year vs {fmt(yoyData.curr.thisYearExp)} this year).
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center">
+                  <Calendar className="w-7 h-7 text-indigo-400" />
+                </div>
+                <p className="font-semibold text-gray-600">No data from {yoyData.currentYear - 1} yet</p>
+                <p className="text-sm text-gray-400 max-w-xs">
+                  Year-over-Year comparison will appear once you have transactions from the same months last year.
+                  Keep tracking and check back next year!
+                </p>
+              </div>
+            )}
+          </Card>
+        )}
+
         <Card title="Period Comparison" subtitle="Current months vs prior months spending" accentColor="#3b82f6">
           <ResponsiveContainer width="100%" height={350}>
             <BarChart data={comparisonData} barGap={4} barCategoryGap="30%">

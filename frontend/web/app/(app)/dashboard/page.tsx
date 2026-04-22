@@ -24,6 +24,7 @@ import { HealthScoreWidget } from "@/components/dashboard/HealthScoreWidget";
 import { RecurringTransactionsCard } from "@/components/dashboard/RecurringTransactionsCard";
 import { SpendingInsightsCard } from "@/components/dashboard/SpendingInsightsCard";
 import { DailySpendCard } from "@/components/dashboard/DailySpendCard";
+import { SpendingByDayCard } from "@/components/dashboard/SpendingByDayCard";
 import { SavingsGoalsCard } from "@/components/dashboard/SavingsGoalsCard";
 import { MonthEndForecastCard } from "@/components/dashboard/MonthEndForecastCard";
 import { NextMonthPredictionCard } from "@/components/dashboard/NextMonthPredictionCard";
@@ -694,6 +695,7 @@ export default function DashboardPage() {
                   <SavingsRateCard transactions={allTransactions} />
                   <NoSpendStreakCard transactions={allTransactions} />
                 </Grid>
+                <SpendingByDayCard transactions={allTransactions} />
                 <Grid columns={2} gap="lg">
                   <HealthScoreWidget transactions={allTransactions} budgets={allBudgets} />
                   <DailySpendCard transactions={allTransactions} />

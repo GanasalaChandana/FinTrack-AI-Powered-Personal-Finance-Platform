@@ -184,6 +184,7 @@ const EnhancedFinancialReports: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [activeTaxFilter, setActiveTaxFilter] = useState<TaxCategory | null>(null);
+  const taxStore = useTaxStore();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryDetail, setCategoryDetail] = useState<CategoryDetail | null>(null);
   const [customConfig, setCustomConfig] = useState<CustomReportConfig>({
@@ -1419,8 +1420,6 @@ const EnhancedFinancialReports: React.FC = () => {
   };
 
   // ── Tax Report ────────────────────────────────────────────────────────────────
-
-  const taxStore = useTaxStore();
 
   const renderTax = () => {
     if (dataLoading) return <LoadingSpinner />;

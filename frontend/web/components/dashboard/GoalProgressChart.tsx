@@ -40,14 +40,15 @@ const formatCurrency = (value: number) => {
 };
 
 export function GoalProgressChart({ goals }: GoalProgressChartProps) {
+  const safeProgress = (current: number, target: number) =>
+    target > 0 ? (current / target) * 100 : 0;
+
   const sortedGoals = [...goals].sort((a, b) => {
-    const progressA = (a.current / a.target) * 100;
-    const progressB = (b.current / b.target) * 100;
-    return progressB - progressA;
+    return safeProgress(b.current, b.target) - safeProgress(a.current, a.target);
   });
 
   const averageProgress = goals.length > 0
-    ? goals.reduce((sum, goal) => sum + (goal.current / goal.target) * 100, 0) / goals.length
+    ? goals.reduce((sum, goal) => sum + safeProgress(goal.current, goal.target), 0) / goals.length
     : 0;
 
   return (
@@ -71,7 +72,7 @@ export function GoalProgressChart({ goals }: GoalProgressChartProps) {
           </div>
         ) : (
           sortedGoals.map((goal) => {
-            const progress = (goal.current / goal.target) * 100;
+            const progress = safeProgress(goal.current, goal.target);
             const isComplete = progress >= 100;
 
             return (

@@ -11,7 +11,7 @@ import {
   TrendingUp, TrendingDown, Download, DollarSign, Target, Award,
   AlertCircle, ArrowUp, ArrowDown, Loader2, ChevronRight, Calendar,
   BarChart3, PieChart as PieChartIcon, Settings, X, Sparkles,
-  FileText, type LucideIcon, Receipt, Check, Tag,
+  FileText, type LucideIcon, Receipt, Check, Tag, PiggyBank,
 } from "lucide-react";
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 import { useTaxStore, TAX_CATEGORY_META, type TaxCategory } from "@/lib/stores/taxStore";
@@ -27,7 +27,7 @@ import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/Pag
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ReportTab = "overview" | "custom" | "trends" | "comparison" | "forecast" | "budget-history" | "tax" | "income";
+type ReportTab = "overview" | "custom" | "trends" | "comparison" | "forecast" | "budget-history" | "tax" | "income" | "savings";
 type DateRange = "last-7-days" | "last-30-days" | "last-3-months" | "last-6-months" | "last-year" | "custom";
 type ChartType = "line" | "bar" | "area" | "pie";
 
@@ -484,6 +484,37 @@ const EnhancedFinancialReports: React.FC = () => {
     };
   }, [rawTransactions]);
 
+  // ── Derived: Savings Rate History ─────────────────────────────────────────
+  const savingsRateHistory = useMemo(() => {
+    if (!rawTransactions.length) return null;
+    const now = new Date();
+    const SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const monthly: {
+      month: string; income: number; expenses: number; savings: number; rate: number; onTarget: boolean;
+    }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d   = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const income   = rawTransactions.filter(t => (t.type === "income"  || t.type === "INCOME" ) && (t.date ?? "").startsWith(key)).reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
+      const expenses = rawTransactions.filter(t => (t.type === "expense" || t.type === "EXPENSE") && (t.date ?? "").startsWith(key)).reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
+      const savings  = income - expenses;
+      const rate     = income > 0 ? Math.round((savings / income) * 1000) / 10 : 0;
+      monthly.push({ month: SHORT[d.getMonth()], income, expenses, savings, rate, onTarget: rate >= 20 });
+    }
+    const active = monthly.filter(m => m.income > 0);
+    const avgRate = active.length
+      ? Math.round(active.reduce((s, m) => s + m.rate, 0) / active.length * 10) / 10
+      : 0;
+    const bestMonth = active.length ? [...active].sort((a, b) => b.rate - a.rate)[0] : null;
+    const monthsOnTarget = monthly.filter(m => m.onTarget).length;
+    let streak = 0;
+    for (let i = monthly.length - 1; i >= 0; i--) {
+      if (monthly[i].onTarget && monthly[i].income > 0) streak++;
+      else break;
+    }
+    return { monthly, avgRate, bestMonth, monthsOnTarget, streak };
+  }, [rawTransactions]);
+
   const handleExport = () => {
     if (!reportsData) { setExportError("No data to export yet."); return; }
     setIsExporting(true);
@@ -704,6 +735,66 @@ const EnhancedFinancialReports: React.FC = () => {
         )}
 
         {/* ── Month-over-Month Breakdown Table ── */}
+        {/* ── Cash Flow Waterfall ── */}
+        {hasCategoryData && summary.totalExpenses > 0 && (() => {
+          const grossIncome = summary.totalExpenses + summary.netSavings;
+          if (grossIncome <= 0) return null;
+          let running = grossIncome;
+          const bars: { name: string; base: number; value: number; colorType: string }[] = [
+            { name: "Income", base: 0, value: grossIncome, colorType: "income" },
+          ];
+          const topCats = categoryBreakdown.slice(0, 5);
+          topCats.forEach((cat: CategoryBreakdown) => {
+            const amt = Math.min(cat.amount, running);
+            bars.push({ name: cat.name.length > 9 ? cat.name.slice(0, 8) + "…" : cat.name, base: running - amt, value: amt, colorType: "expense" });
+            running -= amt;
+          });
+          const otherTotal = summary.totalExpenses - topCats.reduce((s: number, c: CategoryBreakdown) => s + c.amount, 0);
+          if (otherTotal > 1) {
+            const amt = Math.min(otherTotal, running);
+            bars.push({ name: "Other", base: running - amt, value: amt, colorType: "expense" });
+            running -= amt;
+          }
+          const net = Math.max(0, running);
+          bars.push({ name: "Net", base: 0, value: net, colorType: net > 0 ? "savings" : "deficit" });
+          const COLOR_MAP: Record<string, string> = { income: "#10b981", expense: "#ef4444", savings: "#6366f1", deficit: "#f97316" };
+          const WaterfallTooltip = ({ active, payload, label }: any) => {
+            if (!active || !payload?.length) return null;
+            const vis = payload.find((p: any) => p.dataKey === "value");
+            if (!vis) return null;
+            return (
+              <div style={{ ...CHART_TOOLTIP_STYLE, padding: "10px 14px" }}>
+                <p className="font-bold text-gray-800 dark:text-gray-100 text-sm mb-1">{label}</p>
+                <p className="text-xs font-semibold" style={{ color: COLOR_MAP[vis.payload.colorType] }}>{fmt(vis.value)}</p>
+              </div>
+            );
+          };
+          return (
+            <Card title="Cash Flow Waterfall" subtitle="Where your income goes — from gross income down to net savings" accentColor="#6366f1">
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={bars} barCategoryGap="25%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip content={WaterfallTooltip} />
+                  <Bar dataKey="base" stackId="wf" fill="transparent" />
+                  <Bar dataKey="value" stackId="wf" radius={[4, 4, 0, 0]} name="Amount">
+                    {bars.map((b, i) => <Cell key={i} fill={COLOR_MAP[b.colorType]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="mt-4 flex gap-5 flex-wrap">
+                {[{ label: "Income", color: "#10b981" }, { label: "Expenses", color: "#ef4444" }, { label: "Net Savings", color: "#6366f1" }].map(item => (
+                  <div key={item.label} className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: item.color }} />
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          );
+        })()}
+
         {monthlyData?.length > 1 && (
           <Card title="Month-over-Month Breakdown" subtitle="Income, expenses, and net savings for each month" accentColor="#6366f1">
             <div className="overflow-x-auto">
@@ -1908,11 +1999,190 @@ const EnhancedFinancialReports: React.FC = () => {
     );
   };
 
+  // ── Tab: Savings Rate History ─────────────────────────────────────────────
+
+  const renderSavingsRate = () => {
+    if (dataLoading) return <LoadingSpinner />;
+    if (!savingsRateHistory) {
+      return <ChartEmptyState message="No transaction data found. Add income and expense transactions to see your savings rate history." />;
+    }
+    const { monthly, avgRate, bestMonth, monthsOnTarget, streak } = savingsRateHistory;
+
+    const avgColor = avgRate >= 20
+      ? "text-emerald-600 dark:text-emerald-400"
+      : avgRate >= 10 ? "text-amber-500 dark:text-amber-400"
+      : "text-red-500 dark:text-red-400";
+
+    const SRTooltip = ({ active, payload, label }: any) => {
+      if (!active || !payload?.length) return null;
+      const d = payload[0]?.payload as typeof monthly[0];
+      if (!d?.income) return null;
+      return (
+        <div style={{ ...CHART_TOOLTIP_STYLE, padding: "12px 16px" }}>
+          <p className="font-bold text-gray-800 dark:text-gray-100 text-sm mb-2">{label}</p>
+          <div className="space-y-1 text-xs">
+            <p className="text-emerald-600 dark:text-emerald-400">Income: {fmt(d.income)}</p>
+            <p className="text-red-500 dark:text-red-400">Expenses: {fmt(d.expenses)}</p>
+            <p className="text-indigo-600 dark:text-indigo-400 font-bold">Saved: {fmt(d.savings)}</p>
+            <p className="font-extrabold text-gray-700 dark:text-gray-200">Rate: {d.rate}%</p>
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="space-y-6">
+
+        {/* KPI row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            {
+              label: "Avg Savings Rate",
+              value: `${avgRate}%`,
+              sub: "12-month rolling average",
+              icon: PiggyBank,
+              bg: avgRate >= 20 ? "bg-emerald-50 dark:bg-emerald-900/30" : "bg-amber-50 dark:bg-amber-900/30",
+              text: avgColor,
+            },
+            {
+              label: "Best Month",
+              value: bestMonth ? bestMonth.month : "—",
+              sub: bestMonth ? `${bestMonth.rate}% savings rate` : "No data yet",
+              icon: Award,
+              bg: "bg-violet-50 dark:bg-violet-900/30",
+              text: "text-violet-600 dark:text-violet-400",
+            },
+            {
+              label: "Months on Target",
+              value: `${monthsOnTarget} / 12`,
+              sub: "months with ≥ 20% savings",
+              icon: Target,
+              bg: "bg-indigo-50 dark:bg-indigo-900/30",
+              text: "text-indigo-600 dark:text-indigo-400",
+            },
+            {
+              label: "Current Streak",
+              value: streak > 0 ? `${streak} mo` : "—",
+              sub: "consecutive months ≥ 20%",
+              icon: CheckCircle,
+              bg: streak >= 3 ? "bg-emerald-50 dark:bg-emerald-900/30" : "bg-gray-50 dark:bg-gray-800",
+              text: streak >= 3 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-gray-400",
+            },
+          ].map(item => (
+            <div key={item.label} className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 flex flex-col gap-3">
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${item.bg}`}>
+                <item.icon className={`w-5 h-5 ${item.text}`} />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">{item.label}</p>
+                <p className={`text-2xl font-extrabold tracking-tight ${item.text}`}>{item.value}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{item.sub}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Bar chart */}
+        <Card title="Monthly Savings Rate" subtitle="Last 12 months — purple line = 20% goal" accentColor="#6366f1">
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={monthly} barCategoryGap="28%">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
+              <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `${v}%`} />
+              <Tooltip content={SRTooltip} />
+              <ReferenceLine y={20} stroke="#6366f1" strokeDasharray="5 3" strokeWidth={1.5}
+                label={{ value: "20% goal", position: "insideTopRight", fill: "#6366f1", fontSize: 11 }} />
+              <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" strokeWidth={1} />
+              <Bar dataKey="rate" radius={[4, 4, 0, 0]} name="Savings Rate">
+                {monthly.map((m, i) => (
+                  <Cell key={i} fill={m.rate >= 20 ? "#10b981" : m.rate >= 10 ? "#f59e0b" : m.rate >= 0 ? "#ef4444" : "#f97316"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="mt-3 flex gap-4 flex-wrap">
+            {[
+              { label: "≥ 20% — On target", color: "#10b981" },
+              { label: "10–20% — Moderate", color: "#f59e0b" },
+              { label: "0–10% — Low", color: "#ef4444" },
+              { label: "< 0% — Deficit", color: "#f97316" },
+            ].map(item => (
+              <div key={item.label} className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: item.color }} />
+                {item.label}
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Month-by-month table */}
+        <Card title="Month-by-Month Breakdown" accentColor="#10b981">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-gray-800">
+                  {["Month", "Income", "Expenses", "Saved", "Rate", "Status"].map(h => (
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {monthly.map(m => (
+                  <tr key={m.month} className="hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">{m.month}</td>
+                    <td className="px-4 py-3 text-emerald-600 dark:text-emerald-400 font-medium">{m.income > 0 ? fmt(m.income) : "—"}</td>
+                    <td className="px-4 py-3 text-red-500 dark:text-red-400 font-medium">{m.expenses > 0 ? fmt(m.expenses) : "—"}</td>
+                    <td className={`px-4 py-3 font-bold ${m.savings >= 0 ? "text-indigo-600 dark:text-indigo-400" : "text-orange-500"}`}>
+                      {m.income > 0 ? fmt(m.savings) : "—"}
+                    </td>
+                    <td className={`px-4 py-3 font-extrabold ${m.rate >= 20 ? "text-emerald-600 dark:text-emerald-400" : m.rate >= 10 ? "text-amber-500" : m.rate >= 0 ? "text-red-500" : "text-orange-500"}`}>
+                      {m.income > 0 ? `${m.rate}%` : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      {m.income > 0 && (
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                          m.onTarget
+                            ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                            : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                        }`}>
+                          {m.onTarget ? "On target" : "Below 20%"}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        {/* 50/30/20 rule callout */}
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/40 rounded-2xl p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-indigo-800 dark:text-indigo-300">The 50/30/20 Rule</p>
+              <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
+                Allocate 50% of income to needs, 30% to wants, and at least{" "}
+                <strong>20% to savings</strong>. A savings rate above 20% puts you firmly on track for
+                long-term financial health and early retirement goals.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    );
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const TABS = [
     { id: "overview",       label: "Overview",         icon: BarChart3 },
     { id: "income",         label: "Income Analysis",  icon: TrendingUp },
+    { id: "savings",        label: "Savings Rate",     icon: PiggyBank },
     { id: "custom",         label: "Custom Reports",   icon: Settings },
     { id: "trends",         label: "Spending Trends",  icon: TrendingDown },
     { id: "comparison",     label: "Comparison",       icon: PieChartIcon },
@@ -1985,6 +2255,7 @@ const EnhancedFinancialReports: React.FC = () => {
           <div className="tab-content" key={`${selectedReport}-${dateRange}`}>
             {selectedReport === "overview"        && renderOverview()}
             {selectedReport === "income"          && renderIncome()}
+            {selectedReport === "savings"         && renderSavingsRate()}
             {selectedReport === "custom"          && renderCustomReportBuilder()}
             {selectedReport === "trends"          && renderSpendingTrends()}
             {selectedReport === "comparison"      && renderComparison()}

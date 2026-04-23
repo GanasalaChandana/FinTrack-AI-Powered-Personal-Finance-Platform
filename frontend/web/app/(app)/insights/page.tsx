@@ -5,6 +5,7 @@ import {
   Brain, Loader2, Sparkles, AlertTriangle, CheckCircle, Info,
   Lightbulb, TrendingUp, TrendingDown, ArrowRight, X, ChevronDown,
   Filter, RefreshCw, AlertCircle, DollarSign, Calendar, Star,
+  Scissors, Smartphone, Coffee, Zap,
 } from "lucide-react";
 import { transactionsAPI, type Transaction as ApiTransaction } from "@/lib/api";
 
@@ -271,6 +272,271 @@ function SavingsProjection({ insights }: { insights: SpendingInsight[] }) {
       <p className="text-sm opacity-70 mt-1">
         If you act on {insights.filter((i) => i.savingsEstimate).length} insight{insights.filter((i) => i.savingsEstimate).length !== 1 ? "s" : ""} above
       </p>
+    </div>
+  );
+}
+
+// ── Action Plan ───────────────────────────────────────────────────────────────
+
+interface ActionTip {
+  id: string;
+  title: string;
+  description: string;
+  annualSavings: number;
+  category?: string;
+  iconType: "scissors" | "smartphone" | "coffee" | "zap" | "calendar";
+}
+
+const PLAN_DONE_KEY = "fintrack:action-plan-done";
+
+function loadPlanDone(): Set<string> {
+  try {
+    const raw = localStorage.getItem(PLAN_DONE_KEY);
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+  } catch { return new Set(); }
+}
+function savePlanDone(ids: Set<string>) {
+  try { localStorage.setItem(PLAN_DONE_KEY, JSON.stringify([...ids])); } catch {}
+}
+
+function generateActionPlan(transactions: ApiTransaction[]): ActionTip[] {
+  const tips: ActionTip[] = [];
+  const expenses = transactions.filter(t => t.type === "expense" || t.type === "EXPENSE");
+  if (expenses.length === 0) return tips;
+
+  const now = new Date();
+  const monthSet = new Set(expenses.map(t => (t.date ?? "").slice(0, 7)));
+  const months = Math.max(monthSet.size, 1);
+
+  // Category totals → monthly avg
+  const catTotals: Record<string, number> = {};
+  expenses.forEach(t => { catTotals[t.category] = (catTotals[t.category] ?? 0) + Math.abs(t.amount ?? 0); });
+  const topCats = Object.entries(catTotals)
+    .map(([name, total]) => ({ name, monthlyAvg: total / months }))
+    .sort((a, b) => b.monthlyAvg - a.monthlyAvg)
+    .slice(0, 3);
+
+  // Tip: trim top category by 15%
+  if (topCats[0] && topCats[0].monthlyAvg > 50) {
+    const c = topCats[0];
+    const saving = Math.round(c.monthlyAvg * 0.15 * 12);
+    tips.push({
+      id: "top-cat-cut",
+      title: `Trim ${c.name} by 15%`,
+      description: `You spend ~$${Math.round(c.monthlyAvg)}/month on ${c.name}. A 15% cut frees up $${saving}/year without a big lifestyle change.`,
+      annualSavings: saving,
+      category: c.name,
+      iconType: "scissors",
+    });
+  }
+
+  // Tip: second category if meaningfully large
+  if (topCats[1] && topCats[1].monthlyAvg > 30) {
+    const c = topCats[1];
+    const saving = Math.round(c.monthlyAvg * 0.1 * 12);
+    tips.push({
+      id: "second-cat-cut",
+      title: `Find deals on ${c.name}`,
+      description: `${c.name} costs ~$${Math.round(c.monthlyAvg)}/month. Comparison-shopping or couponing 10% off saves $${saving}/year.`,
+      annualSavings: saving,
+      category: c.name,
+      iconType: "zap",
+    });
+  }
+
+  // Tip: subscriptions
+  const subKeywords = ["netflix", "spotify", "disney", "hulu", "apple", "amazon prime", "youtube", "gym", "subscription", "prime"];
+  const subs = expenses.filter(t =>
+    subKeywords.some(k => (t.description ?? "").toLowerCase().includes(k) || (t.merchant ?? "").toLowerCase().includes(k))
+  );
+  if (subs.length > 0) {
+    const monthlySubCost = subs.reduce((s, t) => s + Math.abs(t.amount ?? 0), 0) / months;
+    const saving = Math.round(monthlySubCost * 0.3 * 12);
+    tips.push({
+      id: "sub-audit",
+      title: `Audit ${subs.length} subscription${subs.length !== 1 ? "s" : ""}`,
+      description: `Detected subscriptions cost ~$${Math.round(monthlySubCost)}/month. Cancelling even 1–2 unused ones saves $${saving}/year.`,
+      annualSavings: saving,
+      iconType: "smartphone",
+    });
+  }
+
+  // Tip: micro-spending
+  const micro = expenses.filter(t => Math.abs(t.amount ?? 0) < 25);
+  if (micro.length >= 8) {
+    const monthlyMicro = micro.reduce((s, t) => s + Math.abs(t.amount ?? 0), 0) / months;
+    const saving = Math.round(monthlyMicro * 0.3 * 12);
+    tips.push({
+      id: "impulse-cuts",
+      title: "Apply the 24-hour rule",
+      description: `${micro.length} small purchases (<$25) add up to ~$${Math.round(monthlyMicro)}/month. Waiting 24 hours before buying cuts impulse spend by ~30% — saving $${saving}/year.`,
+      annualSavings: saving,
+      iconType: "coffee",
+    });
+  }
+
+  // Tip: weekend spending
+  let weekend = 0, weekday = 0;
+  expenses.forEach(t => {
+    const d = new Date((t.date ?? "") + "T00:00:00").getDay();
+    (d === 0 || d === 6) ? (weekend += Math.abs(t.amount ?? 0)) : (weekday += Math.abs(t.amount ?? 0));
+  });
+  const weekendPct = weekend + weekday > 0 ? (weekend / (weekend + weekday)) * 100 : 0;
+  if (weekendPct > 42) {
+    const saving = Math.round((weekend / months) * 0.2 * 12);
+    tips.push({
+      id: "weekend-plan",
+      title: "Plan your weekends ahead",
+      description: `${Math.round(weekendPct)}% of spending happens on weekends. Pre-planning activities and meals can cut weekend spend 20% — saving ~$${saving}/year.`,
+      annualSavings: saving,
+      iconType: "calendar",
+    });
+  }
+
+  return tips.sort((a, b) => b.annualSavings - a.annualSavings);
+}
+
+const ICON_MAP = {
+  scissors: Scissors,
+  smartphone: Smartphone,
+  coffee: Coffee,
+  zap: Zap,
+  calendar: Calendar,
+} as const;
+
+function ActionPlanSection({ transactions }: { transactions: ApiTransaction[] }) {
+  const tips = useMemo(() => generateActionPlan(transactions), [transactions]);
+  const [done, setDone] = useState<Set<string>>(() => loadPlanDone());
+
+  const toggle = (id: string) => {
+    setDone(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      savePlanDone(next);
+      return next;
+    });
+  };
+
+  if (tips.length === 0) return null;
+
+  const totalSavings = tips.reduce((s, t) => s + t.annualSavings, 0);
+  const doneCount = tips.filter(t => done.has(t.id)).length;
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="h-1.5 w-full" style={{ background: "linear-gradient(to right, #f97316, #f59e0b, #eab308)" }} />
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+              <Zap className="w-5 h-5 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Personalised</p>
+              <h3 className="text-lg font-extrabold text-gray-900 dark:text-gray-100 leading-tight">Action Plan</h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                {doneCount}/{tips.length} actions completed
+              </p>
+            </div>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">Potential savings</p>
+            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">${totalSavings.toLocaleString()}</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500">/year if all done</p>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        {tips.length > 0 && (
+          <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-5">
+            <div
+              className="h-full rounded-full bg-amber-400 transition-all duration-500"
+              style={{ width: `${(doneCount / tips.length) * 100}%` }}
+            />
+          </div>
+        )}
+
+        {/* Tips list */}
+        <div className="space-y-3">
+          {tips.map((tip, i) => {
+            const Icon = ICON_MAP[tip.iconType];
+            const isDone = done.has(tip.id);
+            return (
+              <div
+                key={tip.id}
+                className={`flex items-start gap-4 p-4 rounded-2xl border transition-all ${
+                  isDone
+                    ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/40 opacity-70"
+                    : "bg-slate-50 dark:bg-gray-700/50 border-gray-100 dark:border-gray-700 hover:border-amber-200 dark:hover:border-amber-700/40"
+                }`}
+              >
+                {/* Rank + icon */}
+                <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                    isDone
+                      ? "bg-emerald-100 dark:bg-emerald-900/40"
+                      : "bg-amber-100 dark:bg-amber-900/30"
+                  }`}>
+                    {isDone
+                      ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      : <Icon className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    }
+                  </div>
+                  <span className="text-[10px] font-black text-gray-400 dark:text-gray-500">#{i + 1}</span>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <p className={`text-sm font-bold leading-snug ${
+                      isDone ? "line-through text-gray-400 dark:text-gray-500" : "text-gray-900 dark:text-gray-100"
+                    }`}>
+                      {tip.title}
+                    </p>
+                    <span className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-full text-[10px] font-extrabold flex items-center gap-1 flex-shrink-0">
+                      <TrendingUp className="w-3 h-3" />
+                      ${tip.annualSavings.toLocaleString()}/yr
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">{tip.description}</p>
+                  {tip.category && (
+                    <span className="inline-block mt-2 px-2.5 py-0.5 bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-300 rounded-full text-[10px] font-semibold">
+                      {tip.category}
+                    </span>
+                  )}
+                </div>
+
+                {/* Checkbox */}
+                <button
+                  onClick={() => toggle(tip.id)}
+                  className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all mt-0.5 ${
+                    isDone
+                      ? "bg-emerald-500 border-emerald-500"
+                      : "border-gray-300 dark:border-gray-500 hover:border-emerald-400"
+                  }`}
+                  title={isDone ? "Mark undone" : "Mark done"}
+                >
+                  {isDone && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {doneCount === tips.length && tips.length > 0 && (
+          <div className="mt-4 flex items-center gap-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl px-4 py-3">
+            <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+              All actions complete! Keep it up — you're on track to save ${totalSavings.toLocaleString()}/year. 🎉
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -589,6 +855,7 @@ export default function InsightsPage() {
         )}
 
         <AIInsightsDashboard transactions={transactions} />
+        <ActionPlanSection transactions={transactions} />
       </div>
     </div>
   );

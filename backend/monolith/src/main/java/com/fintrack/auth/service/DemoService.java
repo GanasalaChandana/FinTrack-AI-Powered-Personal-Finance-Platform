@@ -6,7 +6,9 @@ import com.fintrack.auth.enums.Role;
 import com.fintrack.auth.repository.UserRepository;
 import com.fintrack.auth.security.JwtUtil;
 import com.fintrack.budgets.entity.Budget;
+import com.fintrack.budgets.entity.Goal;
 import com.fintrack.budgets.repository.BudgetRepository;
+import com.fintrack.budgets.repository.GoalRepository;
 import com.fintrack.transactions.entity.Transaction;
 import com.fintrack.transactions.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,7 @@ public class DemoService {
     private final UserRepository        userRepository;
     private final TransactionRepository transactionRepository;
     private final BudgetRepository      budgetRepository;
+    private final GoalRepository        goalRepository;
     private final PasswordEncoder       passwordEncoder;
     private final JwtUtil               jwtUtil;
 
@@ -55,9 +58,15 @@ public class DemoService {
             budgetRepository.deleteAll(existingBudgets);
             log.info("🗑️ Cleared {} stale demo budgets for user {}", existingBudgets.size(), userId);
         }
+        List<Goal> existingGoals = goalRepository.findByUserId(userId);
+        if (!existingGoals.isEmpty()) {
+            goalRepository.deleteAll(existingGoals);
+            log.info("🗑️ Cleared {} stale demo goals for user {}", existingGoals.size(), userId);
+        }
 
         seedTransactions(userId);
         seedBudgets(userId);
+        seedGoals(userId);
         log.info("✅ Demo data re-seeded for user {}", userId);
 
         String token = jwtUtil.generateToken(demo);
@@ -159,6 +168,41 @@ public class DemoService {
                 Budget.builder().userId(userId).category("Health & Fitness") .budget(100.0).spent(0.0).month(month).icon("💪").color("#ec4899").period("monthly").isActive(true).build()
         );
         budgetRepository.saveAll(budgets);
+    }
+
+    private void seedGoals(String userId) {
+        LocalDate today = LocalDate.now();
+        List<Goal> goals = List.of(
+                Goal.builder()
+                        .userId(userId).name("Emergency Fund")
+                        .targetAmount(new BigDecimal("10000.00"))
+                        .currentAmount(new BigDecimal("4200.00"))
+                        .deadline(today.plusMonths(8))
+                        .category("Savings").icon("🛡️").color("#10b981")
+                        .monthlyContribution(new BigDecimal("700.00")).achieved(false).build(),
+                Goal.builder()
+                        .userId(userId).name("Vacation to Japan")
+                        .targetAmount(new BigDecimal("3500.00"))
+                        .currentAmount(new BigDecimal("1750.00"))
+                        .deadline(today.plusMonths(5))
+                        .category("Travel").icon("✈️").color("#6366f1")
+                        .monthlyContribution(new BigDecimal("350.00")).achieved(false).build(),
+                Goal.builder()
+                        .userId(userId).name("New Laptop")
+                        .targetAmount(new BigDecimal("1800.00"))
+                        .currentAmount(new BigDecimal("1620.00"))
+                        .deadline(today.plusMonths(1))
+                        .category("Tech").icon("💻").color("#f59e0b")
+                        .monthlyContribution(new BigDecimal("200.00")).achieved(false).build(),
+                Goal.builder()
+                        .userId(userId).name("Down Payment")
+                        .targetAmount(new BigDecimal("50000.00"))
+                        .currentAmount(new BigDecimal("8500.00"))
+                        .deadline(today.plusMonths(36))
+                        .category("Housing").icon("🏠").color("#3b82f6")
+                        .monthlyContribution(new BigDecimal("1150.00")).achieved(false).build()
+        );
+        goalRepository.saveAll(goals);
     }
 
     private Transaction tx(String userId, String desc, double amount,

@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import {
   BarChart3, TrendingUp, TrendingDown, ShoppingBag,
-  Calendar, DollarSign, Loader2, ArrowUpRight,
+  Calendar, DollarSign, Loader2, ArrowUpRight, Trophy, Search,
 } from "lucide-react";
 import { transactionsAPI, type Transaction } from "@/lib/api";
 
@@ -60,6 +60,57 @@ function getTopMerchants(transactions: Transaction[], n = 10) {
     .map(([name, { total, count }]) => ({ name, total, count, avg: total / count }))
     .sort((a, b) => b.total - a.total)
     .slice(0, n);
+}
+
+interface MerchantStat {
+  rank: number;
+  name: string;
+  total: number;
+  count: number;
+  avg: number;
+  lastDate: string;
+  pctOfTotal: number;
+  monthly: number[]; // last 6 months spend
+}
+
+function getMerchantLeaderboard(transactions: Transaction[]): MerchantStat[] {
+  const now = new Date();
+  // Last 6 month keys
+  const monthKeys: string[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  }
+
+  const map = new Map<string, { total: number; count: number; lastDate: string; monthly: number[] }>();
+  transactions.filter(isExpense).forEach((t) => {
+    const name = (t.merchant || t.description || "Unknown").trim();
+    const cur = map.get(name) ?? { total: 0, count: 0, lastDate: "", monthly: Array(6).fill(0) };
+    const abs = Math.abs(t.amount ?? 0);
+    cur.total += abs;
+    cur.count += 1;
+    if (!cur.lastDate || (t.date ?? "") > cur.lastDate) cur.lastDate = (t.date ?? "").slice(0, 10);
+    const moKey = (t.date ?? "").slice(0, 7);
+    const mIdx = monthKeys.indexOf(moKey);
+    if (mIdx >= 0) cur.monthly[mIdx] += abs;
+    map.set(name, cur);
+  });
+
+  const grandTotal = [...map.values()].reduce((s, v) => s + v.total, 0);
+
+  return [...map.entries()]
+    .map(([name, v], _, arr) => ({
+      rank: 0,
+      name,
+      total: v.total,
+      count: v.count,
+      avg: v.total / v.count,
+      lastDate: v.lastDate,
+      pctOfTotal: grandTotal > 0 ? (v.total / grandTotal) * 100 : 0,
+      monthly: v.monthly,
+    }))
+    .sort((a, b) => b.total - a.total)
+    .map((m, i) => ({ ...m, rank: i + 1 }));
 }
 
 function getDayOfWeekData(transactions: Transaction[]) {
@@ -174,6 +225,9 @@ export default function AnalyticsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<"30" | "90" | "180" | "365">("90");
+  const [tab, setTab] = useState<"spending" | "merchants">("spending");
+  const [merchantSearch, setMerchantSearch] = useState("");
+  const [merchantSort, setMerchantSort] = useState<"total" | "count" | "avg">("total");
 
   useEffect(() => {
     const token = localStorage.getItem("authToken") || localStorage.getItem("ft_token");
@@ -195,6 +249,17 @@ export default function AnalyticsPage() {
   const { data: trendData, categories: trendCats } = useMemo(() => getCategoryTrends(filtered), [filtered]);
   const sizeDist     = useMemo(() => getSizeDistribution(filtered), [filtered]);
   const stats        = useMemo(() => getSummaryStats(filtered), [filtered]);
+  // Merchant leaderboard uses ALL transactions (not range-filtered) for full history
+  const allMerchants = useMemo(() => getMerchantLeaderboard(transactions), [transactions]);
+  const displayedMerchants = useMemo(() => {
+    let list = [...allMerchants];
+    if (merchantSearch.trim()) {
+      const q = merchantSearch.toLowerCase();
+      list = list.filter(m => m.name.toLowerCase().includes(q));
+    }
+    list.sort((a, b) => b[merchantSort] - a[merchantSort]);
+    return list;
+  }, [allMerchants, merchantSearch, merchantSort]);
 
   if (loading) {
     return (
@@ -257,6 +322,174 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
+        {/* ── Tabs ── */}
+        <div className="flex gap-1 mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 w-fit shadow-sm">
+          {[
+            { id: "spending",  label: "Spending",           icon: BarChart3 },
+            { id: "merchants", label: "Merchant Leaderboard", icon: Trophy },
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id as "spending" | "merchants")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                tab === id
+                  ? "bg-indigo-600 text-white shadow"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Merchant Leaderboard Tab ── */}
+        {tab === "merchants" && (
+          <div className="space-y-5">
+            {/* Controls */}
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={merchantSearch}
+                  onChange={e => setMerchantSearch(e.target.value)}
+                  placeholder="Search merchants…"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500 dark:text-gray-400 text-xs font-medium">Sort by:</span>
+                {[
+                  { key: "total", label: "Total Spent" },
+                  { key: "count", label: "Visits" },
+                  { key: "avg",   label: "Avg/Visit" },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setMerchantSort(key as "total" | "count" | "avg")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                      merchantSort === key
+                        ? "bg-indigo-600 text-white"
+                        : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Summary chips */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Total Merchants",  value: allMerchants.length,               color: "text-indigo-600 dark:text-indigo-400" },
+                { label: "Total Spent",      value: `$${(allMerchants.reduce((s, m) => s + m.total, 0) / 1000).toFixed(1)}k`, color: "text-red-500 dark:text-red-400" },
+                { label: "Total Visits",     value: allMerchants.reduce((s, m) => s + m.count, 0), color: "text-emerald-600 dark:text-emerald-400" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{label}</p>
+                  <p className={`text-xl font-bold ${color}`}>{value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Leaderboard table */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide w-10">#</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Merchant</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Visits</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Avg</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide hidden md:table-cell">6-mo trend</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide hidden sm:table-cell">Last Visit</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                    {displayedMerchants.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-10 text-center text-gray-400 dark:text-gray-500 text-sm">
+                          No merchants found
+                        </td>
+                      </tr>
+                    ) : displayedMerchants.map((m) => {
+                      const maxMonth = Math.max(1, ...m.monthly);
+                      const medal = m.rank === 1 ? "🥇" : m.rank === 2 ? "🥈" : m.rank === 3 ? "🥉" : null;
+                      return (
+                        <tr key={m.name} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                          {/* Rank */}
+                          <td className="px-4 py-3">
+                            <span className="text-sm font-bold text-gray-500 dark:text-gray-400">
+                              {medal ?? m.rank}
+                            </span>
+                          </td>
+                          {/* Name + share bar */}
+                          <td className="px-4 py-3">
+                            <div>
+                              <p className="font-semibold text-gray-900 dark:text-gray-100">{m.name}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <div className="flex-1 max-w-[120px] h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full bg-indigo-400"
+                                    style={{ width: `${Math.min(m.pctOfTotal, 100)}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                  {m.pctOfTotal.toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          {/* Total */}
+                          <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-gray-100">
+                            {fmt(m.total)}
+                          </td>
+                          {/* Visits */}
+                          <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
+                            {m.count}
+                          </td>
+                          {/* Avg */}
+                          <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
+                            {fmt(m.avg)}
+                          </td>
+                          {/* 6-month mini sparkline */}
+                          <td className="px-4 py-3 hidden md:table-cell">
+                            <div className="flex items-end gap-0.5 h-8">
+                              {m.monthly.map((v, i) => (
+                                <div
+                                  key={i}
+                                  className="flex-1 rounded-t-sm"
+                                  style={{
+                                    height: `${Math.max(4, Math.round((v / maxMonth) * 28))}px`,
+                                    backgroundColor: v > 0 ? "#6366f1" : "#e0e7ff",
+                                    opacity: v > 0 ? 1 : 0.3,
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </td>
+                          {/* Last visit */}
+                          <td className="px-4 py-3 text-right text-xs text-gray-400 dark:text-gray-500 hidden sm:table-cell">
+                            {m.lastDate
+                              ? new Date(m.lastDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                              : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "spending" && (
+        <>
         {/* ── Summary stat row ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
@@ -421,6 +654,8 @@ export default function AnalyticsPage() {
             })}
           </div>
         </div>
+        </> /* end tab === "spending" */
+        )}
 
       </div>
     </div>

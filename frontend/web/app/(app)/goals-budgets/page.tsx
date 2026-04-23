@@ -988,6 +988,71 @@ function GoalsSection() {
         </div>
       )}
 
+      {/* ── Goals Summary Panel ── */}
+      {totalGoals > 0 && (() => {
+        const totalSaved  = goals.reduce((s, g) => s + (g.current ?? 0), 0);
+        const totalTarget = goals.reduce((s, g) => s + (g.target  ?? 0), 0);
+        const overallPct  = totalTarget > 0 ? Math.min(100, (totalSaved / totalTarget) * 100) : 0;
+
+        const statusCounts = { achieved: 0, "on-track": 0, behind: 0, "at-risk": 0, "no-deadline": 0 };
+        goals.forEach(g => { statusCounts[getTrackStatus(g)]++; });
+
+        // Most-urgent: closest past-deadline or at-risk with nearest deadline
+        const urgentGoal = [...goals]
+          .filter(g => !g.achieved && g.deadline && getTrackStatus(g) !== "on-track" && getTrackStatus(g) !== "achieved")
+          .sort((a, b) => (daysUntil(a.deadline!) - daysUntil(b.deadline!)))[0];
+
+        return (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 mb-2">
+            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-4">All Goals — Summary</h3>
+
+            {/* Stat chips */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              {[
+                { label: "Total Saved",   value: fmt(totalSaved),  color: "text-indigo-600 dark:text-indigo-400" },
+                { label: "Total Target",  value: fmt(totalTarget), color: "text-gray-700 dark:text-gray-200" },
+                { label: "On Track",      value: statusCounts["on-track"] + statusCounts["achieved"],
+                  color: "text-emerald-600 dark:text-emerald-400" },
+                { label: "Need Attention",value: statusCounts.behind + statusCounts["at-risk"],
+                  color: statusCounts.behind + statusCounts["at-risk"] > 0 ? "text-red-500 dark:text-red-400" : "text-gray-400 dark:text-gray-500" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl px-4 py-3">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">{label}</p>
+                  <p className={`text-lg font-bold ${color}`}>{value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Combined progress bar */}
+            <div>
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+                <span>Combined progress across {totalGoals} goal{totalGoals !== 1 ? "s" : ""}</span>
+                <span className="font-bold text-indigo-600 dark:text-indigo-400">{overallPct.toFixed(1)}%</span>
+              </div>
+              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-indigo-500 transition-all duration-700"
+                  style={{ width: `${overallPct}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Urgent goal callout */}
+            {urgentGoal && (
+              <div className="mt-3 flex items-center gap-2 text-xs bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/40 rounded-xl px-3 py-2">
+                <span className="text-red-500 dark:text-red-400 font-bold flex-shrink-0">⚠️ Most urgent:</span>
+                <span className="text-red-700 dark:text-red-300 font-semibold truncate">{urgentGoal.name}</span>
+                <span className="text-red-500 dark:text-red-400 flex-shrink-0">
+                  {daysUntil(urgentGoal.deadline!) < 0
+                    ? `${Math.abs(daysUntil(urgentGoal.deadline!))}d overdue`
+                    : `${daysUntil(urgentGoal.deadline!)}d left`}
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Goal cards grid */}
       {totalGoals > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

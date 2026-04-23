@@ -50,6 +50,8 @@ export default function CalendarPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [view, setView] = useState<"month" | "year">("month");
+  const [yearView, setYearView] = useState(today.getFullYear());
 
   useEffect(() => {
     transactionsAPI.getAll()
@@ -138,6 +140,49 @@ export default function CalendarPage() {
     return max;
   }, [dayMap]);
 
+  // Year view: daily expense map for the selected year (52×7 grid)
+  const yearHeatmap = useMemo(() => {
+    // Build day-by-day expense totals for the whole year
+    const dayExp: Record<string, number> = {};
+    transactions.forEach(t => {
+      if (t.type === "expense" || t.type === "EXPENSE") {
+        const d = (t.date ?? "").slice(0, 10);
+        if (d.startsWith(String(yearView))) {
+          dayExp[d] = (dayExp[d] ?? 0) + Math.abs(t.amount ?? 0);
+        }
+      }
+    });
+
+    const maxExp = Math.max(1, ...Object.values(dayExp));
+
+    // Build 53 weeks × 7 days grid starting from Jan 1
+    const jan1 = new Date(yearView, 0, 1);
+    const startOffset = jan1.getDay(); // 0=Sun
+    const dec31 = new Date(yearView, 11, 31);
+    const totalDays = Math.floor((dec31.getTime() - jan1.getTime()) / 86_400_000) + 1;
+
+    const cells: { date: string; expenses: number; ratio: number }[] = [];
+    // Leading empty cells
+    for (let i = 0; i < startOffset; i++) cells.push({ date: "", expenses: 0, ratio: 0 });
+    for (let i = 0; i < totalDays; i++) {
+      const d = new Date(yearView, 0, 1 + i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const exp = dayExp[key] ?? 0;
+      cells.push({ date: key, expenses: exp, ratio: exp / maxExp });
+    }
+
+    // Month label positions (which column does each month start in)
+    const monthLabels: { month: string; col: number }[] = [];
+    for (let m = 0; m < 12; m++) {
+      const d = new Date(yearView, m, 1);
+      const dayOfYear = Math.floor((d.getTime() - jan1.getTime()) / 86_400_000);
+      const col = Math.floor((dayOfYear + startOffset) / 7);
+      monthLabels.push({ month: MONTH_NAMES[m].slice(0, 3), col });
+    }
+
+    return { cells, maxExp, monthLabels, weeks: Math.ceil(cells.length / 7) };
+  }, [transactions, yearView]);
+
   // Selected day panel
   const selectedDateStr = selectedDay ? toDateStr(currentYear, currentMonth, selectedDay) : null;
   const selectedData = selectedDateStr ? dayMap.get(selectedDateStr) : null;
@@ -166,12 +211,30 @@ export default function CalendarPage() {
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Transactions by day with upcoming bills</p>
           </div>
-          <button
-            onClick={goToday}
-            className="self-start sm:self-auto px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-          >
-            Today
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            {/* View toggle */}
+            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 border border-gray-200 dark:border-gray-700">
+              {(["month", "year"] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                    view === v
+                      ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  }`}
+                >
+                  {v === "month" ? "Month" : "Year"}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={goToday}
+              className="px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+            >
+              Today
+            </button>
+          </div>
         </div>
 
         {/* Monthly summary chips */}
@@ -207,7 +270,102 @@ export default function CalendarPage() {
           );
         })()}
 
-        {/* Calendar card */}
+        {/* ── Year Heatmap View ── */}
+        {view === "year" && (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 overflow-x-auto">
+            {/* Year nav */}
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                  {yearView} Spending Heatmap
+                </h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Each cell is a day — darker red = higher spend
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setYearView(y => y - 1)}
+                  className="p-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 w-10 text-center">{yearView}</span>
+                <button
+                  onClick={() => setYearView(y => y + 1)}
+                  className="p-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Month labels */}
+            <div className="flex mb-1 pl-6" style={{ minWidth: `${yearHeatmap.weeks * 13}px` }}>
+              {yearHeatmap.monthLabels.map(({ month, col }) => (
+                <span
+                  key={month}
+                  className="text-[10px] text-gray-400 dark:text-gray-500 font-medium absolute"
+                  style={{ left: `${col * 13 + 24}px`, position: "relative" }}
+                >
+                  {month}
+                </span>
+              ))}
+            </div>
+
+            {/* Grid: columns = weeks, rows = days of week */}
+            <div
+              className="grid gap-[3px] relative"
+              style={{
+                gridTemplateColumns: `repeat(${yearHeatmap.weeks}, 10px)`,
+                gridTemplateRows: "repeat(7, 10px)",
+                gridAutoFlow: "column",
+                minWidth: `${yearHeatmap.weeks * 13}px`,
+              }}
+            >
+              {yearHeatmap.cells.map((cell, idx) => (
+                <div
+                  key={idx}
+                  title={cell.date ? `${cell.date}: ${cell.expenses > 0 ? `$${cell.expenses.toFixed(0)}` : "No spend"}` : ""}
+                  className="w-[10px] h-[10px] rounded-[2px] cursor-default"
+                  style={{
+                    backgroundColor: !cell.date
+                      ? "transparent"
+                      : cell.expenses === 0
+                        ? "rgba(203,213,225,0.35)"
+                        : `rgba(239,68,68,${(0.15 + cell.ratio * 0.75).toFixed(3)})`,
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Day labels */}
+            <div className="flex flex-col gap-[3px] absolute left-2 mt-[-94px] text-[9px] text-gray-400 dark:text-gray-600 space-y-0">
+              {["S","M","T","W","T","F","S"].map((d, i) => (
+                <span key={i} className="h-[10px] leading-[10px] w-3 text-center">{i % 2 === 1 ? d : ""}</span>
+              ))}
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-2 mt-4 text-xs text-gray-500 dark:text-gray-400">
+              <span>Less</span>
+              {[0.1, 0.25, 0.45, 0.65, 0.9].map((a, i) => (
+                <span
+                  key={i}
+                  className="w-3 h-3 rounded-[2px]"
+                  style={{ backgroundColor: `rgba(239,68,68,${a})`, display: "inline-block" }}
+                />
+              ))}
+              <span>More</span>
+              <span className="ml-4 text-gray-400 dark:text-gray-500">
+                Max single day: ${yearHeatmap.maxExp > 1 ? yearHeatmap.maxExp.toFixed(0) : "0"}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Calendar card — Month view */}
+        {view === "year" ? null : (
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
           {/* Month navigation */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
@@ -310,8 +468,10 @@ export default function CalendarPage() {
             })}
           </div>
         </div>
+        )} {/* end month view */}
 
-        {/* Legend */}
+        {/* Legend — only in month view */}
+        {view === "month" && (
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-gray-500 dark:text-gray-400">
           {[
             { color: "bg-emerald-500", label: "Income" },
@@ -338,9 +498,10 @@ export default function CalendarPage() {
             <span className="text-gray-400 dark:text-gray-500">low → high</span>
           </span>
         </div>
+        )} {/* end legend */}
 
-        {/* Selected day panel */}
-        {selectedDay && (
+        {/* Selected day panel — month view only */}
+        {view === "month" && selectedDay && (
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
               <div>
@@ -418,7 +579,7 @@ export default function CalendarPage() {
               </div>
             )}
           </div>
-        )}
+        )} {/* end selectedDay panel */}
 
       </div>
     </div>

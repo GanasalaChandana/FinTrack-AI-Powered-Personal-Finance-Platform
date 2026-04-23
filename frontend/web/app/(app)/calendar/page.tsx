@@ -131,6 +131,13 @@ export default function CalendarPage() {
     return { income, expenses, net: income - expenses };
   }, [dayMap]);
 
+  // Heatmap: max daily expense this month (for intensity scaling)
+  const maxDailyExpense = useMemo(() => {
+    let max = 0;
+    dayMap.forEach(d => { if (d.expenses > max) max = d.expenses; });
+    return max;
+  }, [dayMap]);
+
   // Selected day panel
   const selectedDateStr = selectedDay ? toDateStr(currentYear, currentMonth, selectedDay) : null;
   const selectedData = selectedDateStr ? dayMap.get(selectedDateStr) : null;
@@ -247,14 +254,24 @@ export default function CalendarPage() {
               const isPast = new Date(currentYear, currentMonth, day) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
               const isFuture = !isPast && !isToday;
 
+              // Heatmap intensity: 0 → no color, 1 → deep red
+              const heatRatio = maxDailyExpense > 0 && hasExpenses
+                ? (data!.expenses / maxDailyExpense)
+                : 0;
+              // Use inline style — safe from Tailwind purge
+              const heatStyle = heatRatio > 0 && !isSelected
+                ? { backgroundColor: `rgba(239,68,68,${(0.07 + heatRatio * 0.28).toFixed(3)})` }
+                : {};
+
               return (
                 <button
                   key={day}
                   onClick={() => setSelectedDay(day === selectedDay ? null : day)}
+                  style={heatStyle}
                   className={`relative h-24 p-1.5 text-left border-b border-r border-gray-100 dark:border-gray-800 transition-colors focus:outline-none ${
                     isSelected
                       ? "bg-indigo-50 dark:bg-indigo-900/20"
-                      : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                      : heatRatio === 0 ? "hover:bg-gray-50 dark:hover:bg-gray-800/50" : ""
                   } ${isFuture && !hasBills ? "opacity-60" : ""}`}
                 >
                   {/* Day number */}
@@ -295,7 +312,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-5 text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-gray-500 dark:text-gray-400">
           {[
             { color: "bg-emerald-500", label: "Income" },
             { color: "bg-red-500", label: "Expenses" },
@@ -306,6 +323,20 @@ export default function CalendarPage() {
               {label}
             </span>
           ))}
+          {/* Heatmap gradient legend */}
+          <span className="flex items-center gap-1.5 ml-1">
+            <span className="text-gray-400 dark:text-gray-500">Spend intensity:</span>
+            <span className="flex items-center gap-0.5">
+              {[0.1, 0.22, 0.35].map((alpha, i) => (
+                <span
+                  key={i}
+                  className="w-3.5 h-3.5 rounded-sm"
+                  style={{ backgroundColor: `rgba(239,68,68,${alpha})` }}
+                />
+              ))}
+            </span>
+            <span className="text-gray-400 dark:text-gray-500">low → high</span>
+          </span>
         </div>
 
         {/* Selected day panel */}

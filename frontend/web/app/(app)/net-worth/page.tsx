@@ -9,7 +9,7 @@ import {
 import {
   TrendingUp, TrendingDown, Plus, Trash2, Edit2, Check, X,
   Wallet, CreditCard, Home, Car, Briefcase, PiggyBank, DollarSign,
-  Building, BarChart3,
+  Building, BarChart3, Target, Flag, Sparkles,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -286,10 +286,17 @@ const NWTooltip = ({ active, payload, label }: any) => {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+const NW_TARGET_KEY = "fintrack-nw-target";
+
 export default function NetWorthPage() {
   const router = useRouter();
   const [data, setData] = useState<NetWorthData>({ assets: [], liabilities: [], snapshots: [] });
   const [mounted, setMounted] = useState(false);
+
+  // Milestone target
+  const [target, setTarget] = useState<number | null>(null);
+  const [targetInput, setTargetInput] = useState("");
+  const [editingTarget, setEditingTarget] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("authToken") || localStorage.getItem("ft_token");
@@ -298,6 +305,14 @@ export default function NetWorthPage() {
     const withSnapshot = takeSnapshot(loaded);
     setData(withSnapshot);
     saveData(withSnapshot);
+
+    // Load saved target
+    const savedTarget = localStorage.getItem(NW_TARGET_KEY);
+    if (savedTarget) {
+      const t = parseFloat(savedTarget);
+      if (!isNaN(t) && t > 0) { setTarget(t); setTargetInput(String(t)); }
+    }
+
     setMounted(true);
   }, [router]);
 
@@ -341,13 +356,60 @@ export default function NetWorthPage() {
     ? ((netWorth - prevSnap.netWorth) / Math.abs(prevSnap.netWorth)) * 100
     : null;
 
-  // Chart data: label snapshots by month
-  const chartData = snapshots.map((s) => ({
-    label: new Date(s.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    netWorth: s.netWorth,
-    assets: s.assets,
-    liabilities: s.liabilities,
-  }));
+  // Chart data + 6-month projection + milestone
+  const fullChartData = useMemo(() => {
+    const base: {
+      label: string;
+      netWorth?: number;
+      assets?: number;
+      liabilities?: number;
+      projected?: number;
+    }[] = snapshots.map((s) => ({
+      label: new Date(s.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      netWorth: s.netWorth,
+      assets: s.assets,
+      liabilities: s.liabilities,
+    }));
+
+    if (snapshots.length >= 2) {
+      const first = snapshots[0];
+      const last  = snapshots[snapshots.length - 1];
+      const avgMonthlyChange = (last.netWorth - first.netWorth) / Math.max(1, snapshots.length - 1);
+      // Only project if there's a positive trend (or user has a target to work toward)
+      if (avgMonthlyChange !== 0 || target !== null) {
+        const rate = avgMonthlyChange !== 0 ? avgMonthlyChange : 0;
+        for (let i = 1; i <= 6; i++) {
+          const d = new Date(last.date + "T00:00:00");
+          d.setMonth(d.getMonth() + i);
+          base.push({
+            label: d.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+            projected: Math.round(last.netWorth + rate * i),
+          });
+        }
+      }
+    }
+    return base;
+  }, [snapshots, target]);
+
+  // Milestone progress
+  const milestone = useMemo(() => {
+    if (!target) return null;
+    const gap = target - netWorth;
+    const achieved = netWorth >= target;
+    const progress = target !== 0 ? Math.min(100, Math.max(0, (netWorth / target) * 100)) : 0;
+
+    let monthsToGoal: number | null = null;
+    if (!achieved && snapshots.length >= 2) {
+      const first = snapshots[0];
+      const last  = snapshots[snapshots.length - 1];
+      const avgMonthlyChange = (last.netWorth - first.netWorth) / Math.max(1, snapshots.length - 1);
+      if (avgMonthlyChange > 0) monthsToGoal = Math.ceil(gap / avgMonthlyChange);
+    }
+    return { gap, achieved, progress, monthsToGoal };
+  }, [target, netWorth, snapshots]);
+
+  // Legacy alias (used below for length guard)
+  const chartData = fullChartData;
 
   if (!mounted) return null;
 
@@ -430,32 +492,175 @@ export default function NetWorthPage() {
 
         {/* ── Net Worth Trend Chart ── */}
         {chartData.length >= 2 && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">Net Worth Over Time</h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Tracked each time you update your balances</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Solid lines = actual · Dashed = 6-month projection</p>
               </div>
               <BarChart3 className="w-5 h-5 text-indigo-500" />
             </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -10 }}>
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={fullChartData} margin={{ top: 4, right: 16, bottom: 0, left: -10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={(v) => `$${v >= 1000 ? (v / 1000).toFixed(0) + "k" : v}`}
+                <YAxis tickFormatter={(v) => `$${Math.abs(v) >= 1000 ? (v / 1000).toFixed(0) + "k" : v}`}
                   tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
                 <Tooltip content={<NWTooltip />} />
                 <ReferenceLine y={0} stroke="#e5e7eb" strokeDasharray="4 4" />
+                {/* Target milestone line */}
+                {target !== null && (
+                  <ReferenceLine
+                    y={target}
+                    stroke="#f97316"
+                    strokeDasharray="6 3"
+                    strokeWidth={2}
+                    label={{ value: `🎯 ${fmt(target)}`, position: "insideTopRight", fontSize: 11, fill: "#f97316", fontWeight: 700 }}
+                  />
+                )}
                 <Line type="monotone" dataKey="assets" stroke="#10b981" strokeWidth={2}
-                  name="Assets" dot={false} activeDot={{ r: 4 }} />
+                  name="Assets" dot={false} activeDot={{ r: 4 }} connectNulls={false} />
                 <Line type="monotone" dataKey="liabilities" stroke="#ef4444" strokeWidth={2}
-                  name="Liabilities" dot={false} activeDot={{ r: 4 }} />
+                  name="Liabilities" dot={false} activeDot={{ r: 4 }} connectNulls={false} />
                 <Line type="monotone" dataKey="netWorth" stroke="#6366f1" strokeWidth={3}
-                  name="Net Worth" dot={{ r: 3, fill: "#6366f1" }} activeDot={{ r: 5 }} />
+                  name="Net Worth" dot={{ r: 3, fill: "#6366f1" }} activeDot={{ r: 5 }} connectNulls={false} />
+                <Line type="monotone" dataKey="projected" stroke="#6366f1" strokeWidth={2}
+                  strokeDasharray="6 4" name="Projected" dot={false} activeDot={{ r: 4 }} connectNulls />
               </LineChart>
             </ResponsiveContainer>
+
+            {/* Legend */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-3 text-xs text-gray-500 dark:text-gray-400">
+              {[
+                { color: "#10b981", label: "Assets" },
+                { color: "#ef4444", label: "Liabilities" },
+                { color: "#6366f1", label: "Net Worth" },
+                { color: "#6366f1", label: "Projected", dashed: true },
+                ...(target !== null ? [{ color: "#f97316", label: "Milestone target", dashed: true }] : []),
+              ].map((item) => (
+                <span key={item.label} className="flex items-center gap-1.5">
+                  <span className={`inline-block h-0.5 w-5 ${item.dashed ? "border-t-2 border-dashed" : ""}`}
+                    style={item.dashed ? { borderColor: item.color } : { backgroundColor: item.color }} />
+                  {item.label}
+                </span>
+              ))}
+            </div>
           </div>
         )}
+
+        {/* ── Milestone Target Card ── */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                <Flag className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">Net Worth Milestone</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Set a target to track your progress</p>
+              </div>
+            </div>
+            {target !== null && !editingTarget && (
+              <button
+                onClick={() => { setTargetInput(String(target)); setEditingTarget(true); }}
+                className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+              >
+                Edit
+              </button>
+            )}
+          </div>
+
+          {/* Target input form */}
+          {(target === null || editingTarget) && (
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
+                <input
+                  type="number"
+                  value={targetInput}
+                  onChange={(e) => setTargetInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const v = parseFloat(targetInput);
+                      if (!isNaN(v) && v > 0) {
+                        setTarget(v);
+                        localStorage.setItem(NW_TARGET_KEY, String(v));
+                        setEditingTarget(false);
+                      }
+                    }
+                  }}
+                  placeholder="e.g. 100000"
+                  className="w-full pl-7 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <button
+                onClick={() => {
+                  const v = parseFloat(targetInput);
+                  if (!isNaN(v) && v > 0) {
+                    setTarget(v);
+                    localStorage.setItem(NW_TARGET_KEY, String(v));
+                    setEditingTarget(false);
+                  }
+                }}
+                className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition"
+              >
+                Set
+              </button>
+              {target !== null && editingTarget && (
+                <button
+                  onClick={() => {
+                    setTarget(null);
+                    localStorage.removeItem(NW_TARGET_KEY);
+                    setTargetInput("");
+                    setEditingTarget(false);
+                  }}
+                  className="px-3 py-2 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Milestone progress */}
+          {milestone && !editingTarget && (
+            <div className="space-y-3">
+              {milestone.achieved ? (
+                <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl px-4 py-3">
+                  <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                    🎉 Milestone achieved! You've reached your target of {fmt(target!)}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      {fmt(netWorth)} <span className="text-gray-400">of</span> {fmt(target!)}
+                    </span>
+                    <span className="font-bold text-orange-600 dark:text-orange-400">
+                      {milestone.progress.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-orange-400 transition-all"
+                      style={{ width: `${milestone.progress}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>{fmt(milestone.gap)} remaining</span>
+                    {milestone.monthsToGoal !== null && (
+                      <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                        ~{milestone.monthsToGoal} month{milestone.monthsToGoal !== 1 ? "s" : ""} at current pace
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* ── Assets + Liabilities columns ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -27,7 +27,7 @@ import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/Pag
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ReportTab = "overview" | "custom" | "trends" | "comparison" | "forecast" | "budget-history" | "tax";
+type ReportTab = "overview" | "custom" | "trends" | "comparison" | "forecast" | "budget-history" | "tax" | "income";
 type DateRange = "last-7-days" | "last-30-days" | "last-3-months" | "last-6-months" | "last-year" | "custom";
 type ChartType = "line" | "bar" | "area" | "pie";
 
@@ -404,6 +404,85 @@ const EnhancedFinancialReports: React.FC = () => {
     const buffer = Math.round(projected6 * 0.09 * 100) / 100;
     return { projected6, growthPct: Math.round(growthPct * 10) / 10, buffer };
   }, [allReportsData, reportsData]);
+
+  // ── Derived: Income Analysis ──────────────────────────────────────────────
+  const incomeAnalysis = useMemo(() => {
+    if (!rawTransactions.length) return null;
+
+    const incomeTxns = rawTransactions.filter(
+      (t) => t.type === "income" || t.type === "INCOME"
+    );
+    if (incomeTxns.length === 0) return null;
+
+    // Monthly income totals — last 12 months
+    const now = new Date();
+    const SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const monthly: { month: string; total: number; key: string }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d   = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const total = incomeTxns
+        .filter((t) => (t.date ?? "").startsWith(key))
+        .reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
+      monthly.push({ month: SHORT[d.getMonth()], total, key });
+    }
+
+    // Stability score: 100 − (coefficient of variation × 0.5), clamped 0–100
+    const activeMonths = monthly.filter((m) => m.total > 0);
+    const mean = activeMonths.length > 0
+      ? activeMonths.reduce((s, m) => s + m.total, 0) / activeMonths.length
+      : 0;
+    const variance = activeMonths.length > 1
+      ? activeMonths.reduce((s, m) => s + Math.pow(m.total - mean, 2), 0) / activeMonths.length
+      : 0;
+    const cv = mean > 0 ? (Math.sqrt(variance) / mean) * 100 : 0;
+    const stabilityScore = Math.max(0, Math.min(100, Math.round(100 - cv * 0.6)));
+
+    // Paycheck cadence — median gap between income transactions
+    const sorted = [...incomeTxns].sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
+    const gaps: number[] = [];
+    for (let i = 1; i < sorted.length; i++) {
+      const d1 = new Date(`${sorted[i - 1].date.slice(0, 10)}T00:00:00`);
+      const d2 = new Date(`${sorted[i].date.slice(0, 10)}T00:00:00`);
+      const diff = Math.round((d2.getTime() - d1.getTime()) / 86_400_000);
+      if (diff > 0 && diff < 60) gaps.push(diff); // ignore > 2 months
+    }
+    const medianGap = gaps.length > 0
+      ? gaps.sort((a, b) => a - b)[Math.floor(gaps.length / 2)]
+      : 0;
+    let cadence = "Irregular";
+    let cadenceColor = "text-orange-600 dark:text-orange-400";
+    if (medianGap >= 6  && medianGap <= 8)  { cadence = "Weekly";        cadenceColor = "text-emerald-600 dark:text-emerald-400"; }
+    else if (medianGap >= 12 && medianGap <= 16) { cadence = "Bi-weekly";     cadenceColor = "text-emerald-600 dark:text-emerald-400"; }
+    else if (medianGap >= 13 && medianGap <= 18) { cadence = "Semi-monthly";  cadenceColor = "text-emerald-600 dark:text-emerald-400"; }
+    else if (medianGap >= 27 && medianGap <= 35) { cadence = "Monthly";        cadenceColor = "text-emerald-600 dark:text-emerald-400"; }
+
+    // MoM growth: compare last two active months
+    const lastTwo = activeMonths.slice(-2);
+    const momGrowth = lastTwo.length === 2 && lastTwo[0].total > 0
+      ? ((lastTwo[1].total - lastTwo[0].total) / lastTwo[0].total) * 100
+      : null;
+
+    // Income sources
+    const sourceMap: Record<string, number> = {};
+    incomeTxns.forEach((t) => {
+      const src = t.merchant || t.description || "Unknown";
+      sourceMap[src] = (sourceMap[src] ?? 0) + Math.abs(t.amount ?? 0);
+    });
+    const sources = Object.entries(sourceMap)
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 6);
+    const totalIncome = sources.reduce((s, src) => s + src.total, 0);
+
+    // Largest single-month income
+    const peakMonth = [...monthly].sort((a, b) => b.total - a.total)[0];
+
+    return {
+      monthly, mean, stabilityScore, cadence, cadenceColor,
+      momGrowth, sources, totalIncome, peakMonth, activeMonths: activeMonths.length,
+    };
+  }, [rawTransactions]);
 
   const handleExport = () => {
     if (!reportsData) { setExportError("No data to export yet."); return; }
@@ -1298,6 +1377,206 @@ const EnhancedFinancialReports: React.FC = () => {
     );
   }
 
+  // ── Tab: Income Analysis ─────────────────────────────────────────────────
+
+  const renderIncome = () => {
+    if (dataLoading) return <LoadingSpinner />;
+    if (!incomeAnalysis) {
+      return <ChartEmptyState message="No income transactions found. Add income transactions to see your income analysis." />;
+    }
+
+    const {
+      monthly, mean, stabilityScore, cadence, cadenceColor,
+      momGrowth, sources, totalIncome, peakMonth, activeMonths,
+    } = incomeAnalysis;
+
+    // Stability color
+    const stabColor = stabilityScore >= 75
+      ? "text-emerald-600 dark:text-emerald-400"
+      : stabilityScore >= 45
+        ? "text-amber-500 dark:text-amber-400"
+        : "text-red-500 dark:text-red-400";
+    const stabBg = stabilityScore >= 75
+      ? "bg-emerald-50 dark:bg-emerald-900/20"
+      : stabilityScore >= 45
+        ? "bg-amber-50 dark:bg-amber-900/20"
+        : "bg-red-50 dark:bg-red-900/20";
+    const stabLabel = stabilityScore >= 75 ? "Stable" : stabilityScore >= 45 ? "Moderate" : "Variable";
+
+    return (
+      <div className="space-y-6">
+        {/* ── KPI row ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            {
+              label: "Total Income",
+              value: fmt(totalIncome),
+              sub: `${activeMonths} active months`,
+              icon: TrendingUp,
+              bg: "bg-emerald-50 dark:bg-emerald-900/30",
+              text: "text-emerald-600 dark:text-emerald-400",
+            },
+            {
+              label: "Avg / Month",
+              value: fmt(mean),
+              sub: "rolling 12-month average",
+              icon: DollarSign,
+              bg: "bg-indigo-50 dark:bg-indigo-900/30",
+              text: "text-indigo-600 dark:text-indigo-400",
+            },
+            {
+              label: "Paycheck Cadence",
+              value: cadence,
+              sub: "detected from history",
+              icon: Calendar,
+              bg: "bg-violet-50 dark:bg-violet-900/30",
+              text: cadenceColor,
+            },
+            {
+              label: "MoM Change",
+              value: momGrowth !== null ? `${momGrowth > 0 ? "+" : ""}${momGrowth.toFixed(1)}%` : "—",
+              sub: "vs prior month",
+              icon: momGrowth !== null && momGrowth >= 0 ? ArrowUp : ArrowDown,
+              bg: momGrowth === null || momGrowth >= 0
+                ? "bg-emerald-50 dark:bg-emerald-900/30"
+                : "bg-red-50 dark:bg-red-900/30",
+              text: momGrowth === null || momGrowth >= 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-red-500 dark:text-red-400",
+            },
+          ].map((item) => (
+            <div key={item.label} className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 flex flex-col gap-3">
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${item.bg}`}>
+                <item.icon className={`w-5 h-5 ${item.text}`} />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">{item.label}</p>
+                <p className={`text-2xl font-extrabold tracking-tight ${item.text}`}>{item.value}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{item.sub}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Income Stability Score ── */}
+        <Card title="Income Stability Score" subtitle="Based on month-to-month variation over the last 12 months" accentColor="#10b981">
+          <div className="flex items-center gap-6">
+            {/* Score circle */}
+            <div className={`flex-shrink-0 w-24 h-24 rounded-full flex flex-col items-center justify-center border-4 ${
+              stabilityScore >= 75 ? "border-emerald-400" : stabilityScore >= 45 ? "border-amber-400" : "border-red-400"
+            } ${stabBg}`}>
+              <span className={`text-3xl font-black ${stabColor}`}>{stabilityScore}</span>
+              <span className={`text-xs font-semibold ${stabColor}`}>{stabLabel}</span>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Stability</span>
+                <span className={`text-sm font-bold ${stabColor}`}>{stabilityScore}%</span>
+              </div>
+              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    stabilityScore >= 75 ? "bg-emerald-500" : stabilityScore >= 45 ? "bg-amber-400" : "bg-red-400"
+                  }`}
+                  style={{ width: `${stabilityScore}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+                <span>0 — Variable</span>
+                <span>50 — Moderate</span>
+                <span>100 — Stable</span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                {stabilityScore >= 75
+                  ? "Your income is highly consistent — great for long-term budgeting."
+                  : stabilityScore >= 45
+                    ? "Some variation in income — maintain a buffer for lean months."
+                    : "High income variability detected — consider building a larger emergency fund."}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* ── Monthly Income Chart ── */}
+        <Card title="Monthly Income — Last 12 Months" subtitle="Bar height shows total income received each month" accentColor="#6366f1">
+          {monthly.some((m) => m.total > 0) ? (
+            <>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={monthly} barCategoryGap="28%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip
+                    contentStyle={CHART_TOOLTIP_STYLE}
+                    formatter={(v: number) => [fmt(v), "Income"]}
+                  />
+                  <ReferenceLine y={mean} stroke="#6366f1" strokeDasharray="5 3" label={{ value: "Avg", position: "right", fontSize: 11, fill: "#6366f1" }} />
+                  <Bar dataKey="total" name="Income" radius={[6, 6, 0, 0]}>
+                    {monthly.map((m, i) => (
+                      <Cell
+                        key={i}
+                        fill={m.key === peakMonth?.key ? "#10b981" : m.total > mean ? "#6366f1" : "#c7d2fe"}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="flex items-center gap-5 mt-3 text-xs text-gray-400 dark:text-gray-500">
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" />Peak month</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-indigo-600 inline-block" />Above average</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-indigo-200 inline-block" />Below average</span>
+              </div>
+            </>
+          ) : (
+            <ChartEmptyState message="No income recorded yet" />
+          )}
+        </Card>
+
+        {/* ── Income Sources ── */}
+        {sources.length > 0 && (
+          <Card title="Income Sources" subtitle="Breakdown by merchant / payer across all time" accentColor="#f97316">
+            <div className="space-y-3">
+              {sources.map((src, i) => {
+                const pct = totalIncome > 0 ? (src.total / totalIncome) * 100 : 0;
+                const PALETTE = ["#6366f1", "#10b981", "#f97316", "#ec4899", "#3b82f6", "#8b5cf6"];
+                const color = PALETTE[i % PALETTE.length];
+                return (
+                  <div key={src.name} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                      style={{ backgroundColor: color }}>
+                      {i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{src.name}</span>
+                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100 ml-2 flex-shrink-0">{fmt(src.total)}</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                      </div>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{pct.toFixed(1)}% of total income</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
+
+        {/* ── Peak Month callout ── */}
+        {peakMonth && peakMonth.total > 0 && (
+          <div className="flex items-start gap-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/40 rounded-2xl px-4 py-3">
+            <Award className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-indigo-700 dark:text-indigo-300">
+              Your highest-income month was <strong>{peakMonth.month}</strong> at <strong>{fmt(peakMonth.total)}</strong>
+              {mean > 0 && ` — ${((peakMonth.total / mean - 1) * 100).toFixed(0)}% above your average.`}
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // ── Tab: Budget History ───────────────────────────────────────────────────
 
   const renderBudgetHistory = () => {
@@ -1633,8 +1912,9 @@ const EnhancedFinancialReports: React.FC = () => {
 
   const TABS = [
     { id: "overview",       label: "Overview",         icon: BarChart3 },
+    { id: "income",         label: "Income Analysis",  icon: TrendingUp },
     { id: "custom",         label: "Custom Reports",   icon: Settings },
-    { id: "trends",         label: "Spending Trends",  icon: TrendingUp },
+    { id: "trends",         label: "Spending Trends",  icon: TrendingDown },
     { id: "comparison",     label: "Comparison",       icon: PieChartIcon },
     { id: "forecast",       label: "Forecast",         icon: Target },
     { id: "budget-history", label: "Budget History",   icon: Calendar },
@@ -1704,6 +1984,7 @@ const EnhancedFinancialReports: React.FC = () => {
           {/* Content — key includes dateRange so chart re-animates on range change */}
           <div className="tab-content" key={`${selectedReport}-${dateRange}`}>
             {selectedReport === "overview"        && renderOverview()}
+            {selectedReport === "income"          && renderIncome()}
             {selectedReport === "custom"          && renderCustomReportBuilder()}
             {selectedReport === "trends"          && renderSpendingTrends()}
             {selectedReport === "comparison"      && renderComparison()}

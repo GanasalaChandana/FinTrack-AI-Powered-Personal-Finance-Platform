@@ -2,6 +2,7 @@ package com.fintrack.auth.controller;
 
 import com.fintrack.auth.entity.User;
 import com.fintrack.auth.security.JwtUtil;
+import com.fintrack.auth.service.DemoService;
 import com.fintrack.auth.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ import java.util.Optional;
 public class UsersController {
 
     private final UserService userService;
+    private final DemoService demoService;
     private final JwtUtil jwtUtil;
 
     /**
@@ -102,6 +104,20 @@ public class UsersController {
 
         userService.deleteById(userOpt.get().getId());
         return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
+    }
+
+    /**
+     * Reset the authenticated user's transactions, budgets, and goals
+     * to the standard demo dataset. Useful for portfolio demos.
+     */
+    @PostMapping("/reset-data")
+    public ResponseEntity<Map<String, String>> resetData(Authentication authentication) {
+        if (authentication == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        Optional<User> userOpt = userService.findByEmail(authentication.getName());
+        if (userOpt.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+
+        demoService.resetDataForUser(userOpt.get().getId().toString());
+        return ResponseEntity.ok(Map.of("message", "Data reset to demo dataset successfully"));
     }
 
     @PostMapping("/change-password")

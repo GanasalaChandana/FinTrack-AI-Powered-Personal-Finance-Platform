@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   DollarSign, TrendingUp, TrendingDown, Target, Wallet,
   PiggyBank, AlertCircle, Loader2, Upload, BarChart3, Camera,
-  Brain, RefreshCw, Activity, CreditCard, Lock, Zap, Plus, Calendar, X,
+  Brain, RefreshCw, Activity, CreditCard, Lock, Zap, Plus, Calendar, X, RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
@@ -43,6 +43,7 @@ import {
   transactionsAPI,
   budgetsAPI,
   goalsAPI,
+  authAPI,
   type Budget,
   type Transaction,
   type Goal,
@@ -276,6 +277,8 @@ export default function DashboardPage() {
   const [editingTransaction, setEditingTransaction]       = useState<any>(null);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showOnboarding, setShowOnboarding]               = useState(false);
+  const [showResetConfirm, setShowResetConfirm]           = useState(false);
+  const [isResetting, setIsResetting]                     = useState(false);
 
   // ── Auth ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -403,6 +406,20 @@ export default function DashboardPage() {
 
   const handleAddTransaction = () => { setEditingTransaction(null); setShowTransactionModal(true); };
 
+  const handleResetData = async () => {
+    setIsResetting(true);
+    try {
+      await authAPI.resetData();
+      toast.success("Dashboard reset to demo data!");
+      setShowResetConfirm(false);
+      await fetchDashboardData();
+    } catch {
+      toast.error("Reset failed. Please try again.");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const hasAlerts = hasTransactions && (
     budgetComparisonData.some((b) => b.spent > b.budget) ||
     (stats.expensesChange !== null && stats.expensesChange > 20)
@@ -425,6 +442,48 @@ export default function DashboardPage() {
     <>
       {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
       <KeyboardShortcuts isOpen={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
+
+      {/* ── Reset confirm dialog ── */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-neutral-200 dark:border-neutral-700">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-xl bg-orange-100 dark:bg-orange-900/30">
+                <RotateCcw className="w-5 h-5 text-orange-500" />
+              </div>
+              <h2 className="text-base font-bold text-neutral-900 dark:text-neutral-50">
+                Reset to Demo Data?
+              </h2>
+            </div>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-5 leading-relaxed">
+              This will <span className="font-semibold text-red-500">permanently delete</span> all your
+              current transactions, budgets, and goals — then replace them with realistic demo data.
+              This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="flex-1"
+                onClick={() => setShowResetConfirm(false)}
+                disabled={isResetting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                className="flex-1 !bg-orange-500 hover:!bg-orange-600"
+                onClick={handleResetData}
+                isLoading={isResetting}
+                icon={<RotateCcw className="w-4 h-4" />}
+              >
+                Yes, Reset
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       <TransactionModal
         isOpen={showTransactionModal}
         onClose={() => { setShowTransactionModal(false); setEditingTransaction(null); }}
@@ -464,6 +523,15 @@ export default function DashboardPage() {
                   isLoading={loadingData}
                 >
                   Refresh
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  icon={<RotateCcw className="w-4 h-4 text-orange-500" />}
+                  onClick={() => setShowResetConfirm(true)}
+                  title="Reset all data to demo dataset"
+                >
+                  <span className="text-orange-500 font-medium">Reset Data</span>
                 </Button>
                 <Button
                   variant="primary"

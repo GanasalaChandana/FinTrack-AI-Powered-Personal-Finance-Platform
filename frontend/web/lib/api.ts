@@ -506,6 +506,12 @@ export const authAPI = {
     }, false);
   },
 
+  resetData: async (): Promise<{ message: string }> => {
+    return apiRequest<{ message: string }>("/api/users/reset-data", {
+      method: "POST",
+    }, false);
+  },
+
   demoLogin: async (): Promise<AuthResponse> => {
     const response = await apiRequest<AuthResponse>("/api/auth/demo", {
       method: "POST",

@@ -83,6 +83,27 @@ public class DemoService {
         return AuthResponse.builder().token(token).user(dto).build();
     }
 
+    /**
+     * Reset any user's data to the standard demo dataset.
+     * Called from POST /api/users/reset-data (authenticated endpoint).
+     */
+    @Transactional
+    public void resetDataForUser(String userId) {
+        List<Transaction> txns = transactionRepository.findByUserId(userId);
+        if (!txns.isEmpty()) transactionRepository.deleteAll(txns);
+
+        List<Budget> budgets = budgetRepository.findByUserId(userId);
+        if (!budgets.isEmpty()) budgetRepository.deleteAll(budgets);
+
+        List<Goal> goals = goalRepository.findByUserId(userId);
+        if (!goals.isEmpty()) goalRepository.deleteAll(goals);
+
+        seedTransactions(userId);
+        seedBudgets(userId);
+        seedGoals(userId);
+        log.info("✅ Data reset to demo dataset for user {}", userId);
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private User createDemoUser() {

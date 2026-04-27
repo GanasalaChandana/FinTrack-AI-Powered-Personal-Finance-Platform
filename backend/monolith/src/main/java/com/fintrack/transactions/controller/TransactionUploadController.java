@@ -3,6 +3,7 @@ package com.fintrack.transactions.controller;
 import com.fintrack.transactions.dto.TransactionDTO;
 import com.fintrack.transactions.dto.TransactionRequest;
 import com.fintrack.transactions.dto.TransactionResponse;
+import com.fintrack.transactions.repository.TransactionRepository;
 import com.fintrack.transactions.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TransactionUploadController {
 
-    private final TransactionService transactionService;
+    private final TransactionService    transactionService;
+    private final TransactionRepository transactionRepository;
 
     private static final DateTimeFormatter[] DATE_FORMATTERS = {
             DateTimeFormatter.ofPattern("yyyy-MM-dd"),
@@ -46,7 +48,8 @@ public class TransactionUploadController {
     @PostMapping("/upload")
     public ResponseEntity<?> uploadTransactions(
             @RequestParam("file") MultipartFile file,
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestParam(value = "clearFirst", defaultValue = "false") boolean clearFirst) {
 
         if (userId == null || userId.isBlank()) {
             log.warn("POST /api/transactions/upload rejected: missing X-User-Id");
@@ -68,6 +71,16 @@ public class TransactionUploadController {
         }
 
         try {
+            // Optionally wipe existing transactions before import
+            if (clearFirst) {
+                List<com.fintrack.transactions.entity.Transaction> existing =
+                        transactionRepository.findByUserId(userId);
+                if (!existing.isEmpty()) {
+                    transactionRepository.deleteAllInBatch(existing);
+                    log.info("Cleared {} existing transactions for user {} before import", existing.size(), userId);
+                }
+            }
+
             List<TransactionDTO> transactions = parseCSV(file, userId);
 
             // Save all transactions

@@ -70,6 +70,7 @@ const CSVUploadSystem: React.FC = () => {
   const [processing,  setProcessing]  = useState<boolean>(false);
   const [result,      setResult]      = useState<UploadResult | null>(null);
   const [error,       setError]       = useState<string>("");
+  const [clearFirst,  setClearFirst]  = useState<boolean>(true);
 
   /* ---------- Drag & drop ---------- */
 
@@ -137,7 +138,8 @@ const CSVUploadSystem: React.FC = () => {
       const token  = getToken();
       const userId = getUserId();
 
-      const response = await fetch(`${API_BASE_URL}/api/transactions/upload`, {
+      const url = `${API_BASE_URL}/api/transactions/upload?clearFirst=${clearFirst}`;
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           ...(token  && { Authorization: `Bearer ${token}` }),
@@ -347,7 +349,31 @@ const CSVUploadSystem: React.FC = () => {
         </div>
       )}
 
-      <div className="flex gap-3 pt-4">
+      {/* Replace existing toggle */}
+      <div
+        className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${
+          clearFirst
+            ? "bg-amber-50 border-amber-300"
+            : "bg-gray-50 border-gray-200 hover:border-gray-300"
+        }`}
+        onClick={() => setClearFirst(!clearFirst)}
+      >
+        <div className={`mt-0.5 w-5 h-5 rounded flex-shrink-0 border-2 flex items-center justify-center transition-colors ${
+          clearFirst ? "bg-amber-500 border-amber-500" : "border-gray-400 bg-white"
+        }`}>
+          {clearFirst && <CheckCircle className="w-3.5 h-3.5 text-white" />}
+        </div>
+        <div>
+          <p className="font-semibold text-gray-900 text-sm">Replace existing transactions</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {clearFirst
+              ? "All current transactions will be deleted before importing your CSV."
+              : "Your CSV will be added on top of existing transactions."}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex gap-3 pt-2">
         <button
           onClick={resetUpload}
           className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"

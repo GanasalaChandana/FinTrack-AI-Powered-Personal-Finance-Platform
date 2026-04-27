@@ -116,6 +116,12 @@ public class GoalService {
         goalRepository.delete(goal);
     }
 
+    @Transactional
+    public void deleteAllGoalsByUserId(String userId) {
+        goalRepository.deleteAllByUserId(userId);
+        log.info("All goals deleted for userId={}", userId);
+    }
+
     public Map<String, Object> getGoalsSummary(String userId) {
         List<Goal> goals = goalRepository.findByUserId(userId);
 

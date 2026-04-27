@@ -189,6 +189,12 @@ public class BudgetsService {
         budgetRepository.delete(budget);
     }
 
+    @Transactional
+    public void deleteAllBudgetsByUserId(String userId) {
+        budgetRepository.deleteAllByUserId(userId);
+        log.info("All budgets deleted for userId={}", userId);
+    }
+
     public Map<String, Object> getBudgetSummary(String userId, String month) {
         String targetMonth = month != null ? month : YearMonth.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
 

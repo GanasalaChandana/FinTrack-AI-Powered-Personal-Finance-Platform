@@ -621,11 +621,11 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                   {clearFirst && <CheckCircle className="w-3.5 h-3.5 text-white" />}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Replace existing transactions</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Start fresh (replace all data)</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {clearFirst
-                      ? "All current transactions will be deleted before import — removes demo data."
-                      : "Your CSV will be added on top of existing transactions."}
+                      ? "Deletes all existing transactions, budgets & goals — then imports your CSV so you can set your own."
+                      : "Your CSV will be added on top of existing data. Budgets and goals are kept as-is."}
                   </p>
                 </div>
               </button>

@@ -98,6 +98,18 @@ public class GoalController {
         return ResponseEntity.ok(updatedGoal);
     }
 
+    @DeleteMapping("/all")
+    public ResponseEntity<Map<String, String>> deleteAllGoals(
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+
+        if (userId == null || userId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        goalService.deleteAllGoalsByUserId(userId);
+        return ResponseEntity.ok(Map.of("message", "All goals deleted"));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteGoal(
             @PathVariable String id,

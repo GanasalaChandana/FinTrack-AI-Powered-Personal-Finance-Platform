@@ -586,6 +586,10 @@ export const budgetsAPI = {
   delete: (id: string): Promise<{ message: string }> =>
     apiRequest(`/api/budgets/${id}`, { method: "DELETE" }, false),
 
+  clearAll: async (): Promise<void> => {
+    await apiRequest<{ message: string }>("/api/budgets/all", { method: "DELETE" }, false);
+  },
+
   updateSpent: (id: string, spent: number): Promise<Budget> =>
     apiRequest<Budget>(`/api/budgets/${id}/spent`, {
       method: "PATCH",
@@ -631,6 +635,10 @@ export const goalsAPI = {
 
   delete: (id: string): Promise<{ message: string }> =>
     apiRequest(`/api/goals/${id}`, { method: "DELETE" }, false),
+
+  clearAll: async (): Promise<void> => {
+    await apiRequest<{ message: string }>("/api/goals/all", { method: "DELETE" }, false);
+  },
 };
 
 // =====================

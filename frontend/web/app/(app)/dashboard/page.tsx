@@ -369,7 +369,12 @@ export default function DashboardPage() {
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleImportTransactions = async (rows: CSVRow[], clearFirst = true): Promise<void> => {
     if (clearFirst) {
-      await transactionsAPI.clearAll();
+      // Wipe transactions, budgets, and goals so the user starts completely fresh
+      await Promise.all([
+        transactionsAPI.clearAll(),
+        budgetsAPI.clearAll(),
+        goalsAPI.clearAll(),
+      ]);
     }
     const norm = (v: unknown) => (v ?? "").toString().trim();
     const requests = rows.map((row) => {

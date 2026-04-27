@@ -228,6 +228,27 @@ public class BudgetController {
         }
     }
 
+    @DeleteMapping("/all")
+    public ResponseEntity<Map<String, String>> deleteAllBudgets(
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+
+        log.info("DELETE /api/budgets/all - userId: {}", userId);
+
+        if (userId == null || userId.trim().isEmpty()) {
+            log.warn("Missing X-User-Id header");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            budgetsService.deleteAllBudgetsByUserId(userId);
+            log.info("All budgets deleted for userId={}", userId);
+            return ResponseEntity.ok(Map.of("message", "All budgets deleted"));
+        } catch (Exception e) {
+            log.error("Error deleting all budgets for userId={}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteBudget(
             @PathVariable Long id,

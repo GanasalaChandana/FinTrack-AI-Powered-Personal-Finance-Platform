@@ -46,24 +46,9 @@ public class DemoService {
         String userId = demo.getId().toString();
 
         // Always wipe and re-seed so every demo session starts fresh.
-        // The demo account is shared — any visitor could add/import data,
-        // so we reset on every login to keep a consistent experience.
-        List<Transaction> existing = transactionRepository.findByUserId(userId);
-        if (!existing.isEmpty()) {
-            transactionRepository.deleteAll(existing);
-            log.info("🗑️ Cleared {} stale demo transactions for user {}", existing.size(), userId);
-        }
-        List<Budget> existingBudgets = budgetRepository.findByUserId(userId);
-        if (!existingBudgets.isEmpty()) {
-            budgetRepository.deleteAll(existingBudgets);
-            log.info("🗑️ Cleared {} stale demo budgets for user {}", existingBudgets.size(), userId);
-        }
-        List<Goal> existingGoals = goalRepository.findByUserId(userId);
-        if (!existingGoals.isEmpty()) {
-            goalRepository.deleteAll(existingGoals);
-            log.info("🗑️ Cleared {} stale demo goals for user {}", existingGoals.size(), userId);
-        }
-
+        // Uses direct SQL DELETE (not JPA deleteAll) so the flush happens
+        // immediately — prevents old rows surviving into the re-seed.
+        wipeUserData(userId);
         seedTransactions(userId);
         seedBudgets(userId);
         seedGoals(userId);
@@ -89,19 +74,24 @@ public class DemoService {
      */
     @Transactional
     public void resetDataForUser(String userId) {
-        List<Transaction> txns = transactionRepository.findByUserId(userId);
-        if (!txns.isEmpty()) transactionRepository.deleteAll(txns);
-
-        List<Budget> budgets = budgetRepository.findByUserId(userId);
-        if (!budgets.isEmpty()) budgetRepository.deleteAll(budgets);
-
-        List<Goal> goals = goalRepository.findByUserId(userId);
-        if (!goals.isEmpty()) goalRepository.deleteAll(goals);
-
+        wipeUserData(userId);
         seedTransactions(userId);
         seedBudgets(userId);
         seedGoals(userId);
         log.info("✅ Data reset to demo dataset for user {}", userId);
+    }
+
+    /**
+     * Hard-delete all rows for a user using direct SQL — not JPA deleteAll.
+     * This ensures the DELETE is flushed immediately before re-seeding starts,
+     * preventing stale rows from mixing with new seed data.
+     */
+    @Transactional
+    private void wipeUserData(String userId) {
+        transactionRepository.deleteAllByUserId(userId);
+        budgetRepository.deleteAllByUserId(userId);
+        goalRepository.deleteAllByUserId(userId);
+        log.info("🗑️ Wiped all data for user {}", userId);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

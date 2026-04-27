@@ -10,12 +10,13 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Separate Spring bean so Spring's AOP proxy intercepts the call and
- * REQUIRES_NEW propagation actually takes effect — a private method on
- * DemoService cannot be proxied, so the wipe must live here.
+ * Isolated wipe service — lives in its own Spring bean so AOP proxying works.
  *
- * REQUIRES_NEW: opens its own transaction, commits it fully, then returns.
- * The caller's seed operations start only after this commit — no mixing possible.
+ * Each delete method uses REQUIRES_NEW so it opens, executes, and COMMITS
+ * its own database transaction before returning. The caller has no outer
+ * transaction to interfere with, so there is no connection-pool deadlock
+ * and no flush-ordering ambiguity. Seed inserts can only start after all
+ * three commits have landed.
  */
 @Service
 @RequiredArgsConstructor
@@ -26,11 +27,26 @@ public class DataWipeService {
     private final BudgetRepository      budgetRepository;
     private final GoalRepository        goalRepository;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    /** Deletes all three tables for a user, each in its own committed transaction. */
     public void wipeAllUserData(String userId) {
+        deleteTransactions(userId);
+        deleteBudgets(userId);
+        deleteGoals(userId);
+        log.info("🗑️  All data wiped for user {} — 3 commits completed", userId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void deleteTransactions(String userId) {
         transactionRepository.deleteAllByUserId(userId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void deleteBudgets(String userId) {
         budgetRepository.deleteAllByUserId(userId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void deleteGoals(String userId) {
         goalRepository.deleteAllByUserId(userId);
-        log.info("🗑️  Hard-wiped all data for user {} — transaction will commit before seed", userId);
     }
 }

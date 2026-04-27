@@ -39,7 +39,10 @@ public class DemoService {
     private final PasswordEncoder       passwordEncoder;
     private final JwtUtil               jwtUtil;
 
-    @Transactional
+    // No @Transactional here — each repository call manages its own tx.
+    // This lets DataWipeService.wipeAllUserData (REQUIRES_NEW) open its own
+    // connection without needing to suspend an outer tx, which can deadlock
+    // on small connection pools (e.g. Render free tier).
     public AuthResponse loginAsDemo() {
         User demo = userRepository.findByEmail(DEMO_EMAIL)
                 .orElseGet(this::createDemoUser);

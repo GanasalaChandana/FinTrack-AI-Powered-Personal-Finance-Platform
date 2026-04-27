@@ -367,7 +367,10 @@ export default function DashboardPage() {
   const savingsSparkline  = buildSparkline(sparklineTrend, "savings");
 
   // ── Handlers ─────────────────────────────────────────────────────────────
-  const handleImportTransactions = async (rows: CSVRow[]): Promise<void> => {
+  const handleImportTransactions = async (rows: CSVRow[], clearFirst = true): Promise<void> => {
+    if (clearFirst) {
+      await transactionsAPI.clearAll();
+    }
     const norm = (v: unknown) => (v ?? "").toString().trim();
     const requests = rows.map((row) => {
       const date        = norm(row["Date"]        ?? row["date"]);

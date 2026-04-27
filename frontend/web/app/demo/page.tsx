@@ -47,7 +47,7 @@ export default function ComponentDemoPage() {
   };
 
   // CSV Import handler
-  const handleCSVImport = async (data: any[]) => {
+  const handleCSVImport = async (data: any[], _clearFirst = false) => {
     await new Promise(resolve => setTimeout(resolve, 2000));
     showToast.success(`Successfully imported ${data.length} records`);
   };

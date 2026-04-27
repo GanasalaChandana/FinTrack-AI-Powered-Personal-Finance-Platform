@@ -2,6 +2,7 @@ package com.fintrack.transactions.controller;
 
 import com.fintrack.transactions.dto.TransactionResponse;
 import com.fintrack.transactions.dto.CreateTransactionRequest;
+import com.fintrack.transactions.repository.TransactionRepository;
 import com.fintrack.transactions.service.TransactionService;
 
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,8 @@ import java.util.Map;
 @CrossOrigin(origins = { "http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003" })
 public class TransactionController {
 
-    private final TransactionService transactionService;
+    private final TransactionService    transactionService;
+    private final TransactionRepository transactionRepository;
 
     private static final int DEFAULT_TRANSACTION_LIMIT = 500;
     private static final int MAX_TRANSACTION_LIMIT     = 2000;
@@ -84,6 +86,19 @@ public class TransactionController {
     public ResponseEntity<Map<String, String>> health() {
         log.debug("Health check called");
         return ResponseEntity.ok(Map.of("status", "UP", "service", "transactions-service"));
+    }
+
+    /** Delete every transaction belonging to the authenticated user. Used by CSV import "replace" mode. */
+    @DeleteMapping("/all")
+    public ResponseEntity<Map<String, String>> deleteAllTransactions(
+            @RequestHeader(name = "X-User-Id", required = false) String userId) {
+
+        if (userId == null || userId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        transactionRepository.deleteAllByUserId(userId);
+        log.info("Deleted all transactions for user {}", userId);
+        return ResponseEntity.ok(Map.of("message", "All transactions deleted"));
     }
 
     // NOW the generic /{id} route comes AFTER all specific routes

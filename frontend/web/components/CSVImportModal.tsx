@@ -19,7 +19,7 @@ export interface CSVRow {
 export interface CSVImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImport: (data: CSVRow[]) => Promise<void>;
+  onImport: (data: CSVRow[], clearFirst: boolean) => Promise<void>;
   requiredHeaders?: string[];   // kept for back-compat, no longer strict
   title?: string;
   description?: string;
@@ -255,6 +255,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const [importing,  setImporting]  = useState(false);
   const [fileName,   setFileName]   = useState("");
+  const [clearFirst, setClearFirst] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Reset on open/close
@@ -323,7 +324,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
         Date: r.date, Merchant: r.merchant, Description: r.description,
         Amount: r.amount, Type: r.type, Category: r.category,
       }));
-      await onImport(payload);
+      await onImport(payload, clearFirst);
       onClose();
     } catch (e: any) {
       setError(e.message ?? "Import failed.");
@@ -604,6 +605,30 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
           )}
           {step === "preview" && (
             <>
+              {/* Replace / append toggle */}
+              <button
+                type="button"
+                onClick={() => setClearFirst(v => !v)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-colors ${
+                  clearFirst
+                    ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20"
+                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                }`}
+              >
+                <div className={`w-5 h-5 rounded flex-shrink-0 border-2 flex items-center justify-center transition-colors ${
+                  clearFirst ? "bg-amber-500 border-amber-500" : "border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-800"
+                }`}>
+                  {clearFirst && <CheckCircle className="w-3.5 h-3.5 text-white" />}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Replace existing transactions</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {clearFirst
+                      ? "All current transactions will be deleted before import — removes demo data."
+                      : "Your CSV will be added on top of existing transactions."}
+                  </p>
+                </div>
+              </button>
               <button onClick={() => setStep("map")} disabled={importing}
                       className="flex items-center gap-1.5 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-50">
                 <ChevronLeft className="w-4 h-4" /> Back

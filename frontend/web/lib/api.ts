@@ -411,6 +411,11 @@ export const transactionsAPI = {
     return apiRequest<{ message: string }>(`/api/transactions/${id}`, { method: "DELETE" }, true);
   },
 
+  /** Delete ALL transactions for the current user. Used before CSV import to avoid mixing demo data. */
+  clearAll: async (): Promise<void> => {
+    await apiRequest<{ message: string }>("/api/transactions/all", { method: "DELETE" }, true);
+  },
+
   exportCsv: async (): Promise<Blob> => {
     const url = buildApiUrl("/api/transactions/export", true);
     const token = getToken();

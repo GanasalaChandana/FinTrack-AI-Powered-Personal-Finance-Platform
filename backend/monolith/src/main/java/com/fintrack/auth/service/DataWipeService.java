@@ -1,29 +1,24 @@
 package com.fintrack.auth.service;
 
-import com.fintrack.budgets.entity.Budget;
-import com.fintrack.budgets.entity.Goal;
 import com.fintrack.budgets.repository.BudgetRepository;
 import com.fintrack.budgets.repository.GoalRepository;
-import com.fintrack.transactions.entity.Transaction;
 import com.fintrack.transactions.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 /**
- * Isolated wipe service — separate Spring bean so AOP proxying applies.
+ * Wipes all data for a user before re-seeding.
  *
- * Strategy: use findByUserId (proven to work in the app) to load entities,
- * then deleteAllInBatch which issues DELETE WHERE id IN (...) using primary
- * keys — completely bypasses the VARCHAR vs UUID type-mismatch that causes
- * native "WHERE user_id = :userId" to silently delete 0 rows.
+ * Uses JPQL bulk deletes (not native SQL) so Hibernate applies the correct
+ * field-level type mapping — this is what makes the userId comparison work
+ * reliably regardless of how the DB column was declared.
  *
- * Each table gets its own REQUIRES_NEW transaction so it commits independently
- * before the next table and before any seed inserts begin.
+ * The single @Transactional on wipeAllUserData is intercepted by Spring's AOP
+ * proxy (caller injects this bean, so the call goes through the proxy).
+ * All three deletes run inside one transaction and commit together before
+ * the caller proceeds to seed new data.
  */
 @Service
 @RequiredArgsConstructor
@@ -34,37 +29,11 @@ public class DataWipeService {
     private final BudgetRepository      budgetRepository;
     private final GoalRepository        goalRepository;
 
+    @Transactional
     public void wipeAllUserData(String userId) {
-        deleteTransactions(userId);
-        deleteBudgets(userId);
-        deleteGoals(userId);
-        log.info("🗑️  All data wiped for user {}", userId);
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void deleteTransactions(String userId) {
-        List<Transaction> txns = transactionRepository.findByUserId(userId);
-        if (!txns.isEmpty()) {
-            transactionRepository.deleteAllInBatch(txns);
-            log.info("🗑️  Deleted {} transactions for user {}", txns.size(), userId);
-        }
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void deleteBudgets(String userId) {
-        List<Budget> budgets = budgetRepository.findByUserId(userId);
-        if (!budgets.isEmpty()) {
-            budgetRepository.deleteAllInBatch(budgets);
-            log.info("🗑️  Deleted {} budgets for user {}", budgets.size(), userId);
-        }
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void deleteGoals(String userId) {
-        List<Goal> goals = goalRepository.findByUserId(userId);
-        if (!goals.isEmpty()) {
-            goalRepository.deleteAllInBatch(goals);
-            log.info("🗑️  Deleted {} goals for user {}", goals.size(), userId);
-        }
+        transactionRepository.deleteAllByUserId(userId);
+        budgetRepository.deleteAllByUserId(userId);
+        goalRepository.deleteAllByUserId(userId);
+        log.info("All data wiped for user {}", userId);
     }
 }

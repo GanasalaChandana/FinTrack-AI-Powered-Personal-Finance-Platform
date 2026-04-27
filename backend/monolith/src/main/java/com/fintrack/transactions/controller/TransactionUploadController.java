@@ -73,12 +73,8 @@ public class TransactionUploadController {
         try {
             // Optionally wipe existing transactions before import
             if (clearFirst) {
-                List<com.fintrack.transactions.entity.Transaction> existing =
-                        transactionRepository.findByUserId(userId);
-                if (!existing.isEmpty()) {
-                    transactionRepository.deleteAllInBatch(existing);
-                    log.info("Cleared {} existing transactions for user {} before import", existing.size(), userId);
-                }
+                transactionRepository.deleteAllByUserId(userId);
+                log.info("Cleared existing transactions for user {} before import", userId);
             }
 
             List<TransactionDTO> transactions = parseCSV(file, userId);

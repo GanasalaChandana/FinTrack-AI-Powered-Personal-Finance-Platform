@@ -864,6 +864,8 @@ function GoalsSection() {
   const [editGoal,     setEditGoal]     = useState<Goal | null>(null);
   const [contributeGoal, setContributeGoal] = useState<Goal | null>(null);
   const [error,        setError]        = useState("");
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearingAll,  setClearingAll]  = useState(false);
 
   const fetchGoals = useCallback(async () => {
     try {
@@ -911,6 +913,19 @@ function GoalsSection() {
     await fetchGoals();
   };
 
+  const handleClearAll = async () => {
+    setClearingAll(true);
+    try {
+      await apiRequest("/api/goals/all", { method: "DELETE" });
+      setGoals([]);
+      setShowClearConfirm(false);
+    } catch {
+      setError("Failed to clear goals. Please try again.");
+    } finally {
+      setClearingAll(false);
+    }
+  };
+
   // Summary stats
   const totalGoals    = goals.length;
   const achievedGoals = goals.filter((g) => g.achieved || (g.target > 0 && g.current >= g.target)).length;
@@ -955,18 +970,54 @@ function GoalsSection() {
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
           {totalGoals > 0 ? `${totalGoals} Savings Goal${totalGoals !== 1 ? "s" : ""}` : "Savings Goals"}
         </h2>
-        <button
-          onClick={() => { setEditGoal(null); setShowForm(true); }}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-indigo-700 transition"
-        >
-          <Plus className="w-4 h-4" />
-          Add Goal
-        </button>
+        <div className="flex items-center gap-2">
+          {totalGoals > 0 && (
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              className="flex items-center gap-2 border border-red-200 dark:border-red-800/50 text-red-500 dark:text-red-400 px-3 py-2 rounded-xl text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear all
+            </button>
+          )}
+          <button
+            onClick={() => { setEditGoal(null); setShowForm(true); }}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-indigo-700 transition"
+          >
+            <Plus className="w-4 h-4" />
+            Add Goal
+          </button>
+        </div>
       </div>
 
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm px-4 py-3 rounded-xl mb-4">{error}</div>
       )}
+
+      {/* Demo data banner — shown when goals match the seeded demo names */}
+      {totalGoals > 0 && (() => {
+        const DEMO_GOAL_NAMES = ["Emergency Fund", "Vacation to Japan", "New Laptop", "Down Payment"];
+        const isDemoData = goals.some(g => DEMO_GOAL_NAMES.includes(g.name));
+        if (!isDemoData) return null;
+        return (
+          <div className="mb-4 flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl px-4 py-3">
+            <span className="text-xl flex-shrink-0">👋</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">These are sample goals</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                They were added automatically to show you how the app works. Clear them and create your own savings goals — like an emergency fund, vacation, or down payment.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold text-red-500 border border-red-200 dark:border-red-700 rounded-lg px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Clear all
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Empty state */}
       {totalGoals === 0 && (
@@ -1087,6 +1138,41 @@ function GoalsSection() {
           onClose={() => setContributeGoal(null)}
         />
       )}
+
+      {/* Clear all confirm */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/30">
+                <Trash2 className="w-5 h-5 text-red-500" />
+              </div>
+              <h2 className="text-base font-bold text-gray-900 dark:text-gray-50">Clear all goals?</h2>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">
+              This will permanently delete all <span className="font-semibold text-gray-700 dark:text-gray-200">{totalGoals} goal{totalGoals !== 1 ? "s" : ""}</span>.
+              You can create your own from scratch. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                disabled={clearingAll}
+                className="flex-1 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl py-2.5 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearAll}
+                disabled={clearingAll}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl py-2.5 text-sm font-semibold transition disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {clearingAll && <Loader2 className="w-4 h-4 animate-spin" />}
+                Yes, clear all
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1107,6 +1193,8 @@ export default function GoalsBudgetsPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showWizard5030,  setShowWizard5030]  = useState(false);
   const [rolloverCredits, setRolloverCredits] = useState<Record<string, number>>({});
+  const [showClearBudgetsConfirm, setShowClearBudgetsConfirm] = useState(false);
+  const [clearingAllBudgets,      setClearingAllBudgets]      = useState(false);
   const [activeTab,       setActiveTab]       = useState<Tab>(
     tabParam === "budgets" ? "budgets" : "goals"
   );
@@ -1215,6 +1303,20 @@ export default function GoalsBudgetsPage() {
     await fetchBudgets({ silent: true });
   };
 
+  const handleClearAllBudgets = async () => {
+    setClearingAllBudgets(true);
+    try {
+      await apiRequest("/api/budgets/all", { method: "DELETE" });
+      setBudgets([]);
+      setShowClearBudgetsConfirm(false);
+      toast.success("All budgets cleared — create your own from scratch!");
+    } catch {
+      toast.error("Failed to clear budgets. Please try again.");
+    } finally {
+      setClearingAllBudgets(false);
+    }
+  };
+
   // Apply AI-suggested budgets — create each one sequentially
   const handleApplySuggestions = async (suggestions: AppliedBudget[]) => {
     for (const s of suggestions) {
@@ -1281,8 +1383,42 @@ export default function GoalsBudgetsPage() {
 
           {activeTab === "budgets" && (
             <>
+              {/* ── Demo data banner (shown when seeded budgets are detected) ── */}
+              {budgets.length > 0 && (() => {
+                const DEMO_CATEGORIES = ["Food & Dining","Housing","Bills & Utilities","Entertainment","Transportation","Shopping","Health & Fitness"];
+                const isDemoData = budgets.every(b => DEMO_CATEGORIES.includes(b.category));
+                if (!isDemoData) return null;
+                return (
+                  <div className="mb-4 flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl px-4 py-3">
+                    <span className="text-xl flex-shrink-0">👋</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">These are sample budgets</p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                        They were added automatically to get you started. Clear them and set your own limits based on how you actually spend.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowClearBudgetsConfirm(true)}
+                      className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold text-red-500 border border-red-200 dark:border-red-700 rounded-lg px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Clear all
+                    </button>
+                  </div>
+                );
+              })()}
+
               {/* ── Action buttons row ── */}
               <div className="flex flex-wrap gap-2 justify-end mb-4">
+                {budgets.length > 0 && (
+                  <button
+                    onClick={() => setShowClearBudgetsConfirm(true)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-500 dark:text-red-400 border border-red-200 dark:border-red-700 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Clear all budgets
+                  </button>
+                )}
                 <button
                   onClick={() => setShowWizard5030(true)}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-2 border-indigo-200 dark:border-indigo-700 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
@@ -1367,6 +1503,41 @@ export default function GoalsBudgetsPage() {
             onApply={handleApplySuggestions}
             onClose={() => setShowWizard5030(false)}
           />
+        )}
+
+        {/* ── Clear all budgets confirm ── */}
+        {showClearBudgetsConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/30">
+                  <Trash2 className="w-5 h-5 text-red-500" />
+                </div>
+                <h2 className="text-base font-bold text-gray-900 dark:text-gray-50">Clear all budgets?</h2>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">
+                This will permanently delete all <span className="font-semibold text-gray-700 dark:text-gray-200">{budgets.length} budget{budgets.length !== 1 ? "s" : ""}</span>.
+                Use <span className="font-semibold">"Suggest Budgets with AI"</span> or <span className="font-semibold">"50/30/20 Wizard"</span> to create your own. This cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowClearBudgetsConfirm(false)}
+                  disabled={clearingAllBudgets}
+                  className="flex-1 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl py-2.5 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleClearAllBudgets}
+                  disabled={clearingAllBudgets}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl py-2.5 text-sm font-semibold transition disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {clearingAllBudgets && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Yes, clear all
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </PageContent>
     </div>

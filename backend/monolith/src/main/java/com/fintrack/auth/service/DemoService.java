@@ -83,6 +83,17 @@ public class DemoService {
         log.info("✅ Data reset to demo dataset for user {}", userId);
     }
 
+    /**
+     * Seed demo data for a brand-new user on first registration.
+     * No wipe needed — the account is empty.
+     */
+    public void seedDemoData(String userId) {
+        seedTransactions(userId);
+        seedBudgets(userId);
+        seedGoals(userId);
+        log.info("✅ Demo data seeded for new user {}", userId);
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private User createDemoUser() {

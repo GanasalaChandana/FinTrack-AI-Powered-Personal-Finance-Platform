@@ -32,10 +32,11 @@ public class AuthService {
     private static final long   REFRESH_TOKEN_DAYS    = 30;          // 30-day validity
     private static final SecureRandom SECURE_RANDOM   = new SecureRandom();
 
-    private final UserRepository        userRepository;
+    private final UserRepository         userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final PasswordEncoder       passwordEncoder;
-    private final JwtUtil               jwtUtil;
+    private final PasswordEncoder        passwordEncoder;
+    private final JwtUtil                jwtUtil;
+    private final DemoService            demoService;
 
     // ── register ──────────────────────────────────────────────────────────────
 
@@ -56,6 +57,10 @@ public class AuthService {
 
         User saved = userRepository.save(user);
         log.info("New user registered: {}", saved.getEmail());
+
+        // Seed demo data so the dashboard is populated on first login
+        demoService.seedDemoData(saved.getId().toString());
+
         return buildAuthResponse(saved);
     }
 

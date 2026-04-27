@@ -96,7 +96,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByUserId(String userId);
 
     /** Immediate SQL DELETE — bypasses JPA persistence context so deletes flush before re-seed. */
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query(value = "DELETE FROM transactions WHERE user_id = :userId", nativeQuery = true)
     void deleteAllByUserId(@Param("userId") String userId);

@@ -21,7 +21,7 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
     Optional<Budget> findByUserIdAndCategory(String userId, String category);
 
     /** Immediate SQL DELETE — bypasses JPA persistence context so deletes flush before re-seed. */
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query(value = "DELETE FROM budgets WHERE user_id = :userId", nativeQuery = true)
     void deleteAllByUserId(@Param("userId") String userId);

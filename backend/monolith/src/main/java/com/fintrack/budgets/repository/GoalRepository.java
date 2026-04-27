@@ -21,7 +21,7 @@ public interface GoalRepository extends JpaRepository<Goal, String> {
     List<Goal> findByUserIdAndCategory(String userId, String category);
 
     /** Immediate SQL DELETE — bypasses JPA persistence context so deletes flush before re-seed. */
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query(value = "DELETE FROM goals WHERE user_id = :userId", nativeQuery = true)
     void deleteAllByUserId(@Param("userId") String userId);

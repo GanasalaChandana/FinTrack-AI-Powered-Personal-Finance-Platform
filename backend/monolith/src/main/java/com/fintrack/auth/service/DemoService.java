@@ -35,6 +35,7 @@ public class DemoService {
     private final TransactionRepository transactionRepository;
     private final BudgetRepository      budgetRepository;
     private final GoalRepository        goalRepository;
+    private final DataWipeService       dataWipeService;
     private final PasswordEncoder       passwordEncoder;
     private final JwtUtil               jwtUtil;
 
@@ -45,10 +46,9 @@ public class DemoService {
 
         String userId = demo.getId().toString();
 
-        // Always wipe and re-seed so every demo session starts fresh.
-        // Uses direct SQL DELETE (not JPA deleteAll) so the flush happens
-        // immediately — prevents old rows surviving into the re-seed.
-        wipeUserData(userId);
+        // Wipe runs in its own REQUIRES_NEW transaction via DataWipeService
+        // so all DELETEs commit before the first INSERT of the re-seed.
+        dataWipeService.wipeAllUserData(userId);
         seedTransactions(userId);
         seedBudgets(userId);
         seedGoals(userId);
@@ -72,26 +72,12 @@ public class DemoService {
      * Reset any user's data to the standard demo dataset.
      * Called from POST /api/users/reset-data (authenticated endpoint).
      */
-    @Transactional
     public void resetDataForUser(String userId) {
-        wipeUserData(userId);
+        dataWipeService.wipeAllUserData(userId);   // commits in its own transaction
         seedTransactions(userId);
         seedBudgets(userId);
         seedGoals(userId);
         log.info("✅ Data reset to demo dataset for user {}", userId);
-    }
-
-    /**
-     * Hard-delete all rows for a user using direct SQL — not JPA deleteAll.
-     * This ensures the DELETE is flushed immediately before re-seeding starts,
-     * preventing stale rows from mixing with new seed data.
-     */
-    @Transactional
-    private void wipeUserData(String userId) {
-        transactionRepository.deleteAllByUserId(userId);
-        budgetRepository.deleteAllByUserId(userId);
-        goalRepository.deleteAllByUserId(userId);
-        log.info("🗑️ Wiped all data for user {}", userId);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

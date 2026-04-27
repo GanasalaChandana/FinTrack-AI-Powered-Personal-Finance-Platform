@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fintrack.auth.security.JwtUtil;
 import com.fintrack.transactions.dto.CreateTransactionRequest;
 import com.fintrack.transactions.dto.TransactionResponse;
+import com.fintrack.transactions.repository.TransactionRepository;
 import com.fintrack.transactions.service.TransactionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,6 +50,12 @@ class TransactionControllerTest {
     @MockBean
     @SuppressWarnings("unused")
     private JwtUtil jwtUtil;
+
+    // Required because TransactionController now injects TransactionRepository
+    // for the DELETE /all endpoint — @WebMvcTest doesn't load JPA beans
+    @MockBean
+    @SuppressWarnings("unused")
+    private TransactionRepository transactionRepository;
 
     private ObjectMapper objectMapper;
     private static final String USER_ID = "user-txn-001";

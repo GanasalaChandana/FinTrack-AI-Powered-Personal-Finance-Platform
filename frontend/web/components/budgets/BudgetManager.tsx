@@ -21,6 +21,7 @@ interface BudgetManagerProps {
   onAddBudget: (budget: Omit<Budget, "id" | "spent">) => Promise<void>;
   onUpdateBudget: (id: Budget["id"], budget: Partial<Budget>) => Promise<void>;
   onDeleteBudget: (id: Budget["id"]) => Promise<void>;
+  onSuggest?: () => void;   // opens the AI smart-suggestions modal
 }
 
 type Mode = "add" | "edit";
@@ -228,7 +229,7 @@ function DeleteConfirmModal({
 
 // ── BudgetManager ─────────────────────────────────────────────────────────────
 
-export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBudget }: BudgetManagerProps) {
+export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBudget, onSuggest }: BudgetManagerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("add");
   const [editingId, setEditingId] = useState<Budget["id"] | null>(null);
@@ -325,10 +326,33 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
 
   if (!budgets || budgets.length === 0) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <EmptyState icon={Plus} title="No budgets yet"
-          description="Create your first budget to start tracking your spending limits."
-          actionLabel="Add Budget" onAction={openAddModal} gradient="from-indigo-500 to-purple-500" />
+      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-6 py-12">
+        <div className="text-center">
+          <div className="text-5xl mb-3">💰</div>
+          <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-1">No budgets yet</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+            Set spending limits by category — manually or let AI suggest amounts based on your transactions.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+          {onSuggest && (
+            <button
+              onClick={onSuggest}
+              className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white transition-all shadow-md hover:shadow-lg hover:opacity-90"
+              style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}
+            >
+              ✨ Suggest from my transactions
+            </button>
+          )}
+          <button
+            onClick={openAddModal}
+            className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+          >
+            <Plus className="w-4 h-4" /> Add manually
+          </button>
+        </div>
+
         {isModalOpen && <BudgetModal mode={mode} form={form} errors={errors} isSaving={isSaving}
           onChange={setForm} onClose={() => setIsModalOpen(false)} onSubmit={handleSubmit} />}
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />

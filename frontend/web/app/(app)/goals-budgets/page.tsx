@@ -970,21 +970,25 @@ function GoalsSection() {
 
       {/* Empty state */}
       {totalGoals === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-4">
             <Target className="w-10 h-10 text-indigo-400" />
           </div>
           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">No savings goals yet</h3>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mb-6 max-w-xs">
-            Set a goal for your dream vacation, emergency fund, new car, or anything you're saving toward.
+          <p className="text-sm text-gray-400 dark:text-gray-500 mb-6 max-w-sm">
+            Define what you're saving toward — emergency fund, vacation, new car, down payment.
+            Set a target amount and deadline and FinTrack will tell you if you're on track.
           </p>
           <button
             onClick={() => { setEditGoal(null); setShowForm(true); }}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl text-sm hover:bg-indigo-700 transition"
+            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition shadow-md"
           >
             <Plus className="w-4 h-4" />
             Create Your First Goal
           </button>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-4">
+            💡 Tip: add your transactions first — the dashboard will show you how much you can realistically save each month.
+          </p>
         </div>
       )}
 
@@ -1341,6 +1345,7 @@ export default function GoalsBudgetsPage() {
                 onAddBudget={handleAddBudget}
                 onUpdateBudget={handleUpdateBudget}
                 onDeleteBudget={handleDeleteBudget}
+                onSuggest={() => setShowSuggestions(true)}
               />
             </>
           )}

@@ -85,13 +85,12 @@ public class DemoService {
 
     /**
      * Seed demo data for a brand-new user on first registration.
-     * No wipe needed — the account is empty.
+     * Only seeds transactions — budgets and goals are intentionally omitted
+     * so the user sets their own based on their actual spending.
      */
     public void seedDemoData(String userId) {
         seedTransactions(userId);
-        seedBudgets(userId);
-        seedGoals(userId);
-        log.info("✅ Demo data seeded for new user {}", userId);
+        log.info("✅ Demo transactions seeded for new user {}", userId);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

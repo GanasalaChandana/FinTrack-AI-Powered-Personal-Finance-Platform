@@ -163,6 +163,7 @@ export function NextMonthPredictionCard({ transactions }: Props) {
       confidence,
       confidenceColor,
       monthsUsed: activMonths.length,
+      usingCurrentMonth,
     };
   }, [transactions]);
 
@@ -180,6 +181,7 @@ export function NextMonthPredictionCard({ transactions }: Props) {
     confidence,
     confidenceColor,
     monthsUsed,
+    usingCurrentMonth,
   } = prediction;
 
   const savingsPositive = predictedSavings >= 0;
@@ -217,7 +219,9 @@ export function NextMonthPredictionCard({ transactions }: Props) {
             </span>
           </p>
           <span className="text-[10px] text-gray-400 dark:text-gray-500">
-            Based on {monthsUsed} month{monthsUsed !== 1 ? "s" : ""} of data
+            {usingCurrentMonth
+              ? "Projected from current month"
+              : `Based on ${monthsUsed} month${monthsUsed !== 1 ? "s" : ""} of data`}
           </span>
         </div>
 

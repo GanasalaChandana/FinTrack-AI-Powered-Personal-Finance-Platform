@@ -880,6 +880,13 @@ function GoalsSection() {
 
   useEffect(() => { void fetchGoals(); }, [fetchGoals]);
 
+  // Refetch whenever transactions change (clears stale state after CSV import)
+  useEffect(() => {
+    const handler = () => { void fetchGoals(); };
+    window.addEventListener("fintrack-transactions-changed", handler);
+    return () => window.removeEventListener("fintrack-transactions-changed", handler);
+  }, [fetchGoals]);
+
   const handleCreate = async (data: Partial<Goal>) => {
     await apiRequest<Goal>("/api/goals", {
       method: "POST",
@@ -1280,6 +1287,13 @@ export default function GoalsBudgetsPage() {
   useEffect(() => {
     if (isAuthenticated) void fetchBudgets();
   }, [isAuthenticated, fetchBudgets]);
+
+  // Refetch whenever transactions change (CSV import or individual add from Dashboard)
+  useEffect(() => {
+    const handler = () => { void fetchBudgets({ silent: true }); };
+    window.addEventListener("fintrack-transactions-changed", handler);
+    return () => window.removeEventListener("fintrack-transactions-changed", handler);
+  }, [fetchBudgets]);
 
   const handleAddBudget = async (budgetData: Omit<Budget, "id" | "spent">) => {
     await apiRequest("/api/budgets", {

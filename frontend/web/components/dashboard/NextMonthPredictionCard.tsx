@@ -59,7 +59,7 @@ export function NextMonthPredictionCard({ transactions }: Props) {
     const currentMonth = now.getMonth();
 
     // Build monthly totals for the last 3 full months
-    const months: MonthlyTotals[] = [];
+    const historyMonths: MonthlyTotals[] = [];
     for (let i = 1; i <= 3; i++) {
       const d = new Date(currentYear, currentMonth - i, 1);
       const key = getMonthKey(d.getFullYear(), d.getMonth());
@@ -72,11 +72,36 @@ export function NextMonthPredictionCard({ transactions }: Props) {
         .filter((t) => t.type === "expense" || t.type === "EXPENSE")
         .reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
 
-      months.push({ income, expenses, savings: income - expenses });
+      if (income > 0 || expenses > 0) {
+        historyMonths.push({ income, expenses, savings: income - expenses });
+      }
     }
 
-    // Only months with any data
-    const activMonths = months.filter((m) => m.income > 0 || m.expenses > 0);
+    // If no previous month history, fall back to projecting from the current month
+    let activMonths = historyMonths;
+    let usingCurrentMonth = false;
+    if (activMonths.length === 0) {
+      const currentKey = getMonthKey(currentYear, currentMonth);
+      const currentTxns = transactions.filter((t) => t.date?.startsWith(currentKey));
+      const rawIncome = currentTxns
+        .filter((t) => t.type === "income" || t.type === "INCOME")
+        .reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
+      const rawExpenses = currentTxns
+        .filter((t) => t.type === "expense" || t.type === "EXPENSE")
+        .reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
+
+      if (rawIncome > 0 || rawExpenses > 0) {
+        // Scale up partial month to full month
+        const daysElapsed = now.getDate();
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        const factor = daysInMonth / Math.max(daysElapsed, 1);
+        const income   = rawIncome   * factor;
+        const expenses = rawExpenses * factor;
+        activMonths = [{ income, expenses, savings: income - expenses }];
+        usingCurrentMonth = true;
+      }
+    }
+
     if (activMonths.length === 0) return null;
 
     // 3-month weighted average (most recent weighs more: 3,2,1)

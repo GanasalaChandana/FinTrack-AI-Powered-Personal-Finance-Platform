@@ -369,13 +369,17 @@ export default function DashboardPage() {
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleImportTransactions = async (rows: CSVRow[], clearFirst = true): Promise<void> => {
     if (clearFirst) {
-      // Wipe transactions, budgets, and goals so the user starts completely fresh
-      await Promise.all([
-        transactionsAPI.clearAll(),
-        budgetsAPI.clearAll(),
-        goalsAPI.clearAll(),
+      // Clear each independently so one failure doesn't block the others
+      const [txErr, budgetErr, goalErr] = await Promise.all([
+        transactionsAPI.clearAll().then(() => null).catch((e: any) => e),
+        budgetsAPI.clearAll().then(() => null).catch((e: any) => e),
+        goalsAPI.clearAll().then(() => null).catch((e: any) => e),
       ]);
+      if (txErr)     toast.error("Failed to clear existing transactions");
+      if (budgetErr) toast.error("Failed to clear existing budgets");
+      if (goalErr)   toast.error("Failed to clear existing goals");
     }
+
     const norm = (v: unknown) => (v ?? "").toString().trim();
     const requests = rows.map((row) => {
       const date        = norm(row["Date"]        ?? row["date"]);
@@ -392,7 +396,9 @@ export default function DashboardPage() {
     });
     await Promise.all(requests);
     await fetchDashboardData();
-    toast.success("Transactions imported successfully!");
+    // Notify Goals & Budgets page to refetch so spent amounts stay in sync
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("fintrack-transactions-changed"));
+    toast.success("Transactions imported — go to Goals & Budgets to set your own budgets!");
   };
 
   const handleSaveTransaction = async (transaction: any) => {
@@ -407,6 +413,8 @@ export default function DashboardPage() {
       await fetchDashboardData();
       setShowTransactionModal(false);
       setEditingTransaction(null);
+      // Notify Goals & Budgets page to refetch so budget spent amounts stay in sync
+      if (typeof window !== "undefined") window.dispatchEvent(new Event("fintrack-transactions-changed"));
     } catch {
       toast.error("Failed to save transaction. Please try again.");
     }

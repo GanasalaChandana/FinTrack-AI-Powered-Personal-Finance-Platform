@@ -15,4 +15,9 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     long countByUserIdAndReadFalse(String userId);
 
     List<Notification> findByUserIdAndTypeOrderByCreatedAtDesc(String userId, NotificationType type);
+
+    /** Bulk delete for account deletion. */
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM Notification e WHERE e.userId = :userId")
+    int deleteAllByUserIdForAccountDeletion(@org.springframework.data.repository.query.Param("userId") String userId);
 }

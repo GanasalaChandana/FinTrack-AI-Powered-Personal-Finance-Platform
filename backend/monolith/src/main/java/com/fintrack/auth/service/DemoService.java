@@ -27,7 +27,7 @@ import java.util.List;
 @Slf4j
 public class DemoService {
 
-    private static final String DEMO_EMAIL    = "demo@fintrack.app";
+    public static final String DEMO_EMAIL    = "demo@fintrack.app";
     private static final String DEMO_NAME     = "Demo User";
     private static final String DEMO_USERNAME = "demo";
 

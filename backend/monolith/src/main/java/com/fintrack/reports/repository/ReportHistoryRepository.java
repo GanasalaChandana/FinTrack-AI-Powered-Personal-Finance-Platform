@@ -19,4 +19,9 @@ public interface ReportHistoryRepository extends JpaRepository<ReportHistory, UU
         @Param("userId") UUID userId,
         @Param("status") ReportHistory.ReportStatus status
     );
+
+    /** Bulk delete for account deletion. */
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM ReportHistory e WHERE e.userId = :userId")
+    int deleteAllByUserIdForAccountDeletion(@org.springframework.data.repository.query.Param("userId") java.util.UUID userId);
 }

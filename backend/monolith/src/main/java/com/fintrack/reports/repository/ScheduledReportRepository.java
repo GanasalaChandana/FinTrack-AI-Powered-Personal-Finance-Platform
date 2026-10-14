@@ -19,4 +19,9 @@ public interface ScheduledReportRepository extends JpaRepository<ScheduledReport
     List<ScheduledReport> findDueReports(@Param("now") LocalDateTime now);
 
     List<ScheduledReport> findByUserIdAndActive(UUID userId, Boolean active);
+
+    /** Bulk delete for account deletion. */
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM ScheduledReport e WHERE e.userId = :userId")
+    int deleteAllByUserIdForAccountDeletion(@org.springframework.data.repository.query.Param("userId") java.util.UUID userId);
 }

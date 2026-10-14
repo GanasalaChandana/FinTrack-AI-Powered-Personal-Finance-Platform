@@ -24,4 +24,9 @@ public interface AlertHistoryRepository extends JpaRepository<AlertHistory, UUID
        List<AlertHistory> findByUserIdAndCreatedAtBetween(UUID userId, LocalDateTime start, LocalDateTime end);
 
        long countByUserIdAndIsReadFalse(UUID userId);
+
+    /** Bulk delete for account deletion. */
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM AlertHistory e WHERE e.userId = :userId")
+    int deleteAllByUserIdForAccountDeletion(@org.springframework.data.repository.query.Param("userId") java.util.UUID userId);
 }

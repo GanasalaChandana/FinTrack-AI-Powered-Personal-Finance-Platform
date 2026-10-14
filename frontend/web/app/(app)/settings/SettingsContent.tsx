@@ -281,7 +281,7 @@ export default function SettingsContent() {
       await apiRequest('/api/users/me', { method: 'DELETE' });
       removeToken();
       router.replace('/register');
-    } catch { showToast('Failed to delete account', 'error'); setDeleting(false); }
+    } catch (e: any) { showToast(e?.message ?? 'Failed to delete account', 'error'); setDeleting(false); }
   };
 
   /* ── Hydration guard ────────────────────────────────────────── */

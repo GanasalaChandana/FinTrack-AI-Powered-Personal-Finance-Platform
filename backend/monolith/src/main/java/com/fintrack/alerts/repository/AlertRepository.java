@@ -24,4 +24,9 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
 
     boolean existsByUserIdAndCategoryAndTypeAndCreatedAtAfter(
             String userId, String category, String type, LocalDateTime date);
+
+    /** Bulk delete for account deletion. */
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM Alert e WHERE e.userId = :userId")
+    int deleteAllByUserIdForAccountDeletion(@org.springframework.data.repository.query.Param("userId") String userId);
 }

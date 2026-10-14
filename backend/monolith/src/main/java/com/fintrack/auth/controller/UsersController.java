@@ -2,6 +2,8 @@ package com.fintrack.auth.controller;
 
 import com.fintrack.auth.entity.User;
 import com.fintrack.auth.security.JwtUtil;
+import com.fintrack.auth.repository.RefreshTokenRepository;
+import com.fintrack.auth.service.AccountDeletionService;
 import com.fintrack.auth.service.DemoService;
 import com.fintrack.auth.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,16 @@ public class UsersController {
     private final UserService userService;
     private final DemoService demoService;
     private final JwtUtil jwtUtil;
+    private final AccountDeletionService accountDeletionService;
+    private final RefreshTokenRepository refreshTokenRepository;
+
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MAX_PASSWORD_LENGTH = 128;
+
+    /** The shared demo account is used by every visitor at once. */
+    private static boolean isDemo(User user) {
+        return DemoService.DEMO_EMAIL.equalsIgnoreCase(user.getEmail());
+    }
 
     /**
      * Health check endpoint for users service
@@ -102,7 +114,12 @@ public class UsersController {
         Optional<User> userOpt = userService.findByEmail(authentication.getName());
         if (userOpt.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
 
-        userService.deleteById(userOpt.get().getId());
+        if (isDemo(userOpt.get())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "The demo account can't be deleted"));
+        }
+        // Removes all of the user's data and sessions, then the account
+        accountDeletionService.deleteAccount(userOpt.get().getId());
         return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
     }
 
@@ -130,11 +147,22 @@ public class UsersController {
         if (userOpt.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
 
         User user = userOpt.get();
+        if (isDemo(user)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "The demo account's password can't be changed"));
+        }
         if (!userService.checkPassword(user, request.getCurrentPassword())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "Current password is incorrect"));
         }
-        userService.updatePassword(user, request.getNewPassword());
+        String newPassword = request.getNewPassword();
+        if (newPassword == null || newPassword.length() < MIN_PASSWORD_LENGTH || newPassword.length() > MAX_PASSWORD_LENGTH) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "New password must be at least " + MIN_PASSWORD_LENGTH + " characters"));
+        }
+        userService.updatePassword(user, newPassword);
+        // Sign out other sessions: their refresh tokens stop working
+        refreshTokenRepository.deleteAllByUserId(user.getId());
         return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
     }
 

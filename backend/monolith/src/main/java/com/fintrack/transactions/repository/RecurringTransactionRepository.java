@@ -22,4 +22,9 @@ public interface RecurringTransactionRepository extends JpaRepository<RecurringT
            "AND r.nextOccurrence <= :date " +
            "AND (r.endDate IS NULL OR r.endDate >= :date)")
     List<RecurringTransaction> findDueRecurringTransactions(LocalDate date);
+
+    /** Bulk delete for account deletion. */
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM RecurringTransaction e WHERE e.userId = :userId")
+    int deleteAllByUserIdForAccountDeletion(@org.springframework.data.repository.query.Param("userId") String userId);
 }

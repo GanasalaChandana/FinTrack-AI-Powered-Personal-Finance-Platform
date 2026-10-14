@@ -14,7 +14,8 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
 
     Optional<RefreshToken> findByTokenHash(String tokenHash);
 
-    /** Delete all tokens for a user (logout / account deletion). */
+    /** Delete all tokens for a user (logout / password change / account deletion). */
+    @org.springframework.transaction.annotation.Transactional
     @Modifying
     @Query("DELETE FROM RefreshToken rt WHERE rt.user.id = :userId")
     void deleteAllByUserId(@Param("userId") UUID userId);

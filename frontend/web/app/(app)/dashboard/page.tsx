@@ -385,7 +385,10 @@ export default function DashboardPage() {
       const type: "income" | "expense" =
         typeRaw.toLowerCase() === "income" || typeRaw.toLowerCase() === "credit" ? "income" : "expense";
       const amount = Math.abs(rawAmount || 0);
-      return date && merchant && amount ? [{ date, merchant, description, amount, category, type }] : [];
+      const paymentMethod = norm(row["PaymentMethod"] ?? row["Payment Method"] ?? row["paymentMethod"]).slice(0, 100);
+      return date && merchant && amount
+        ? [{ date, merchant, description, amount, category, type, ...(paymentMethod && { paymentMethod }) }]
+        : [];
     });
     if (valid.length === 0) {
       toast.error("No valid rows found (each row needs a date, merchant and amount). Nothing was changed.");

@@ -43,6 +43,7 @@ interface ColumnMap {
   amount: string;
   type: string;
   category: string;
+  paymentMethod: string;
 }
 
 interface MappedRow {
@@ -52,6 +53,7 @@ interface MappedRow {
   amount: number;
   type: "income" | "expense";
   category: string;
+  paymentMethod: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -111,6 +113,8 @@ const ALIASES: Record<keyof ColumnMap, string[]> = {
   amount:      ["amount","transaction amount","debit","credit","value","sum","total","net amount","payment"],
   type:        ["type","transaction type","credit/debit","debit/credit","cr/dr","dr/cr","direction"],
   category:    ["category","tag","label","group","type"],
+  // Not plain "payment" — some banks call the amount column that
+  paymentMethod: ["payment method","payment type","payment mode","paid with","account","account name","card","card name","card number","method","source","instrument"],
 };
 
 function autoDetectMapping(headers: string[]): ColumnMap {
@@ -127,14 +131,19 @@ function autoDetectMapping(headers: string[]): ColumnMap {
     }
     return "";
   };
-  return {
+  const map: ColumnMap = {
     date:        best("date"),
     merchant:    best("merchant"),
     description: best("description"),
     amount:      best("amount"),
     type:        best("type"),
     category:    best("category"),
+    paymentMethod: best("paymentMethod"),
   };
+  // Never reuse a column already picked for another field
+  const used = [map.date, map.merchant, map.description, map.amount, map.type, map.category];
+  if (used.includes(map.paymentMethod)) map.paymentMethod = "";
+  return map;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -177,6 +186,7 @@ function applyMapping(rows: Record<string, string>[], map: ColumnMap): MappedRow
     const rawAmt      = parseFloat((row[map.amount] ?? "0").replace(/[,$\s]/g, "")) || 0;
     const rawType     = (row[map.type] ?? "").toLowerCase();
     const rawCat      = (row[map.category] ?? "").trim();
+    const paymentMethod = map.paymentMethod ? (row[map.paymentMethod] ?? "").trim().slice(0, 100) : "";
 
     // Infer type from amount sign or Type column
     let type: "income" | "expense";
@@ -192,7 +202,7 @@ function applyMapping(rows: Record<string, string>[], map: ColumnMap): MappedRow
     const amount   = Math.abs(rawAmt);
     const category = rawCat || autoCategorize(merchant, description);
 
-    return { date, merchant, description, amount, type, category };
+    return { date, merchant, description, amount, type, category, paymentMethod };
   }).filter(r => r.date && r.amount > 0);
 }
 
@@ -232,6 +242,7 @@ const REQUIRED_FIELDS: Array<{ key: keyof ColumnMap; label: string; required: bo
   { key: "type",        label: "Income/Expense",required: false },
   { key: "category",    label: "Category",      required: false },
   { key: "description", label: "Description",   required: false },
+  { key: "paymentMethod", label: "Payment method", required: false },
 ];
 
 const CATEGORY_OPTIONS = [
@@ -249,7 +260,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
 }) => {
   const [step,       setStep]       = useState<Step>("upload");
   const [parsed,     setParsed]     = useState<Parsed | null>(null);
-  const [colMap,     setColMap]     = useState<ColumnMap>({ date:"",merchant:"",description:"",amount:"",type:"",category:"" });
+  const [colMap,     setColMap]     = useState<ColumnMap>({ date:"",merchant:"",description:"",amount:"",type:"",category:"",paymentMethod:"" });
   const [mapped,     setMapped]     = useState<MappedRow[]>([]);
   const [error,      setError]      = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -262,7 +273,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setStep("upload"); setParsed(null);
-      setColMap({ date:"",merchant:"",description:"",amount:"",type:"",category:"" });
+      setColMap({ date:"",merchant:"",description:"",amount:"",type:"",category:"",paymentMethod:"" });
       setMapped([]); setError(null); setFileName("");
       document.body.style.overflow = "hidden";
     } else {
@@ -322,7 +333,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
     try {
       const payload: CSVRow[] = mapped.map(r => ({
         Date: r.date, Merchant: r.merchant, Description: r.description,
-        Amount: r.amount, Type: r.type, Category: r.category,
+        Amount: r.amount, Type: r.type, Category: r.category, PaymentMethod: r.paymentMethod,
       }));
       await onImport(payload, clearFirst);
       onClose();
@@ -534,7 +545,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                   <table className="min-w-full text-xs">
                     <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                       <tr>
-                        {["Date","Merchant","Amount","Type","Category"].map(h => (
+                        {["Date","Merchant","Amount","Type","Category", ...(colMap.paymentMethod ? ["Payment"] : [])].map(h => (
                           <th key={h} className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
@@ -565,6 +576,9 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                               {CATEGORY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                           </td>
+                          {colMap.paymentMethod && (
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap max-w-[140px] truncate">{row.paymentMethod || "—"}</td>
+                          )}
                         </tr>
                       ))}
                     </tbody>

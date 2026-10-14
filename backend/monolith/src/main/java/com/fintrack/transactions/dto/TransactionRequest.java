@@ -17,4 +17,11 @@ public class TransactionRequest {
     private String category;
     private String type;
     private LocalDate date;
+    private String notes;
+    private String paymentMethod;
+
+    public TransactionRequest(String description, BigDecimal amount, String merchant,
+                              String category, String type, LocalDate date) {
+        this(description, amount, merchant, category, type, date, null, null);
+    }
 }

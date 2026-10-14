@@ -80,6 +80,10 @@ public class Transaction {
     @JdbcTypeCode(SqlTypes.VARCHAR)
     private String tags; // comma-separated tag list e.g. "business,vacation"
 
+    // e.g. "Visa •••• 1234", "Cash", "Checking" — from the user or their bank export
+    @Column(name = "payment_method", length = 100)
+    private String paymentMethod;
+
     // Getter and Setter
     public boolean isMlPredicted() {
         return mlPredicted;

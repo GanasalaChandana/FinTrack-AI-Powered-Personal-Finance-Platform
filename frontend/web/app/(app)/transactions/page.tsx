@@ -326,7 +326,7 @@ export default function TransactionManager() {
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
     status: ((t as any).status === "pending" ? "pending" : "completed") as TxStatus,
-    paymentMethod: "Credit Card •••• 4242",
+    paymentMethod: ((t as any).paymentMethod as string) || "",
     tags: t.tags ? t.tags.split(",").map((s) => s.trim()).filter(Boolean) : [],
     notes: (t as any).notes || undefined,
     aiSuggested: false,
@@ -470,6 +470,7 @@ export default function TransactionManager() {
         date: editForm.date!,
         description: editForm.description!,
         merchant: editForm.merchant || null, // the backend overwrites merchant — omitting it erased it
+        paymentMethod: editForm.paymentMethod || null,
         category: backendCategory,
         amount: editForm.amount!,
         type: uiType.toUpperCase(),
@@ -484,7 +485,7 @@ export default function TransactionManager() {
             ? {
                 ...normalized,
                 status: editForm.status || t.status,
-                paymentMethod: editForm.paymentMethod || t.paymentMethod,
+                paymentMethod: editForm.paymentMethod || "",
                 merchant: editForm.merchant || normalized.merchant,
                 notes: editForm.notes || normalized.notes,
                 tags: tagsArr.length > 0 ? tagsArr : normalized.tags,
@@ -527,10 +528,11 @@ export default function TransactionManager() {
       status: t.status ?? "completed",
       notes: t.notes || "",
       tags: (t.tags || []).join(","),
+      paymentMethod: t.paymentMethod || "",
     });
   };
 
-  const handleModalEditSave = async (tx: { type: string; category: string; amount: number; date: string; merchant: string; description: string; status?: string; notes?: string; tags?: string }) => {
+  const handleModalEditSave = async (tx: { type: string; category: string; amount: number; date: string; merchant: string; description: string; status?: string; notes?: string; tags?: string; paymentMethod?: string }) => {
     const id = modalEditTx?.id;
     if (!id) return;
     try {
@@ -544,13 +546,14 @@ export default function TransactionManager() {
         type: tx.type.toUpperCase(),
         status: tx.status ?? "completed",
         notes: tx.notes || null,
+        paymentMethod: tx.paymentMethod || null,
         tags: tagsArr.join(",") || null,
       } as any);
       const normalized = normalizeTransaction(updated);
       const updateFn = (list: Transaction[]) =>
         list.map((t) =>
           t.id === id
-            ? { ...normalized, status: (tx.status as any) || t.status, paymentMethod: t.paymentMethod, merchant: tx.merchant || normalized.merchant, tags: tagsArr.length > 0 ? tagsArr : normalized.tags }
+            ? { ...normalized, status: (tx.status as any) || t.status, merchant: tx.merchant || normalized.merchant, tags: tagsArr.length > 0 ? tagsArr : normalized.tags }
             : t,
         );
       setTransactions(updateFn);
@@ -571,12 +574,13 @@ export default function TransactionManager() {
       date: new Date().toISOString().split("T")[0],
       merchant: transaction.merchant || "",
       description: transaction.description,
+      paymentMethod: transaction.paymentMethod || "",
     });
     setShowAdd(true);
     toast.info("Transaction duplicated — ready to save");
   };
 
-  const handleAddSave = async (tx: { type: string; category: string; amount: number; date: string; merchant: string; description: string; status?: string; notes?: string; tags?: string }) => {
+  const handleAddSave = async (tx: { type: string; category: string; amount: number; date: string; merchant: string; description: string; status?: string; notes?: string; tags?: string; paymentMethod?: string }) => {
     const created = await transactionsAPI.create({
       date: tx.date,
       description: tx.description.trim() || tx.merchant.trim(),
@@ -587,6 +591,7 @@ export default function TransactionManager() {
       ...(tx.status ? { status: tx.status } : {}),
       ...(tx.notes ? { notes: tx.notes } : {}),
       ...(tx.tags ? { tags: tx.tags } : {}),
+      ...(tx.paymentMethod ? { paymentMethod: tx.paymentMethod } : {}),
     } as any);
     const newTx: Transaction = { ...normalizeTransaction(created), merchant: tx.merchant.trim() };
     setTransactions((prev) => [newTx, ...prev]);
@@ -974,6 +979,9 @@ export default function TransactionManager() {
                         <span className="text-gray-500 dark:text-gray-400">
                           {isMounted ? formatRelativeClientOnly(t.date) : formatAbsolute(t.date)}
                         </span>
+                        {t.paymentMethod && (
+                          <span className="text-gray-500 dark:text-gray-400">· 💳 {t.paymentMethod}</span>
+                        )}
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold ${cat.badgeBg} ${cat.badgeText}`}>
                           <span>{cat.icon}</span>{cat.name}
                         </span>
@@ -1071,6 +1079,7 @@ export default function TransactionManager() {
                             <input type="text" value={editForm.description} onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))} className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100" placeholder="Description" />
                             <input type="text" value={editTagsStr} onChange={(e) => setEditTagsStr(e.target.value)} className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100" placeholder="Tags: business, vacation" />
                             <input type="text" value={editForm.notes || ""} onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))} className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100" placeholder="Private notes..." />
+                            <input type="text" maxLength={100} value={editForm.paymentMethod || ""} onChange={(e) => setEditForm((prev) => ({ ...prev, paymentMethod: e.target.value }))} className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100" placeholder="Payment method (e.g. Visa •••• 1234)" aria-label="Payment method" />
                           </div>
                         ) : (
                           <div className="flex items-start gap-3">
@@ -1088,6 +1097,9 @@ export default function TransactionManager() {
                                 )}
                               </div>
                               <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[180px] sm:max-w-[260px]" title={t.description}>{t.description}</div>
+                              {t.paymentMethod && (
+                                <div className="2xl:hidden text-xs text-gray-400 dark:text-gray-500 truncate max-w-[180px] sm:max-w-[260px]">💳 {t.paymentMethod}</div>
+                              )}
                               {/* Amount column is off-screen on phones and tablets — show it here too */}
                               <div className={`lg:hidden text-sm font-bold ${t.type === "income" ? "text-green-600" : "text-red-600"}`}>
                                 {t.type === "income" ? "+" : ""}{formatCurrency(t.amount)}
@@ -1132,7 +1144,7 @@ export default function TransactionManager() {
                         )}
                       </td>
 
-                      <td className="hidden 2xl:table-cell px-3 sm:px-4 py-4 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">{t.paymentMethod}</td>
+                      <td className="hidden 2xl:table-cell px-3 sm:px-4 py-4 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">{t.paymentMethod || <span className="text-gray-400 dark:text-gray-500">—</span>}</td>
 
                       <td className="px-3 sm:px-4 py-4 text-right">
                         {isEditing ? (

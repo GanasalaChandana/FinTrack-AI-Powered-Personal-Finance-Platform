@@ -101,6 +101,8 @@ public class TransactionUploadController {
                             dto.getCategory(),
                             dto.getType(),
                             dto.getDate());
+                    request.setNotes(dto.getNotes());               // was dropped on upload
+                    request.setPaymentMethod(dto.getAccountId());   // payment method / account column
                     TransactionResponse saved = transactionService.createTransaction(request, userId);
                     savedTransactions.add(saved);
                     successCount++;
@@ -183,6 +185,10 @@ public class TransactionUploadController {
                     // Optional: notes
                     String notes = getColumnValue(record, "notes", "memo", "comment");
                     transaction.setNotes(notes);
+
+                    // Optional: payment method / account (headers vary by bank)
+                    transaction.setAccountId(getColumnValue(record, "payment method", "payment_method",
+                            "paymentmethod", "payment", "account", "account name", "card", "method"));
 
                     transactions.add(transaction);
 

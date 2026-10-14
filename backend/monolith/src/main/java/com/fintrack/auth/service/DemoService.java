@@ -242,6 +242,18 @@ public class DemoService {
         t.setCategory(category);
         t.setDate(date);
         t.setStatus("completed");
+        t.setPaymentMethod(demoPaymentMethod(type, category));
         return t;
+    }
+
+    /** Plausible payment methods so the demo's Payment column isn't empty. */
+    private static String demoPaymentMethod(String type, String category) {
+        if ("INCOME".equalsIgnoreCase(type)) return "Direct Deposit";
+        if (category == null) return "Visa •••• 4821";
+        return switch (category) {
+            case "Housing", "Bills & Utilities" -> "Checking •••• 1093";
+            case "Food & Dining", "Transportation" -> "Visa •••• 4821";
+            default -> "Mastercard •••• 7716";
+        };
     }
 }

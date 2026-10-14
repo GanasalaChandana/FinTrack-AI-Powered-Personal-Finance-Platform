@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, DollarSign, Calendar, Tag, FileText, TrendingUp, TrendingDown, Sparkles, Loader2, Clock, CheckCircle } from "lucide-react";
+import { X, DollarSign, Calendar, Tag, FileText, CreditCard, TrendingUp, TrendingDown, Sparkles, Loader2, Clock, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { getExpenseCategories, getIncomeCategories } from "@/lib/utils/categories";
 
@@ -16,6 +16,7 @@ interface Transaction {
   status?: "completed" | "pending";
   notes?: string;
   tags?: string; // comma-separated e.g. "business,vacation"
+  paymentMethod?: string; // e.g. "Visa •••• 1234", "Cash"
 }
 
 interface TransactionModalProps {
@@ -84,6 +85,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
     status: "completed",
     notes: "",
     tags: "",
+    paymentMethod: "",
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -107,7 +109,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
       // Support prefill for duplicate — strip the id
       setFormData(transaction
         ? { ...transaction, id: undefined }
-        : { type: "expense", category: "", amount: 0, date: new Date().toISOString().split("T")[0], merchant: "", description: "", status: "completed", notes: "", tags: "" }
+        : { type: "expense", category: "", amount: 0, date: new Date().toISOString().split("T")[0], merchant: "", description: "", status: "completed", notes: "", tags: "", paymentMethod: "" }
       );
       setAiSuggested(false);
     }
@@ -381,6 +383,35 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
                   <Clock className="h-4 w-4" />
                   Pending
                 </button>
+              </div>
+            </div>
+
+            {/* Payment method */}
+            <div>
+              <label htmlFor="tx-payment-method" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Payment Method (Optional)
+              </label>
+              <div className="relative">
+                <CreditCard className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <input
+                  id="tx-payment-method"
+                  type="text"
+                  maxLength={100}
+                  list="tx-payment-method-options"
+                  value={formData.paymentMethod || ""}
+                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3 pl-10 pr-4 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  placeholder="e.g. Visa •••• 1234, Cash, Checking"
+                />
+                <datalist id="tx-payment-method-options">
+                  <option value="Cash" />
+                  <option value="Debit Card" />
+                  <option value="Credit Card" />
+                  <option value="Checking" />
+                  <option value="Bank Transfer" />
+                  <option value="UPI" />
+                  <option value="PayPal" />
+                </datalist>
               </div>
             </div>
 

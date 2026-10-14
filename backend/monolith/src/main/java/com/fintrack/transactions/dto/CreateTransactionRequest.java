@@ -28,4 +28,7 @@ public class CreateTransactionRequest {
     private String notes;
 
     private String tags; // comma-separated e.g. "business,vacation"
+
+    @jakarta.validation.constraints.Size(max = 100, message = "Payment method must be at most 100 characters")
+    private String paymentMethod;
 }

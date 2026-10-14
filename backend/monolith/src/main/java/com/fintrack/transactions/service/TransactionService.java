@@ -55,6 +55,7 @@ public class TransactionService {
         transaction.setStatus(request.getStatus() != null ? request.getStatus() : "completed");
         transaction.setNotes(request.getNotes());
         transaction.setTags(request.getTags());
+        transaction.setPaymentMethod(blankToNull(request.getPaymentMethod()));
         transaction.setCreatedAt(LocalDateTime.now());
         transaction.setUpdatedAt(LocalDateTime.now());
 
@@ -75,6 +76,8 @@ public class TransactionService {
         transaction.setMerchant(request.getMerchant());
         transaction.setType(normalizeType(request.getType()));
         transaction.setDate(request.getDate() != null ? request.getDate() : LocalDate.now());
+        transaction.setNotes(request.getNotes());
+        transaction.setPaymentMethod(blankToNull(request.getPaymentMethod()));
 
         // Auto-categorize if category not provided
         if (request.getCategory() == null || request.getCategory().isEmpty()) {
@@ -119,6 +122,10 @@ public class TransactionService {
     }
 
     @Transactional
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
+    }
+
     /** Stored as INCOME/EXPENSE — report queries match the type exactly. */
     private static String normalizeType(String type) {
         return type == null ? null : type.trim().toUpperCase(java.util.Locale.ROOT);
@@ -141,6 +148,7 @@ public class TransactionService {
         }
         transaction.setNotes(request.getNotes());
         transaction.setTags(request.getTags());
+        transaction.setPaymentMethod(blankToNull(request.getPaymentMethod()));
         transaction.setUpdatedAt(LocalDateTime.now());
 
         Transaction updated = transactionRepository.save(transaction);
@@ -203,6 +211,7 @@ public class TransactionService {
                 .status(transaction.getStatus() != null ? transaction.getStatus() : "completed")
                 .notes(transaction.getNotes())
                 .tags(transaction.getTags())
+                .paymentMethod(transaction.getPaymentMethod())
                 .build();
     }
 

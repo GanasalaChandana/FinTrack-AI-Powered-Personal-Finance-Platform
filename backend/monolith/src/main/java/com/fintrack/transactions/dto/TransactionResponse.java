@@ -24,4 +24,5 @@ public class TransactionResponse {
     private String status;
     private String notes;
     private String tags;
+    private String paymentMethod;
 }

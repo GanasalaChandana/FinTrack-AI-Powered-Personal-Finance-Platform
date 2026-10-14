@@ -20,7 +20,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 interface Alert {
   id: string; userId: string; type: string; title: string;
-  message: string; priority: string; isRead: boolean; createdAt: string;
+  message: string; priority: string; read: boolean; createdAt: string;
 }
 interface Notification {
   id: string; userId: string; title: string; message: string;
@@ -341,7 +341,7 @@ export default function Navigation() {
         pollFailures.current = 0;
         const d = await res.json();
         setAlerts(d.slice(0, 5));
-        setAlertsUnread(d.filter((a: Alert) => !a.isRead).length);
+        setAlertsUnread(d.filter((a: Alert) => !a.read).length);
       } else if (res.status === 401) { removeToken(); setHasToken(false); }
       else pollFailures.current++;
     } catch { pollFailures.current++; }
@@ -369,10 +369,10 @@ export default function Navigation() {
   const markAlertRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const token = getToken(); if (!token) return;
-    const res = await fetch(`${API_BASE_URL}/api/alerts/${id}/read`, {
-      method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
+    const res = await fetch(`${API_BASE_URL}/api/alerts/${id}/acknowledge`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
     });
-    if (res.ok) { setAlerts(a => a.map(x => x.id === id ? { ...x, isRead: true } : x)); setAlertsUnread(n => Math.max(0, n - 1)); }
+    if (res.ok) { setAlerts(a => a.map(x => x.id === id ? { ...x, read: true } : x)); setAlertsUnread(n => Math.max(0, n - 1)); }
   };
 
   const dismissAlert = async (id: string, e: React.MouseEvent) => {
@@ -384,7 +384,7 @@ export default function Navigation() {
     if (res.ok) {
       const d = alerts.find(a => a.id === id);
       setAlerts(a => a.filter(x => x.id !== id));
-      if (d && !d.isRead) setAlertsUnread(n => Math.max(0, n - 1));
+      if (d && !d.read) setAlertsUnread(n => Math.max(0, n - 1));
     }
   };
 
@@ -570,7 +570,7 @@ export default function Navigation() {
                     <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" /> No alerts
                   </div>
                 ) : alerts.map(a => (
-                  <div key={a.id} className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${!a.isRead ? 'bg-red-50/60 dark:bg-red-900/10' : ''}`}>
+                  <div key={a.id} className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${!a.read ? 'bg-red-50/60 dark:bg-red-900/10' : ''}`}>
                     <span className="text-base mt-0.5">{alertEmoji(a.type)}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-0.5">
@@ -581,7 +581,7 @@ export default function Navigation() {
                       <p className="text-[10px] text-gray-400 mt-0.5">{timeAgo(a.createdAt)}</p>
                     </div>
                     <div className="flex gap-1 shrink-0 mt-0.5">
-                      {!a.isRead && <button onClick={e => markAlertRead(a.id, e)} className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-colors" title="Mark read"><Check className="w-3 h-3" /></button>}
+                      {!a.read && <button onClick={e => markAlertRead(a.id, e)} className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-colors" title="Mark read"><Check className="w-3 h-3" /></button>}
                       <button onClick={e => dismissAlert(a.id, e)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors" title="Dismiss"><X className="w-3 h-3" /></button>
                     </div>
                   </div>

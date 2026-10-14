@@ -662,17 +662,9 @@ export const alertsAPI = {
     }
   },
 
-  getUnread: async (): Promise<Alert[]> => {
-    try {
-      const data = await apiRequest<Alert[] | any>("/api/alerts/unread", { method: "GET" }, false);
-      if (Array.isArray(data)) return data;
-      if (data && typeof data === "object" && Array.isArray(data.alerts)) return data.alerts;
-      return [];
-    } catch (error) {
-      console.error("Error fetching unread alerts:", error);
-      return [];
-    }
-  },
+  // The backend has no /unread endpoint — filter the user's alerts instead
+  getUnread: async (): Promise<Alert[]> =>
+    (await alertsAPI.getAll()).filter((a: any) => !a.read),
 
   getById: (id: string): Promise<Alert> =>
     apiRequest<Alert>(`/api/alerts/${id}`, { method: "GET" }, false),
@@ -681,16 +673,13 @@ export const alertsAPI = {
     apiRequest<Alert>("/api/alerts", { method: "POST", body: JSON.stringify(alert) }, false),
 
   markAsRead: (id: string): Promise<Alert> =>
-    apiRequest<Alert>(`/api/alerts/${id}/read`, { method: "PATCH" }, false),
+    apiRequest<Alert>(`/api/alerts/${id}/acknowledge`, { method: "POST" }, false),
 
-  markAllAsRead: (): Promise<{ message: string; count: number }> =>
-    apiRequest("/api/alerts/mark-all-read", { method: "PATCH" }, false),
+  markAllAsRead: (): Promise<{ acknowledged: number; success: boolean }> =>
+    apiRequest("/api/alerts/acknowledge-all", { method: "POST" }, false),
 
   delete: (id: string): Promise<{ message: string }> =>
     apiRequest(`/api/alerts/${id}`, { method: "DELETE" }, false),
-
-  deleteAll: (): Promise<{ message: string; count: number }> =>
-    apiRequest("/api/alerts", { method: "DELETE" }, false),
 };
 
 // =====================

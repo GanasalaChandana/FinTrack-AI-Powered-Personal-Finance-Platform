@@ -251,17 +251,17 @@ export default function CalendarPage() {
             { label: "Net",      value: monthlySummary.net,      color: monthlySummary.net >= 0 ? "indigo" : "orange", icon: <DollarSign className="w-4 h-4" /> },
           ];
           return (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {chips.map(({ label, value, color, icon }) => {
             const s = chipStyles[color];
             return (
-            <div key={label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
-              <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${s.wrap}`}>
+            <div key={label} className="min-w-0 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 flex items-center gap-3">
+              <span className={`hidden sm:flex w-9 h-9 rounded-lg items-center justify-center shrink-0 ${s.wrap}`}>
                 {icon}
               </span>
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-                <p className={`text-base font-bold ${s.text}`}>{fmt(Math.abs(value))}</p>
+                <p className={`text-sm sm:text-base font-bold truncate ${s.text}`}>{fmt(Math.abs(value))}</p>
               </div>
             </div>
             );

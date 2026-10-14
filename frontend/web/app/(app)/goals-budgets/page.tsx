@@ -1370,7 +1370,7 @@ export default function GoalsBudgetsPage() {
         </div>
       )}
 
-      <PageContent>
+      <PageContent className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <PageHeader
           title="Goals & Budgets"
           description="Track your savings goals and monthly spending limits"

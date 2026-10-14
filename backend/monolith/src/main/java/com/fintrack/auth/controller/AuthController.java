@@ -21,14 +21,6 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:3002",
-        "http://localhost:3003",
-        "http://127.0.0.1:3000",
-        "https://fintrack-liart.vercel.app"
-}, allowCredentials = "true", maxAge = 3600)
 public class AuthController {
 
     private final AuthService authService;

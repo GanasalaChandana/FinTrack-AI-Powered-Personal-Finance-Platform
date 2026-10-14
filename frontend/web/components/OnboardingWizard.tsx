@@ -490,7 +490,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={step === 0 ? handleComplete : undefined} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[calc(100dvh-2rem)] overflow-y-auto">
 
         {/* Gradient header */}
         <div

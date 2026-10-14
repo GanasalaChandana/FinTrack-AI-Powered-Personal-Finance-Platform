@@ -88,6 +88,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
             shadow-xl
             animate-scale-in
             flex flex-col
+            max-h-[calc(100dvh-2rem)] overflow-y-auto
             ${className}
           `}
           {...props}

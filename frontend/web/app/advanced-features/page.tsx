@@ -250,7 +250,7 @@ const InvestmentTracking = () => {
 
       {isAdding && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-gray-900">Add Investment Account</h3>
               <button onClick={() => setIsAdding(false)} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -442,7 +442,7 @@ const DebtPayoffPlanner = () => {
 
       {isAdding && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-gray-900">Add Debt</h3>
               <button onClick={() => setIsAdding(false)} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -602,7 +602,7 @@ const PlaidBankConnection = () => {
 
       {isConnecting && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-gray-900">Connect Bank Account</h3>
               <button onClick={() => { setIsConnecting(false); setIsAdding(false); }} className="p-2 hover:bg-gray-100 rounded-lg">

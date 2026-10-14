@@ -467,7 +467,7 @@ export default function DashboardPage() {
       {/* ── Reset confirm dialog ── */}
       {showResetConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-neutral-200 dark:border-neutral-700">
+          <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-neutral-200 dark:border-neutral-700 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2 rounded-xl bg-orange-100 dark:bg-orange-900/30">
                 <RotateCcw className="w-5 h-5 text-orange-500" />

@@ -262,7 +262,7 @@ const ExitIntentPopup: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-8 relative animate-scale-in">
+      <div className="bg-white rounded-2xl max-w-md w-full p-8 relative animate-scale-in max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <button
           onClick={() => setShow(false)}
           className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"

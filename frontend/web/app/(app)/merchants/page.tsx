@@ -331,7 +331,7 @@ export default function MerchantsPage() {
   return (
     <>
       <div className="min-h-screen bg-slate-50 dark:bg-gray-900">
-        <PageContent>
+        <PageContent className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <PageHeader
             title="Merchant Analytics"
             description="See where your money actually goes, broken down by payee."
@@ -397,8 +397,8 @@ export default function MerchantsPage() {
           ) : (
             <>
               {/* ── Top 10 bar chart ── */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 sm:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-2">
                     <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
                       <BarChart3 className="w-4 h-4 text-indigo-500" />

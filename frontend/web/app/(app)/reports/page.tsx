@@ -2199,7 +2199,7 @@ const EnhancedFinancialReports: React.FC = () => {
       `}</style>
 
       <div className="min-h-screen bg-slate-50 dark:bg-gray-900">
-        <PageContent>
+        <PageContent className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <PageHeader
             title="Financial Reports"
             description="Comprehensive analysis and insights into your financial health."

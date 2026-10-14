@@ -36,6 +36,11 @@ public class AuthController {
     private final DemoService demoService;
     private final LoginRateLimiter rateLimiter;
 
+    // Separate per-account limiter: the IP can be faked via X-Forwarded-For, the
+    // target email can't. Kept apart from the IP table so flooding it with fake
+    // IPs can't reset an account's counter.
+    private final LoginRateLimiter emailRateLimiter = new LoginRateLimiter();
+
     // ── POST /api/auth/register ───────────────────────────────────────────────
 
     @PostMapping("/register")
@@ -81,9 +86,11 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest request,
                                    HttpServletRequest httpRequest) {
         String ip = resolveClientIp(httpRequest);
+        String emailKey = request.getEmail() != null ? request.getEmail().trim().toLowerCase() : "";
 
-        if (!rateLimiter.tryConsume(ip)) {
-            long retryAfter = rateLimiter.retryAfterSeconds(ip);
+        if (!rateLimiter.tryConsume(ip) || !emailRateLimiter.tryConsume(emailKey)) {
+            long retryAfter = Math.max(rateLimiter.retryAfterSeconds(ip),
+                                       emailRateLimiter.retryAfterSeconds(emailKey));
             log.warn("Rate limit: login blocked for IP {} (retry after {}s)", ip, retryAfter);
             return ResponseEntity
                     .status(HttpStatus.TOO_MANY_REQUESTS)
@@ -96,7 +103,8 @@ public class AuthController {
         try {
             log.info("Login attempt from IP {} for email: {}", ip, request.getEmail());
             AuthResponse response = authService.login(request);
-            rateLimiter.reset(ip); // successful login — reset counter for this IP
+            rateLimiter.reset(ip); // successful login — reset counters for this IP and account
+            emailRateLimiter.reset(emailKey);
             log.info("Login successful for: {}", request.getEmail());
             return ResponseEntity.ok(response);
 
@@ -212,10 +220,17 @@ public class AuthController {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**
-     * Resolves the real client IP, respecting X-Forwarded-For from a reverse proxy
-     * (Vercel, Render, Cloudflare, AWS ALB all set this header).
+     * Resolves the client IP for rate limiting. CF-Connecting-IP is set by
+     * Cloudflare (in front of Render) and overwritten on every request, so it
+     * can't be spoofed by the client. X-Forwarded-For is only a fallback — its
+     * leftmost entry is client-controlled, which is why login also has a
+     * per-account limit.
      */
     private String resolveClientIp(HttpServletRequest request) {
+        String cfIp = request.getHeader("CF-Connecting-IP");
+        if (cfIp != null && !cfIp.isBlank()) {
+            return cfIp.trim();
+        }
         String xff = request.getHeader("X-Forwarded-For");
         if (xff != null && !xff.isBlank()) {
             return xff.split(",")[0].trim(); // leftmost = original client

@@ -27,10 +27,11 @@ public class AlertController {
     public ResponseEntity<List<Alert>> getAllAlerts(
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
         log.debug("GET /api/alerts - userId: {}", userId);
+        if (userId == null || userId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         try {
-            List<Alert> alerts = (userId != null && !userId.isBlank())
-                    ? alertService.getAlertsByUserId(userId)
-                    : alertService.getAllAlerts();
+            List<Alert> alerts = alertService.getAlertsByUserId(userId);
             log.debug("Returning {} alerts for userId={}", alerts.size(), userId);
             return ResponseEntity.ok(alerts);
         } catch (Exception e) {
@@ -40,9 +41,20 @@ public class AlertController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Alert> getAlertById(@PathVariable Long id) {
+    public ResponseEntity<Alert> getAlertById(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        if (userId == null || userId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         try {
-            return ResponseEntity.ok(alertService.getAlertById(id));
+            Alert alert = alertService.getAlertById(id);
+            if (!userId.equals(alert.getUserId())) {
+                // 404 rather than 403 so other users' alert IDs can't be probed
+                log.warn("GET /api/alerts/{} denied: userId={} does not own alert", id, userId);
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(alert);
         } catch (RuntimeException e) {
             log.warn("Alert not found: {}", id);
             return ResponseEntity.notFound().build();
@@ -50,7 +62,16 @@ public class AlertController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Alert>> getAlertsByUserId(@PathVariable String userId) {
+    public ResponseEntity<List<Alert>> getAlertsByUserId(
+            @PathVariable String userId,
+            @RequestHeader(value = "X-User-Id", required = false) String requestingUserId) {
+        if (requestingUserId == null || requestingUserId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!requestingUserId.equals(userId)) {
+            log.warn("GET /api/alerts/user/{} forbidden for userId={}", userId, requestingUserId);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             return ResponseEntity.ok(alertService.getAlertsByUserId(userId));
         } catch (Exception e) {
@@ -63,15 +84,16 @@ public class AlertController {
     public ResponseEntity<Alert> createAlert(
             @RequestBody Alert alert,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        if (userId == null || userId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         try {
             if (alert.getMessage() == null || alert.getMessage().isBlank()) {
                 log.warn("createAlert rejected - missing message");
                 return ResponseEntity.badRequest().build();
             }
-            // Stamp userId from header if not already set
-            if (userId != null && !userId.isBlank() && alert.getUserId() == null) {
-                alert.setUserId(userId);
-            }
+            // Always use the JWT-verified userId — ignore whatever userId is in the body
+            alert.setUserId(userId);
             Alert created = alertService.createAlert(alert);
             log.debug("Alert created id={} for userId={}", created.getId(), userId);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -132,8 +154,19 @@ public class AlertController {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Alert> updateAlertStatus(@PathVariable Long id, @RequestParam String status) {
+    public ResponseEntity<Alert> updateAlertStatus(
+            @PathVariable Long id,
+            @RequestParam String status,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        if (userId == null || userId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         try {
+            Alert alert = alertService.getAlertById(id);
+            if (!userId.equals(alert.getUserId())) {
+                log.warn("PATCH /api/alerts/{}/status forbidden: userId={} does not own alert", id, userId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
             return ResponseEntity.ok(alertService.updateAlertStatus(id, status));
         } catch (RuntimeException e) {
             log.warn("Alert not found for status update: {}", id);
@@ -164,10 +197,11 @@ public class AlertController {
     @PostMapping("/acknowledge-all")
     public ResponseEntity<Map<String, Object>> acknowledgeAll(
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        if (userId == null || userId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         try {
-            int count = (userId != null && !userId.isBlank())
-                    ? alertService.acknowledgeAllByUserId(userId)
-                    : alertService.acknowledgeAllAlerts();
+            int count = alertService.acknowledgeAllByUserId(userId);
             log.debug("Acknowledged {} alerts for userId={}", count, userId);
             return ResponseEntity.ok(Map.of("acknowledged", count, "success", true));
         } catch (Exception e) {

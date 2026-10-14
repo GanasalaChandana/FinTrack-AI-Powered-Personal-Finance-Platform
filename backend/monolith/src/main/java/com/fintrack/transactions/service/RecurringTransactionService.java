@@ -98,24 +98,34 @@ public class RecurringTransactionService {
         log.info("Recurring transaction deleted: {}", id);
     }
 
-    @Scheduled(cron = "0 0 2 * * *") // Run at 2 AM every day
+    // Hourly (first run 2 min after start-up) instead of once at 2 AM: the host
+    // sleeps when idle, so a single nightly run was often missed entirely.
+    // Re-running is safe — each occurrence is created once, then nextOccurrence moves on.
+    @Scheduled(fixedDelay = 3600000, initialDelay = 120000)
     @Transactional
     public void processRecurringTransactions() {
-        log.info("Processing recurring transactions");
         LocalDate today = LocalDate.now();
         List<RecurringTransaction> dueTransactions =
             recurringTransactionRepository.findDueRecurringTransactions(today);
 
+        int created = 0;
         for (RecurringTransaction recurring : dueTransactions) {
             try {
-                createTransactionFromRecurring(recurring);
-                updateNextOccurrence(recurring);
+                // Catch up on every missed occurrence, not just one per run
+                int guard = 0;
+                while (!Boolean.FALSE.equals(recurring.getActive())
+                        && !recurring.getNextOccurrence().isAfter(today)
+                        && guard++ < 400) {
+                    createTransactionFromRecurring(recurring);
+                    created++;
+                    updateNextOccurrence(recurring);
+                }
             } catch (Exception e) {
                 log.error("Error processing recurring transaction {}: {}", recurring.getId(), e.getMessage());
             }
         }
 
-        log.info("Processed {} recurring transactions", dueTransactions.size());
+        if (created > 0) log.info("Created {} transactions from {} recurring rules", created, dueTransactions.size());
     }
 
     private void createTransactionFromRecurring(RecurringTransaction recurring) {
@@ -125,7 +135,7 @@ public class RecurringTransactionService {
         transaction.setAmount(recurring.getAmount());
         transaction.setMerchant(recurring.getMerchant());
         transaction.setCategory(recurring.getCategory());
-        transaction.setType(recurring.getType());
+        transaction.setType(recurring.getType() == null ? null : recurring.getType().toUpperCase(java.util.Locale.ROOT));
         transaction.setDate(recurring.getNextOccurrence());
         transaction.setCreatedAt(LocalDateTime.now());
         transaction.setUpdatedAt(LocalDateTime.now());

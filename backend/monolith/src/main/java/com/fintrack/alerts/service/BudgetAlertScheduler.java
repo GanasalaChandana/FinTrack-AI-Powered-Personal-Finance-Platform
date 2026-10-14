@@ -1,59 +1,59 @@
 package com.fintrack.alerts.service;
 
+import com.fintrack.budgets.entity.Budget;
+import com.fintrack.budgets.repository.BudgetRepository;
+import com.fintrack.budgets.service.BudgetsService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
+import java.time.YearMonth;
 import java.util.List;
-import java.util.Map;
 
+/**
+ * Hourly check that creates "80% used" / "exceeded" alerts for this month's budgets.
+ *
+ * Reads budgets straight from the database. It used to call a budgets
+ * microservice over HTTP (/budgets/all-with-spending), which doesn't exist in
+ * the monolith, so every run failed and no budget alerts were ever created.
+ */
 @Service
 @Slf4j
 public class BudgetAlertScheduler {
 
     private final AlertService alertService;
-    private final WebClient webClient;
+    private final BudgetRepository budgetRepository;
+    private final BudgetsService budgetsService;
 
-    @Value("${services.budgets.url:http://localhost:8085}")
-    private String budgetsServiceUrl;
-
-    public BudgetAlertScheduler(AlertService alertService, WebClient.Builder builder) {
+    public BudgetAlertScheduler(AlertService alertService, BudgetRepository budgetRepository,
+                                BudgetsService budgetsService) {
         this.alertService = alertService;
-        this.webClient = builder.build();
+        this.budgetRepository = budgetRepository;
+        this.budgetsService = budgetsService;
     }
 
-    @Scheduled(fixedDelay = 3600000) // every hour
+    @Scheduled(fixedDelay = 3600000, initialDelay = 300000) // hourly, first run 5 min after start-up
     public void checkBudgetAlerts() {
         log.info("Running budget alert check...");
         try {
-            List<Map> budgets = webClient.get()
-                    .uri(budgetsServiceUrl + "/budgets/all-with-spending")
-                    .retrieve()
-                    .bodyToFlux(Map.class)
-                    .collectList()
-                    .onErrorResume(e -> {
-                        log.warn("Could not fetch budgets: {}", e.getMessage());
-                        return Mono.just(List.of());
-                    })
-                    .block();
+            List<Budget> budgets = budgetRepository.findByMonth(YearMonth.now().toString());
 
             if (budgets == null || budgets.isEmpty()) {
                 log.info("No budgets found to check");
                 return;
             }
 
-            for (Map budget : budgets) {
+            for (Budget b : budgets) {
                 try {
-                    String userId = (String) budget.get("userId");
-                    String category = (String) budget.get("category");
+                    if (Boolean.FALSE.equals(b.getIsActive())) continue;
+                    Budget budget = budgetsService.syncSpent(b); // spent from actual transactions
+                    String userId = budget.getUserId();
+                    String category = budget.getCategory();
                     if (userId == null || category == null)
                         continue;
 
-                    double budgetAmount = ((Number) budget.getOrDefault("budget", 0)).doubleValue();
-                    double spent = ((Number) budget.getOrDefault("spent", 0)).doubleValue();
+                    double budgetAmount = budget.getBudget() != null ? budget.getBudget() : 0;
+                    double spent = budget.getSpent() != null ? budget.getSpent() : 0;
 
                     if (budgetAmount <= 0)
                         continue;

@@ -18,6 +18,8 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
 
     List<Budget> findByUserIdAndMonth(String userId, String month);
 
+    List<Budget> findByMonth(String month);
+
     Optional<Budget> findByUserIdAndCategory(String userId, String category);
 
     /** JPQL bulk delete — Hibernate resolves the userId field mapping so UUID/VARCHAR cast is handled correctly. */

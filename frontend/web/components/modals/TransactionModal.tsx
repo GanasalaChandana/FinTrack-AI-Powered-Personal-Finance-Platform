@@ -204,11 +204,14 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
     `w-full rounded-lg border ${errors[field] ? "border-red-300" : "border-gray-300 dark:border-gray-600"} bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3 pl-10 pr-4 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    // Scrollable overlay: the form is taller than a phone screen, and a fixed,
+    // centered box cut off its Save button with no way to scroll to it.
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50">
+     <div className="flex min-h-full items-center justify-center p-4">
       <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-800 shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
             {mode === "edit" ? "Edit Transaction" : "Add New Transaction"}
           </h2>
           <button
@@ -220,7 +223,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6">
           {/* Type Toggle */}
           <div className="mb-6">
             <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -461,6 +464,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
           </div>
         </form>
       </div>
+     </div>
     </div>
   );
 }

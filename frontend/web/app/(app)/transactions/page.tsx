@@ -237,6 +237,8 @@ export default function TransactionManager() {
   const [editTagsStr, setEditTagsStr] = React.useState("");
 
   const [showAdd, setShowAdd] = React.useState(false);
+  // Phone cards edit through the full form instead of inline table cells
+  const [modalEditTx, setModalEditTx] = React.useState<any | null>(null);
   const [nlFilter, setNlFilter] = React.useState<NLFilter | null>(null);
   // Initialize filters from URL params (supports ?category=Food&type=expense&search=starbucks)
   const [activeFilters, setActiveFilters] = React.useState<TxFilters>(() => {
@@ -280,7 +282,9 @@ export default function TransactionManager() {
     if (!id) return;
     setHighlightId(id);
     // Scroll to the highlighted row
-    const el = document.getElementById(`txn-${id}`);
+    // Table row on larger screens, card on phones (whichever is visible)
+    const row = document.getElementById(`txn-${id}`);
+    const el = row && row.offsetParent ? row : document.getElementById(`txn-m-${id}`);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     // Auto-clear after 3 seconds
     const timer = setTimeout(() => {
@@ -559,6 +563,7 @@ export default function TransactionManager() {
       const updated = await transactionsAPI.update(editingId, {
         date: editForm.date!,
         description: editForm.description!,
+        merchant: editForm.merchant || null, // the backend overwrites merchant — omitting it erased it
         category: backendCategory,
         amount: editForm.amount!,
         type: uiType.toUpperCase(),
@@ -601,6 +606,54 @@ export default function TransactionManager() {
       toast.success("Transaction deleted");
     } catch (err) {
       toast.error("Failed to delete transaction");
+    }
+  };
+
+  const handleEditInModal = (t: Transaction) => {
+    setModalEditTx({
+      id: t.id,
+      type: t.type,
+      category: mapCategoryToBackend(t.category, t.type),
+      amount: Math.abs(t.amount),
+      date: t.date.slice(0, 10),
+      merchant: t.merchant || "",
+      description: t.description,
+      status: t.status ?? "completed",
+      notes: t.notes || "",
+      tags: (t.tags || []).join(","),
+    });
+  };
+
+  const handleModalEditSave = async (tx: { type: string; category: string; amount: number; date: string; merchant: string; description: string; status?: string; notes?: string; tags?: string }) => {
+    const id = modalEditTx?.id;
+    if (!id) return;
+    try {
+      const tagsArr = (tx.tags || "").split(",").map((x) => x.trim()).filter(Boolean);
+      const updated = await transactionsAPI.update(String(id), {
+        date: tx.date,
+        description: tx.description,
+        merchant: tx.merchant,
+        category: tx.category, // the form already uses backend category names
+        amount: Math.abs(tx.amount),
+        type: tx.type.toUpperCase(),
+        status: tx.status ?? "completed",
+        notes: tx.notes || null,
+        tags: tagsArr.join(",") || null,
+      } as any);
+      const normalized = normalizeTransaction(updated);
+      const updateFn = (list: Transaction[]) =>
+        list.map((t) =>
+          t.id === id
+            ? { ...normalized, status: (tx.status as any) || t.status, paymentMethod: t.paymentMethod, merchant: tx.merchant || normalized.merchant, tags: tagsArr.length > 0 ? tagsArr : normalized.tags }
+            : t,
+        );
+      setTransactions(updateFn);
+      setFilteredTransactions(updateFn);
+      setModalEditTx(null);
+      toast.success("Transaction updated successfully");
+    } catch (err) {
+      toast.error("Failed to update transaction");
+      throw err; // keep the form open
     }
   };
 
@@ -852,13 +905,19 @@ export default function TransactionManager() {
                 const selectedTxs = filteredTransactions.filter((t) => selectedTransactions.includes(t.id!));
                 await Promise.all(
                   selectedTxs.map((transaction) =>
+                    // Send every field: the backend overwrites merchant/notes/tags,
+                    // so leaving them out erased them on each re-categorize.
                     transactionsAPI.update(transaction.id!, {
                       date: transaction.date,
                       description: transaction.description,
+                      merchant: transaction.merchant || null,
                       category: mapCategoryToBackend(categoryId as Exclude<CategoryId, "all">, transaction.type),
-                      amount: transaction.amount,
-                      type: transaction.type,
-                    }),
+                      amount: Math.abs(transaction.amount),
+                      type: transaction.type.toUpperCase(),
+                      status: transaction.status ?? "completed",
+                      notes: transaction.notes || null,
+                      tags: (transaction.tags || []).join(",") || null,
+                    } as any),
                   ),
                 );
                 await loadTransactions();
@@ -991,7 +1050,81 @@ export default function TransactionManager() {
 
         {/* Table */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Phones: one card per transaction (the 8-column table needs sideways scrolling) */}
+          <ul className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
+            {paginatedTransactions.map((t) => {
+              const cat = getCategoryInfo(t.category);
+              const selected = selectedTransactions.includes(t.id!);
+              return (
+                <li
+                  key={t.id}
+                  id={`txn-m-${t.id}`}
+                  className={`p-4 ${highlightId === t.id ? "bg-yellow-50 dark:bg-yellow-900/20" : selected ? "bg-blue-50 dark:bg-blue-900/20" : ""}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <label className="pt-2.5 -ml-1 pl-1 pr-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${t.merchant || "transaction"}`}
+                        checked={selected}
+                        onChange={() => onToggleSelect(t.id!)}
+                        className="w-5 h-5 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500"
+                      />
+                    </label>
+                    <div className={`w-10 h-10 bg-gradient-to-br ${t.type === "income" ? "from-green-500 to-green-600" : "from-blue-500 to-blue-600"} rounded-lg flex items-center justify-center text-white font-bold text-lg flex-shrink-0`}>
+                      {(t.merchant || "?").charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{t.merchant || "Unknown"}</p>
+                        <p className={`text-base font-bold whitespace-nowrap ${t.type === "income" ? "text-green-600" : "text-red-600"}`}>
+                          {t.type === "income" ? "+" : ""}{formatCurrency(t.amount)}
+                        </p>
+                      </div>
+                      {t.description && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{t.description}</p>
+                      )}
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {isMounted ? formatRelativeClientOnly(t.date) : formatAbsolute(t.date)}
+                        </span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold ${cat.badgeBg} ${cat.badgeText}`}>
+                          <span>{cat.icon}</span>{cat.name}
+                        </span>
+                        {t.status !== "completed" && (
+                          <span className="inline-flex px-2 py-0.5 rounded-full font-semibold bg-yellow-100 dark:bg-amber-900/20 text-yellow-700 dark:text-amber-400">Pending</span>
+                        )}
+                        {isRecurring(t) && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full font-medium bg-violet-100 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400">
+                            <RefreshCw className="w-2.5 h-2.5" />Recurring
+                          </span>
+                        )}
+                        {t.tags?.map((tag, i) => (
+                          <span key={i} className="px-1.5 py-0.5 rounded-full font-semibold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400">#{tag}</span>
+                        ))}
+                      </div>
+                      {t.notes && (
+                        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500 italic truncate">📝 {t.notes}</p>
+                      )}
+                      <div className="mt-2 -mb-1 flex justify-end gap-1">
+                        <button onClick={() => handleEditInModal(t)} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" aria-label="Edit" title="Edit">
+                          <Edit2 className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                        </button>
+                        <button onClick={() => handleDuplicate(t)} className="p-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg" aria-label="Duplicate" title="Duplicate">
+                          <Copy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        </button>
+                        <button onClick={() => handleDelete(t.id!)} className="p-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" aria-label="Delete" title="Delete">
+                          <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700 border-b-2 border-gray-200 dark:border-gray-600">
                 <tr>
@@ -1259,6 +1392,15 @@ export default function TransactionManager() {
         onSave={handleAddSave}
         transaction={prefillTx}
         mode="add"
+      />
+
+      {/* Edit form (used by the phone cards) */}
+      <TransactionModal
+        isOpen={!!modalEditTx}
+        onClose={() => setModalEditTx(null)}
+        onSave={handleModalEditSave}
+        transaction={modalEditTx}
+        mode="edit"
       />
 
       <style jsx global>{`

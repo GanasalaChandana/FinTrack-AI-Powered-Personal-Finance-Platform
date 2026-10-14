@@ -36,7 +36,7 @@ public class TransactionService {
         transaction.setDescription(request.getDescription());
         transaction.setAmount(request.getAmount());
         transaction.setMerchant(request.getMerchant());
-        transaction.setType(request.getType());
+        transaction.setType(normalizeType(request.getType()));
         transaction.setDate(request.getDate() != null ? request.getDate() : LocalDate.now());
 
         // Auto-categorize if category not provided
@@ -72,7 +72,7 @@ public class TransactionService {
         transaction.setDescription(request.getDescription());
         transaction.setAmount(request.getAmount());
         transaction.setMerchant(request.getMerchant());
-        transaction.setType(request.getType());
+        transaction.setType(normalizeType(request.getType()));
         transaction.setDate(request.getDate() != null ? request.getDate() : LocalDate.now());
 
         // Auto-categorize if category not provided
@@ -118,6 +118,11 @@ public class TransactionService {
     }
 
     @Transactional
+    /** Stored as INCOME/EXPENSE — report queries match the type exactly. */
+    private static String normalizeType(String type) {
+        return type == null ? null : type.trim().toUpperCase(java.util.Locale.ROOT);
+    }
+
     public TransactionResponse updateTransaction(Long id, CreateTransactionRequest request, String userId) {
         log.info("Updating transaction with ID: {} for user: {}", id, userId);
 
@@ -128,7 +133,7 @@ public class TransactionService {
         transaction.setAmount(request.getAmount());
         transaction.setMerchant(request.getMerchant());
         transaction.setCategory(request.getCategory());
-        transaction.setType(request.getType());
+        transaction.setType(normalizeType(request.getType()));
         transaction.setDate(request.getDate());
         if (request.getStatus() != null) {
             transaction.setStatus(request.getStatus());

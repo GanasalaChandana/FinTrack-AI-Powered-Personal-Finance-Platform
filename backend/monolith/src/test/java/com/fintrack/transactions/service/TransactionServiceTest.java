@@ -271,4 +271,56 @@ class TransactionServiceTest {
             assertThat(balance).isEqualByComparingTo(new BigDecimal("1500"));
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // type normalization — report queries match "INCOME"/"EXPENSE" exactly
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("type normalization")
+    class TypeNormalization {
+
+        @Test
+        @DisplayName("updateTransaction stores a lowercase type as uppercase")
+        void update_uppercasesType() {
+            Transaction existing = buildTxn(5L, "EXPENSE", 20.0, "Shopping");
+            when(transactionRepository.findByIdAndUserId(5L, USER_ID)).thenReturn(java.util.Optional.of(existing));
+            when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            CreateTransactionRequest req = new CreateTransactionRequest();
+            req.setDescription("Shoes");
+            req.setAmount(BigDecimal.valueOf(20.0));
+            req.setMerchant("Nike");
+            req.setType("expense");
+            req.setCategory("Shopping");
+            req.setDate(LocalDate.now());
+
+            transactionService.updateTransaction(5L, req, USER_ID);
+
+            org.mockito.ArgumentCaptor<Transaction> saved = org.mockito.ArgumentCaptor.forClass(Transaction.class);
+            verify(transactionRepository).save(saved.capture());
+            assertThat(saved.getValue().getType()).isEqualTo("EXPENSE");
+            assertThat(saved.getValue().getMerchant()).isEqualTo("Nike");
+        }
+
+        @Test
+        @DisplayName("createTransaction stores a lowercase type as uppercase")
+        void create_uppercasesType() {
+            CreateTransactionRequest req = new CreateTransactionRequest();
+            req.setDescription("Paycheck");
+            req.setAmount(BigDecimal.valueOf(1000));
+            req.setMerchant("Employer");
+            req.setType("income");
+            req.setCategory("Salary");
+            req.setDate(LocalDate.now());
+            when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> {
+                Transaction t = inv.getArgument(0); t.setId(9L); return t; });
+
+            transactionService.createTransaction(req, USER_ID);
+
+            org.mockito.ArgumentCaptor<Transaction> saved = org.mockito.ArgumentCaptor.forClass(Transaction.class);
+            verify(transactionRepository).save(saved.capture());
+            assertThat(saved.getValue().getType()).isEqualTo("INCOME");
+        }
+    }
 }

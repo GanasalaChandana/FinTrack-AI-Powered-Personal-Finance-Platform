@@ -1,5 +1,7 @@
 package com.fintrack.auth.service;
 
+import java.util.UUID;
+import java.util.Locale;
 import com.fintrack.auth.dto.AuthResponse;
 import com.fintrack.auth.dto.LoginRequest;
 import com.fintrack.auth.dto.RegisterRequest;
@@ -42,13 +44,14 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new RuntimeException("Email already registered");
         }
 
         User user = User.builder()
-                .email(request.getEmail())
-                .username(request.getUsername())
+                .email(email)
+                .username(uniqueUsername(request.getUsername(), email))
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
@@ -64,11 +67,29 @@ public class AuthService {
         return buildAuthResponse(saved);
     }
 
+    /**
+     * Usernames are unique in the database but were taken straight from the
+     * email prefix, so john@gmail.com blocked john@yahoo.com from signing up.
+     */
+    private String uniqueUsername(String requested, String email) {
+        String base = (requested == null || requested.isBlank()) ? email.split("@")[0] : requested.trim();
+        base = base.length() > 90 ? base.substring(0, 90) : base;
+        if (!userRepository.existsByUsername(base)) return base;
+        for (int i = 0; i < 5; i++) {
+            String candidate = base + "-" + UUID.randomUUID().toString().substring(0, 6);
+            if (!userRepository.existsByUsername(candidate)) return candidate;
+        }
+        return base + "-" + UUID.randomUUID();
+    }
+
     // ── login ─────────────────────────────────────────────────────────────────
 
     @Transactional
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+        // Case-insensitive so "John@x.com" can log in to "john@x.com" (older
+        // accounts may have been stored with their original capitalisation)
+        String email = request.getEmail() == null ? "" : request.getEmail().trim();
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new RuntimeException("Invalid credentials"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {

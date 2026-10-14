@@ -53,7 +53,9 @@ public class GlobalExceptionHandler {
             String field = error instanceof FieldError fe ? fe.getField() : error.getObjectName();
             errors.put(field, error.getDefaultMessage());
         });
-        return body(HttpStatus.BAD_REQUEST, "Validation failed", errors);
+        // Show the actual problem when there's one ("Password must be at least 8 characters")
+        String message = errors.size() == 1 ? errors.values().iterator().next() : "Validation failed";
+        return body(HttpStatus.BAD_REQUEST, message, errors);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

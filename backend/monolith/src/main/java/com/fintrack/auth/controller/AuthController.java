@@ -9,6 +9,7 @@ import com.fintrack.auth.service.AuthService;
 import com.fintrack.auth.service.DemoService;
 import com.fintrack.auth.service.GoogleAuthService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -41,7 +42,7 @@ public class AuthController {
     // ── POST /api/auth/register ───────────────────────────────────────────────
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request,
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request,
                                       HttpServletRequest httpRequest) {
         String ip = resolveClientIp(httpRequest);
 

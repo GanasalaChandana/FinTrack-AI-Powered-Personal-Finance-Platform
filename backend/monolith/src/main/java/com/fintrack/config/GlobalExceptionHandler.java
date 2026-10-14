@@ -23,26 +23,25 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
-        log.error("Unhandled RuntimeException: {}", ex.getMessage());
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of(
-                        "status",    500,
-                        "error",     "Internal Server Error",
-                        "message",   ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred",
-                        "timestamp", LocalDateTime.now().toString()
-                ));
+        log.error("Unhandled RuntimeException: {}", ex.getMessage(), ex);
+        return internalError();
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleException(Exception ex) {
-        log.error("Unhandled Exception: {}", ex.getMessage());
+        log.error("Unhandled Exception: {}", ex.getMessage(), ex);
+        return internalError();
+    }
+
+    // The real cause is logged above; exception messages can contain SQL,
+    // table names or other internals, so they are never sent to the client.
+    private ResponseEntity<Map<String, Object>> internalError() {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of(
                         "status",    500,
                         "error",     "Internal Server Error",
-                        "message",   ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred",
+                        "message",   "An unexpected error occurred",
                         "timestamp", LocalDateTime.now().toString()
                 ));
     }

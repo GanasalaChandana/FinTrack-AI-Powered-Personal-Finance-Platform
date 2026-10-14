@@ -6,7 +6,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.fintrack.alerts.service.AlertService;
-import com.fintrack.alerts.service.BudgetAlertScheduler;
 import com.fintrack.alerts.entity.Alert;
 
 import java.util.List;
@@ -19,9 +18,6 @@ public class AlertController {
 
     @Autowired
     private AlertService alertService;
-
-    @Autowired(required = false)
-    private BudgetAlertScheduler budgetAlertScheduler;
 
     @GetMapping
     public ResponseEntity<List<Alert>> getAllAlerts(
@@ -208,14 +204,5 @@ public class AlertController {
             log.error("Error acknowledging all alerts: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-    }
-
-    @PostMapping("/trigger-check")
-    public ResponseEntity<Map<String, String>> triggerBudgetCheck() {
-        if (budgetAlertScheduler != null) {
-            budgetAlertScheduler.checkBudgetAlerts();
-            return ResponseEntity.ok(Map.of("status", "triggered", "message", "Check completed"));
-        }
-        return ResponseEntity.ok(Map.of("status", "skipped", "message", "Scheduler not available"));
     }
 }

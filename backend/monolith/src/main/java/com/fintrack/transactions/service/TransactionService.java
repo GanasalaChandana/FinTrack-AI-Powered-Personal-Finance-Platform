@@ -1,5 +1,6 @@
 package com.fintrack.transactions.service;
 
+import com.fintrack.budgets.exception.ResourceNotFoundException;
 import com.fintrack.transactions.client.MLClassifierClient;
 import com.fintrack.transactions.dto.*;
 import com.fintrack.transactions.entity.Transaction;
@@ -113,7 +114,7 @@ public class TransactionService {
     public TransactionResponse getTransactionById(Long id, String userId) {
         log.info("Fetching transaction with ID: {} for user: {}", id, userId);
         Transaction transaction = transactionRepository.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
         return mapToResponse(transaction);
     }
 
@@ -127,7 +128,7 @@ public class TransactionService {
         log.info("Updating transaction with ID: {} for user: {}", id, userId);
 
         Transaction transaction = transactionRepository.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
 
         transaction.setDescription(request.getDescription());
         transaction.setAmount(request.getAmount());
@@ -152,7 +153,7 @@ public class TransactionService {
     public void deleteTransaction(Long id, String userId) {
         log.info("Deleting transaction with ID: {} for user: {}", id, userId);
         Transaction transaction = transactionRepository.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
         transactionRepository.delete(transaction);
         log.info("Transaction deleted: {}", id);
     }

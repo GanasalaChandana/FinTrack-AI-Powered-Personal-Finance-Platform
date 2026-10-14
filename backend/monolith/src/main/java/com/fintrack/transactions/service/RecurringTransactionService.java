@@ -1,5 +1,6 @@
 package com.fintrack.transactions.service;
 
+import com.fintrack.budgets.exception.ResourceNotFoundException;
 import com.fintrack.transactions.dto.CreateRecurringTransactionRequest;
 import com.fintrack.transactions.dto.RecurringTransactionResponse;
 import com.fintrack.transactions.entity.RecurringTransaction;
@@ -61,7 +62,7 @@ public class RecurringTransactionService {
     public RecurringTransactionResponse getRecurringTransactionById(Long id, String userId) {
         log.info("Fetching recurring transaction with ID: {} for user: {}", id, userId);
         RecurringTransaction recurring = recurringTransactionRepository.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new RuntimeException("Recurring transaction not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Recurring transaction not found"));
         return mapToResponse(recurring);
     }
 
@@ -71,7 +72,7 @@ public class RecurringTransactionService {
         log.info("Updating recurring transaction with ID: {} for user: {}", id, userId);
 
         RecurringTransaction recurring = recurringTransactionRepository.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new RuntimeException("Recurring transaction not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Recurring transaction not found"));
 
         recurring.setDescription(request.getDescription());
         recurring.setAmount(request.getAmount());
@@ -92,7 +93,7 @@ public class RecurringTransactionService {
     public void deleteRecurringTransaction(Long id, String userId) {
         log.info("Deleting recurring transaction with ID: {} for user: {}", id, userId);
         RecurringTransaction recurring = recurringTransactionRepository.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new RuntimeException("Recurring transaction not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Recurring transaction not found"));
         recurringTransactionRepository.delete(recurring);
         log.info("Recurring transaction deleted: {}", id);
     }

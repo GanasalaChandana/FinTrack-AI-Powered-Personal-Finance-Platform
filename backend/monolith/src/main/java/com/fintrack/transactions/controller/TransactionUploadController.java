@@ -101,7 +101,7 @@ public class TransactionUploadController {
                     successCount++;
                 } catch (Exception e) {
                     errorCount++;
-                    errors.add("Row " + (i + 2) + ": " + e.getMessage());
+                    errors.add("Row " + (i + 2) + ": could not be saved"); // cause is a DB error — logged, not shown
                     log.error("Error saving transaction at row {}: {}", i + 2, e.getMessage());
                 }
             }

@@ -113,7 +113,7 @@ flowchart TD
     end
 
     subgraph DB["🗄️ PostgreSQL — Render managed"]
-        migrations["Flyway V1–V9 migrations"]
+        migrations["Schema managed by Hibernate (ddl-auto=update)"]
     end
 
     subgraph ML["🤖 ML Classifier — Python · FastAPI (optional)"]
@@ -205,8 +205,8 @@ Output: "📊 Projected $3,855 vs $3,150 budget — $705 over.
 | Layer | Technologies |
 |---|---|
 | **Frontend** | Next.js 14, TypeScript, Tailwind CSS, Recharts, React Hook Form + Zod, Tesseract.js |
-| **Backend** | Spring Boot 3.2, Java 17, Spring Security, Spring Data JPA, Flyway, Maven |
-| **Database** | PostgreSQL (Render managed), Flyway migrations V1–V9 |
+| **Backend** | Spring Boot 3.2, Java 17, Spring Security, Spring Data JPA, Maven |
+| **Database** | PostgreSQL; schema managed by Hibernate `ddl-auto=update` (Flyway scripts V1–V9 are kept in `db/migration`, but Flyway is disabled) |
 | **Auth** | JWT HS256, BCrypt, Refresh Token Rotation, IP Rate Limiting |
 | **Testing** | JUnit 5, Mockito, @WebMvcTest, MockMvc — 52 tests, 0 failures |
 | **ML** | Python, FastAPI, scikit-learn — transaction category classifier |
@@ -296,9 +296,10 @@ pip install -r requirements.txt
 uvicorn main:app --port 8000
 ```
 
-**Docker (full stack)**
+**Docker (full stack)** — PostgreSQL + backend + frontend, same as production
 ```bash
-docker-compose up --build
+JWT_SECRET=$(openssl rand -base64 48) docker compose up --build
+# → app on http://localhost:3000, API on http://localhost:8080
 ```
 
 ---
@@ -414,19 +415,6 @@ lsof -ti:3000 | xargs kill -9
 netstat -ano | findstr :8080
 taskkill /PID <pid> /F
 ```
-
-</details>
-
-<details>
-<summary><strong>Flyway migration error — "migration checksum mismatch"</strong></summary>
-
-If you've edited an existing migration file, Flyway will reject it. Either restore the original file or, in dev only, add to `application.properties`:
-
-```properties
-spring.flyway.repair=true
-```
-
-Never use `repair` in production.
 
 </details>
 

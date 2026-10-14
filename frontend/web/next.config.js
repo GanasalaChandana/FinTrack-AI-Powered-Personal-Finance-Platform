@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  // Self-contained server bundle for the Docker image (Vercel doesn't need it)
+  ...(process.env.BUILD_STANDALONE === '1' && { output: 'standalone' }),
+
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'fintrack-liart.vercel.app' },

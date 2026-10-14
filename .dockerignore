@@ -1,9 +1,8 @@
-@"
 .git
 **/target
 **/node_modules
+**/.next
 **/.idea
 **/.vscode
 **/*.log
 **/.DS_Store
-"@ | Out-File -Encoding ascii .\.dockerignore -Force

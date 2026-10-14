@@ -101,6 +101,9 @@ class ReportsIntegrationTest {
         mockMvc.perform(get("/api/transactions/reports/by-type").param("userId", bob).param("type", "EXPENSE")
                         .param("startDate", from).param("endDate", to).header("Authorization", aliceToken))
                 .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/budgets/category").param("userId", alice).param("category", "Food & Dining")
+                        .header("Authorization", bobToken))
+                .andExpect(status().isForbidden());
         // and their own still works
         mockMvc.perform(get("/api/transactions/reports").param("userId", bob).param("startDate", from).param("endDate", to)
                         .header("Authorization", bobToken))

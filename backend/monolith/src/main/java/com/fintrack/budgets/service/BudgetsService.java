@@ -81,7 +81,12 @@ public class BudgetsService {
     }
 
     public Optional<Budget> getBudgetByCategory(String userId, String category) {
-        return budgetRepository.findByUserIdAndCategory(userId, category);
+        // A user has one budget per category *per month*; a single-result lookup
+        // threw once there were two months. Use the current month's.
+        String month = YearMonth.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        return budgetRepository.findByUserIdAndMonth(userId, month).stream()
+                .filter(b -> category != null && category.equalsIgnoreCase(b.getCategory()))
+                .findFirst();
     }
 
     public Budget getBudgetById(String id, String userId) {

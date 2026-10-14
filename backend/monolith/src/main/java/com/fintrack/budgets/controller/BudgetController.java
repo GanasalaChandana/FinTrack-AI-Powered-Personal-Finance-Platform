@@ -71,14 +71,20 @@ public class BudgetController {
 
     @GetMapping("/category")
     public ResponseEntity<Map<String, Object>> getBudgetByCategory(
-            @RequestParam String userId,
-            @RequestParam String category) {
+            @RequestParam(required = false) String userId,
+            @RequestParam String category,
+            @RequestHeader(value = "X-User-Id", required = false) String callerId) {
 
-        log.info("GET /api/budgets/category - userId: {}, category: {}", userId, category);
-
-        if (userId == null || userId.trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        // The owner comes from the login token; the old ?userId= param was
+        // trusted as-is, letting any user read anyone's budget
+        if (callerId == null || callerId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        if (userId != null && !userId.isBlank() && !userId.equals(callerId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        userId = callerId;
+        log.info("GET /api/budgets/category - userId: {}, category: {}", userId, category);
 
         try {
             Optional<Budget> budget = budgetsService.getBudgetByCategory(userId, category);

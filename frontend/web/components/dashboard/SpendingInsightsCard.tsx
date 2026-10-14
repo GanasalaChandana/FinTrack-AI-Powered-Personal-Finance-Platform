@@ -107,7 +107,7 @@ export function SpendingInsightsCard({ transactions }: Props) {
         <div className="flex items-center gap-1">
           <button
             onClick={prev}
-            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="p-2.5 sm:p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             disabled={insights.length <= 1}
           >
             <ChevronLeft className="w-4 h-4 text-gray-400" />
@@ -117,7 +117,7 @@ export function SpendingInsightsCard({ transactions }: Props) {
           </span>
           <button
             onClick={next}
-            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="p-2.5 sm:p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             disabled={insights.length <= 1}
           >
             <ChevronRight className="w-4 h-4 text-gray-400" />

@@ -312,14 +312,14 @@ export default function SubscriptionsPage() {
               text: "text-emerald-600 dark:text-emerald-400",
             },
           ].map(({ label, value, sub, icon: Icon, color, text }) => (
-            <div key={label} className="min-w-0 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 sm:p-5 flex items-center gap-3 sm:gap-4">
+            <div key={label} className="min-w-0 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
               <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
                 <Icon className={`w-5 h-5 ${text}`} />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider truncate">{label}</p>
-                <p className={`text-xl font-extrabold ${text}`}>{value}</p>
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{sub}</p>
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{label}</p>
+                <p className={`text-lg sm:text-xl font-extrabold break-words ${text}`}>{value}</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 sm:truncate">{sub}</p>
               </div>
             </div>
           ))}

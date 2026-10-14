@@ -799,14 +799,6 @@ button {
 
 /* ========== RESPONSIVE UTILITIES ==========  */
 @media (max-width: 640px) {
-  .sm\:hidden {
-    display: none;
-  }
-
-  .sm\:block {
-    display: block;
-  }
-
   body {
     font-size: 14px;
   }

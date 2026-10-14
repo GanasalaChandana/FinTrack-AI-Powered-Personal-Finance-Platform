@@ -537,12 +537,12 @@ export default function NotificationsPage() {
                           <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                             {!notif.read && (
                               <button onClick={() => markRead(notif.id)} title="Mark as read"
-                                className="p-1.5 rounded-lg hover:bg-gray-100 transition">
+                                className="p-2.5 sm:p-1.5 rounded-lg hover:bg-gray-100 transition">
                                 <Check className="w-3.5 h-3.5 text-gray-400" />
                               </button>
                             )}
                             <button onClick={() => dismiss(notif.id)} title="Dismiss"
-                              className="p-1.5 rounded-lg hover:bg-red-50 transition">
+                              className="p-2.5 sm:p-1.5 rounded-lg hover:bg-red-50 transition">
                               <X className="w-3.5 h-3.5 text-gray-400 hover:text-red-400" />
                             </button>
                           </div>

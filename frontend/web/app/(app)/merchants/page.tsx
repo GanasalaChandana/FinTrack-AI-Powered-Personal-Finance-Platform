@@ -373,14 +373,14 @@ export default function MerchantsPage() {
                 text: "text-emerald-600 dark:text-emerald-400",
               },
             ].map(({ label, value, sub, icon: Icon, color, text }) => (
-              <div key={label} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 flex items-center gap-4">
+              <div key={label} className="min-w-0 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
                   <Icon className={`w-5 h-5 ${text}`} />
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{label}</p>
-                  <p className={`text-xl font-extrabold ${text} truncate`}>{value}</p>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{sub}</p>
+                  <p className={`text-lg sm:text-xl font-extrabold break-words sm:truncate ${text}`}>{value}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 sm:truncate">{sub}</p>
                 </div>
               </div>
             ))}
@@ -489,14 +489,14 @@ export default function MerchantsPage() {
               {/* ── Merchant table ── */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
                 {/* Table header */}
-                <div className="grid grid-cols-12 gap-3 px-5 py-3 bg-gray-50 dark:bg-gray-700/50 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700">
+                <div className="grid grid-cols-12 gap-2 sm:gap-3 px-4 sm:px-5 py-3 bg-gray-50 dark:bg-gray-700/50 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700">
                   <div className="col-span-1">#</div>
-                  <div className="col-span-4">Merchant</div>
-                  <div className="col-span-2 text-right">Total</div>
+                  <div className="col-span-6 md:col-span-4">Merchant</div>
+                  <div className="col-span-3 sm:col-span-2 text-right">Total</div>
                   <div className="col-span-1 text-center hidden sm:block">Visits</div>
                   <div className="col-span-2 text-right hidden md:block">Avg / Visit</div>
-                  <div className="col-span-1 text-center">Trend</div>
-                  <div className="col-span-1 text-right">Last</div>
+                  <div className="col-span-1 text-center hidden sm:block">Trend</div>
+                  <div className="col-span-2 sm:col-span-1 text-right">Last</div>
                 </div>
 
                 {/* Rows */}
@@ -510,7 +510,7 @@ export default function MerchantsPage() {
                       <button
                         key={merchant.name}
                         onClick={() => setSelectedMerchant(merchant)}
-                        className="w-full grid grid-cols-12 gap-3 px-5 py-4 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors text-left items-center group"
+                        className="w-full grid grid-cols-12 gap-2 sm:gap-3 px-4 sm:px-5 py-4 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors text-left items-center group"
                       >
                         {/* Rank */}
                         <div className="col-span-1 text-xs font-bold text-gray-300 dark:text-gray-600">
@@ -518,7 +518,7 @@ export default function MerchantsPage() {
                         </div>
 
                         {/* Merchant avatar + name */}
-                        <div className="col-span-4 flex items-center gap-3 min-w-0">
+                        <div className="col-span-6 md:col-span-4 flex items-center gap-2 sm:gap-3 min-w-0">
                           <div
                             className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                             style={{ backgroundColor: avatarColor(merchant.name) }}
@@ -538,7 +538,7 @@ export default function MerchantsPage() {
                         </div>
 
                         {/* Total */}
-                        <div className="col-span-2 text-right">
+                        <div className="col-span-3 sm:col-span-2 text-right">
                           <span className="text-sm font-extrabold text-gray-900 dark:text-gray-100">
                             {fmtShort(merchant.total)}
                           </span>
@@ -569,13 +569,13 @@ export default function MerchantsPage() {
                         </div>
 
                         {/* Trend */}
-                        <div className="col-span-1 flex justify-center">
+                        <div className="col-span-1 hidden sm:flex justify-center">
                           <TrendIcon trend={merchant.trend} />
                         </div>
 
                         {/* Last date */}
-                        <div className="col-span-1 text-right">
-                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                        <div className="col-span-2 sm:col-span-1 text-right">
+                          <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                             {new Date(`${merchant.lastDate.slice(0, 10)}T00:00:00`).toLocaleDateString("en-US", {
                               month: "short", day: "numeric",
                             })}

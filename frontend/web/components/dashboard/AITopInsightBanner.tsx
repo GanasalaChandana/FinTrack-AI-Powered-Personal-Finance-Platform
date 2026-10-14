@@ -92,7 +92,7 @@ export function AITopInsightBanner({ transactions }: Props) {
       {/* Dismiss */}
       <button
         onClick={handleDismiss}
-        className="p-1.5 rounded-lg flex-shrink-0 transition-colors"
+        className="p-2.5 sm:p-1.5 rounded-lg flex-shrink-0 transition-colors"
         style={{ background: "rgba(255,255,255,0.1)" }}
         title="Dismiss"
       >

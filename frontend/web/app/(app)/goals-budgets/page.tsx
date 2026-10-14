@@ -565,10 +565,10 @@ function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalCardProps) {
 
         {/* Action buttons */}
         <div className="flex items-center gap-1">
-          <button onClick={() => onEdit(goal)} className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition">
+          <button onClick={() => onEdit(goal)} className="p-2.5 sm:p-1.5 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition">
             <Pencil className="w-3.5 h-3.5" />
           </button>
-          <button onClick={() => onDelete(goal.id)} className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
+          <button onClick={() => onDelete(goal.id)} className="p-2.5 sm:p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>

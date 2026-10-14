@@ -71,13 +71,18 @@ public class TransactionUploadController {
         }
 
         try {
-            // Optionally wipe existing transactions before import
+            // Parse first: clearing before parsing meant a malformed file wiped
+            // the user's transactions and imported nothing
+            List<TransactionDTO> transactions = parseCSV(file, userId);
+            if (transactions.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "No valid transactions found in the file. Nothing was changed."));
+            }
+
             if (clearFirst) {
                 transactionRepository.deleteAllByUserId(userId);
                 log.info("Cleared existing transactions for user {} before import", userId);
             }
-
-            List<TransactionDTO> transactions = parseCSV(file, userId);
 
             // Save all transactions
             List<TransactionResponse> savedTransactions = new ArrayList<>();

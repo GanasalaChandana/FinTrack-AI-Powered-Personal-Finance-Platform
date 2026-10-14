@@ -373,6 +373,26 @@ export default function DashboardPage() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleImportTransactions = async (rows: CSVRow[], clearFirst = true): Promise<void> => {
+    // 1. Validate first — never wipe existing data for a file with nothing usable
+    const norm = (v: unknown) => (v ?? "").toString().trim();
+    const valid = rows.flatMap((row) => {
+      const date        = norm(row["Date"]        ?? row["date"]);
+      const merchant    = norm(row["Merchant"]    ?? row["merchant"]);
+      const description = norm(row["Description"] ?? row["description"] ?? merchant);
+      const category    = norm(row["Category"]    ?? row["category"]    ?? "Other");
+      const rawAmount   = Number(row["Amount"]    ?? row["amount"]      ?? 0);
+      const typeRaw     = norm(row["Type"]        ?? row["type"]);
+      const type: "income" | "expense" =
+        typeRaw.toLowerCase() === "income" || typeRaw.toLowerCase() === "credit" ? "income" : "expense";
+      const amount = Math.abs(rawAmount || 0);
+      return date && merchant && amount ? [{ date, merchant, description, amount, category, type }] : [];
+    });
+    if (valid.length === 0) {
+      toast.error("No valid rows found (each row needs a date, merchant and amount). Nothing was changed.");
+      return;
+    }
+
+    // 2. Only now clear, if asked
     if (clearFirst) {
       // Clear each independently so one failure doesn't block the others
       const [txErr, budgetErr, goalErr] = await Promise.all([
@@ -385,25 +405,29 @@ export default function DashboardPage() {
       if (goalErr)   toast.error("Failed to clear existing goals");
     }
 
-    const norm = (v: unknown) => (v ?? "").toString().trim();
-    const requests = rows.map((row) => {
-      const date        = norm(row["Date"]        ?? row["date"]);
-      const merchant    = norm(row["Merchant"]    ?? row["merchant"]);
-      const description = norm(row["Description"] ?? row["description"] ?? merchant);
-      const category    = norm(row["Category"]    ?? row["category"]    ?? "Other");
-      const rawAmount   = Number(row["Amount"]    ?? row["amount"]      ?? 0);
-      const typeRaw     = norm(row["Type"]        ?? row["type"]);
-      const type: "income" | "expense" =
-        typeRaw.toLowerCase() === "income" || typeRaw.toLowerCase() === "credit" ? "income" : "expense";
-      const amount = Math.abs(rawAmount || 0);
-      if (!date || !merchant || !amount) return Promise.resolve(null);
-      return transactionsAPI.create({ date, merchant, description, amount, category, type }).catch(() => null);
-    });
-    await Promise.all(requests);
+    // 3. Create in small batches (was one request per row, all at once)
+    let imported = 0;
+    for (let i = 0; i < valid.length; i += 10) {
+      const results = await Promise.all(
+        valid.slice(i, i + 10).map((tx) => transactionsAPI.create(tx).then(() => true).catch(() => false)),
+      );
+      imported += results.filter(Boolean).length;
+    }
+
     await fetchDashboardData();
     // Notify Goals & Budgets page to refetch so spent amounts stay in sync
     if (typeof window !== "undefined") window.dispatchEvent(new Event("fintrack-transactions-changed"));
-    toast.success("Transactions imported — go to Goals & Budgets to set your own budgets!");
+    const skipped = rows.length - valid.length;
+    const failed = valid.length - imported;
+    if (imported === 0) {
+      toast.error("Import failed — no transactions could be saved. Please try again.");
+    } else if (failed > 0 || skipped > 0) {
+      toast.warning(`Imported ${imported} of ${rows.length} rows` +
+        (failed > 0 ? ` · ${failed} failed to save` : "") +
+        (skipped > 0 ? ` · ${skipped} skipped (missing date, merchant or amount)` : ""));
+    } else {
+      toast.success(`Imported ${imported} transactions — go to Goals & Budgets to set your own budgets!`);
+    }
   };
 
   const handleSaveTransaction = async (transaction: any) => {

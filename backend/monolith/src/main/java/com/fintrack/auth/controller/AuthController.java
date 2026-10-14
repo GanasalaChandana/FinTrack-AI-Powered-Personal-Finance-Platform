@@ -41,6 +41,11 @@ public class AuthController {
     // IPs can't reset an account's counter.
     private final LoginRateLimiter emailRateLimiter = new LoginRateLimiter();
 
+    // App-wide signup cap. The per-IP limit can be dodged with a fake
+    // X-Forwarded-For, so this bounds scripted mass sign-ups regardless of IP.
+    private static final String ALL_SIGNUPS = "all";
+    private final LoginRateLimiter signupGlobalLimiter = new LoginRateLimiter(30, 10 * 60 * 1000L); // 30 per 10 min
+
     // ── POST /api/auth/register ───────────────────────────────────────────────
 
     @PostMapping("/register")
@@ -48,8 +53,9 @@ public class AuthController {
                                       HttpServletRequest httpRequest) {
         String ip = resolveClientIp(httpRequest);
 
-        if (!rateLimiter.tryConsume(ip)) {
-            long retryAfter = rateLimiter.retryAfterSeconds(ip);
+        if (!rateLimiter.tryConsume(ip) || !signupGlobalLimiter.tryConsume(ALL_SIGNUPS)) {
+            long retryAfter = Math.max(rateLimiter.retryAfterSeconds(ip),
+                                       signupGlobalLimiter.retryAfterSeconds(ALL_SIGNUPS));
             log.warn("Rate limit: register blocked for IP {} (retry after {}s)", ip, retryAfter);
             return ResponseEntity
                     .status(HttpStatus.TOO_MANY_REQUESTS)
@@ -62,7 +68,7 @@ public class AuthController {
         try {
             log.info("Registration attempt from IP {} for email: {}", ip, request.getEmail());
             AuthResponse response = authService.register(request);
-            rateLimiter.reset(ip); // successful registration — clear counter
+            // No reset on success: resetting let one IP create unlimited accounts
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {

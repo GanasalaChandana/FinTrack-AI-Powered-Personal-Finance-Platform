@@ -112,4 +112,40 @@ class AuthControllerRateLimitTest {
                         .content(body("innocent@example.com")))
                 .andExpect(status().isUnauthorized()); // normal failure, not rate limited
     }
+
+    @Test
+    @DisplayName("successful sign-ups don't reset the per-IP limit")
+    void signups_stillLimitedPerIp() throws Exception {
+        when(authService.register(any())).thenReturn(com.fintrack.auth.dto.AuthResponse.builder().token("t").build());
+
+        for (int i = 1; i <= 5; i++) {
+            mockMvc.perform(post("/api/auth/register")
+                            .header("X-Forwarded-For", "192.0.2.50")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"email\":\"bot" + i + "@example.com\",\"password\":\"Passw0rd!\"}"))
+                    .andExpect(status().isOk());
+        }
+        mockMvc.perform(post("/api/auth/register")
+                        .header("X-Forwarded-For", "192.0.2.50")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"bot6@example.com\",\"password\":\"Passw0rd!\"}"))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    @DisplayName("faking a new IP for every sign-up still hits the app-wide cap")
+    void spoofedIpSignups_hitGlobalCap() throws Exception {
+        when(authService.register(any())).thenReturn(com.fintrack.auth.dto.AuthResponse.builder().token("t").build());
+
+        int ok = 0;
+        for (int i = 1; i <= 40; i++) {
+            int code = mockMvc.perform(post("/api/auth/register")
+                            .header("X-Forwarded-For", "10.1." + (i / 250) + "." + (i % 250))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"email\":\"bot" + i + "@example.com\",\"password\":\"Passw0rd!\"}"))
+                    .andReturn().getResponse().getStatus();
+            if (code == 200) ok++;
+        }
+        org.assertj.core.api.Assertions.assertThat(ok).isEqualTo(30);
+    }
 }

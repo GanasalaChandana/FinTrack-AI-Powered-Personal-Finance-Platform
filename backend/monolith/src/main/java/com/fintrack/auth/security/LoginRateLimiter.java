@@ -22,10 +22,23 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class LoginRateLimiter {
 
-    private static final int  MAX_ATTEMPTS      = 5;
-    private static final long WINDOW_MILLIS      = 15 * 60 * 1000L; // 15 minutes
+    private static final int  DEFAULT_MAX_ATTEMPTS = 5;
+    private static final long DEFAULT_WINDOW_MILLIS = 15 * 60 * 1000L; // 15 minutes
     private static final long CLEANUP_INTERVAL   = 10 * 60 * 1000L; // clean every 10 min
     private static final int  MAX_TRACKED_IPS    = 10_000;
+
+    private final int  maxAttempts;
+    private final long windowMillis;
+
+    /** Default policy for the auth endpoints: 5 attempts per 15 minutes per key. */
+    public LoginRateLimiter() {
+        this(DEFAULT_MAX_ATTEMPTS, DEFAULT_WINDOW_MILLIS);
+    }
+
+    public LoginRateLimiter(int maxAttempts, long windowMillis) {
+        this.maxAttempts = maxAttempts;
+        this.windowMillis = windowMillis;
+    }
 
     /** ip → timestamps of recent attempts (oldest first) */
     private final ConcurrentHashMap<String, Deque<Long>> attempts = new ConcurrentHashMap<>();
@@ -33,7 +46,7 @@ public class LoginRateLimiter {
 
     /**
      * Returns true and records the attempt if the IP is within limit.
-     * Returns false (blocked) if the IP has exceeded MAX_ATTEMPTS in the window.
+     * Returns false (blocked) if the IP has exceeded maxAttempts in the window.
      */
     public boolean tryConsume(String ip) {
         periodicCleanup();
@@ -43,13 +56,13 @@ public class LoginRateLimiter {
 
         synchronized (timestamps) {
             // Drop attempts outside the current window
-            while (!timestamps.isEmpty() && now - timestamps.peekFirst() > WINDOW_MILLIS) {
+            while (!timestamps.isEmpty() && now - timestamps.peekFirst() > windowMillis) {
                 timestamps.pollFirst();
             }
 
-            if (timestamps.size() >= MAX_ATTEMPTS) {
+            if (timestamps.size() >= maxAttempts) {
                 long oldestInWindow = timestamps.peekFirst();
-                long retryAfterSec  = (WINDOW_MILLIS - (now - oldestInWindow)) / 1000;
+                long retryAfterSec  = (windowMillis - (now - oldestInWindow)) / 1000;
                 log.warn("Rate limit exceeded for IP {} — {} attempts in last 15 min. Retry after {}s",
                         ip, timestamps.size(), retryAfterSec);
                 return false; // blocked
@@ -68,10 +81,10 @@ public class LoginRateLimiter {
         Deque<Long> timestamps = attempts.get(ip);
         if (timestamps == null) return 0;
         synchronized (timestamps) {
-            if (timestamps.size() < MAX_ATTEMPTS) return 0;
+            if (timestamps.size() < maxAttempts) return 0;
             long now = System.currentTimeMillis();
             long oldest = timestamps.peekFirst() != null ? timestamps.peekFirst() : now;
-            return Math.max(0, (WINDOW_MILLIS - (now - oldest)) / 1000);
+            return Math.max(0, (windowMillis - (now - oldest)) / 1000);
         }
     }
 
@@ -89,7 +102,7 @@ public class LoginRateLimiter {
         attempts.entrySet().removeIf(entry -> {
             Deque<Long> ts = entry.getValue();
             synchronized (ts) {
-                return ts.isEmpty() || now - ts.peekLast() > WINDOW_MILLIS;
+                return ts.isEmpty() || now - ts.peekLast() > windowMillis;
             }
         });
 

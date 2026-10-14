@@ -182,6 +182,8 @@ export default function Navigation() {
   const [alerts,               setAlerts]               = useState<Alert[]>([]);
   const [alertsUnread,         setAlertsUnread]         = useState(0);
   const alertsRef = useRef<HTMLDivElement>(null);
+  // Menu scroll position, kept so the mobile drawer reopens where it was left
+  const navScrollTop = useRef(0);
 
   const [isNotifsOpen,         setIsNotifsOpen]         = useState(false);
   const [notifs,               setNotifs]               = useState<Notification[]>([]);
@@ -441,7 +443,10 @@ export default function Navigation() {
   const active = (href: string) => pathname === href;
 
   // ── sidebar body ─────────────────────────────────────────────────────────
-  const Sidebar = ({ onClose }: { onClose?: () => void }) => (
+  // Called as a plain function, not used as <Sidebar />: a component defined
+  // inside Navigation is a new type on every render, so React would remount
+  // the whole menu (resetting its scroll position) on every navigation.
+  const renderSidebar = (onClose?: () => void) => (
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* ── Logo row ── */}
@@ -510,7 +515,11 @@ export default function Navigation() {
       </div>
 
       {/* ── Nav scroll ── */}
-      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
+      <nav
+        ref={(el) => { if (el && !el.dataset.scrollRestored) { el.scrollTop = navScrollTop.current; el.dataset.scrollRestored = "1"; } }}
+        onScroll={(e) => { navScrollTop.current = e.currentTarget.scrollTop; }}
+        className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700"
+      >
 
         {/* MAIN */}
         <SectionLabel label="Main" collapsed={collapsed && !onClose} />
@@ -675,7 +684,7 @@ export default function Navigation() {
           transition: (!transitionReady || isDragging) ? 'none' : 'width 0.25s ease',
         }}
       >
-        <Sidebar />
+        {renderSidebar()}
 
         {/* ── Drag-to-resize handle ── */}
         <div
@@ -727,7 +736,7 @@ export default function Navigation() {
         <>
           <div className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setMobileOpen(false)} />
           <aside className="lg:hidden fixed left-0 top-0 h-screen w-72 z-50 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col shadow-2xl">
-            <Sidebar onClose={() => setMobileOpen(false)} />
+            {renderSidebar(() => setMobileOpen(false))}
           </aside>
         </>
       )}

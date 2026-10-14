@@ -22,6 +22,7 @@
     "axios": "^1.7.9",
     "cors": "^2.8.5",
     "dompurify": "^3.2.2",
+    "exceljs": "^4.4.0",
     "framer-motion": "^11.15.0",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
@@ -35,7 +36,6 @@
     "react-webcam": "^7.2.0",
     "recharts": "^2.15.4",
     "tesseract.js": "^7.0.0",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.24.1",
     "zustand": "^4.5.7"
   },
@@ -55,9 +55,6 @@
   },
   "overrides": {
     "jspdf": {
-      "dompurify": "^3.2.2"
-    },
-    "xlsx": {
       "dompurify": "^3.2.2"
     }
   }

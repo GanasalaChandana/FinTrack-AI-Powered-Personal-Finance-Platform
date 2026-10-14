@@ -39,6 +39,7 @@ import { Alert } from "@/components/ui/Alert";
 import { useToast } from "@/components/ui/Toast";
 import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/PageHeader";
 import { TransactionModal } from "@/components/modals/TransactionModal";
+import { exportCsv, exportPdf, exportXlsx, type ExportRow } from "@/lib/exportTransactions";
 
 /* =========================
    Types
@@ -386,136 +387,41 @@ export default function TransactionManager() {
     return filteredTransactions.slice(start, start + PAGE_SIZE);
   }, [filteredTransactions, currentPage]);
 
-  const handleExportCSV = async () => {
-    try {
-      const today = new Date().toISOString().split("T")[0];
-      const headers = "Date,Merchant,Description,Category,Amount,Type,Payment Method,Status,Recurring,Tags,Notes";
-      const rows = filteredTransactions.map((t) => {
-        const catInfo = getCategoryInfo(t.category);
-        const tags = Array.isArray(t.tags) ? t.tags.join("; ") : (t.tags || "");
-        const notes = (t.notes || "").replace(/"/g, '""');
-        const recurring = isRecurring(t) ? "Yes" : "No";
-        return `"${t.date}","${t.merchant || "Unknown"}","${t.description}","${catInfo.name}","${formatCurrency(t.amount)}","${t.type}","${t.paymentMethod}","${t.status}","${recurring}","${tags}","${notes}"`;
-      });
-      const csv = [headers, ...rows].join("\n");
-      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `transactions-${today}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success(`Exported ${filteredTransactions.length} transactions as CSV`);
-    } catch (err: any) {
-      toast.error(`Export failed: ${err.message}`);
-    }
+  const toExportRows = (list: Transaction[]): ExportRow[] =>
+    list.map((t) => ({
+      date: t.date.slice(0, 10),
+      merchant: t.merchant || "Unknown",
+      description: t.description || "",
+      category: getCategoryInfo(t.category).name,
+      amount: Math.abs(t.amount),
+      type: t.type === "income" ? "income" : "expense",
+      paymentMethod: t.paymentMethod || "",
+      status: t.status || "",
+      recurring: isRecurring(t),
+      tags: Array.isArray(t.tags) ? t.tags.join(", ") : (t.tags || ""),
+      notes: t.notes || "",
+    }));
+
+  // One path for all exports (toolbar + bulk selection)
+  const exportTransactions = async (list: Transaction[], format: "csv" | "excel" | "pdf", label: string) => {
+    const today = new Date().toISOString().split("T")[0];
+    const rows = toExportRows(list);
+    if (format === "csv") exportCsv(rows, `transactions${label}-${today}.csv`);
+    else if (format === "excel") await exportXlsx(rows, `transactions${label}-${today}.xlsx`);
+    else exportPdf(rows, formatCurrency);
+    toast.success(format === "pdf" ? "PDF print dialog opened" : `Exported ${list.length} transactions as ${format === "csv" ? "CSV" : "Excel"}`);
   };
 
-  const handleExportExcel = async () => {
+  const runExport = async (format: "csv" | "excel" | "pdf") => {
     try {
-      const today = new Date().toISOString().split("T")[0];
-      const rows = filteredTransactions.map((t, i) => {
-        const catInfo = getCategoryInfo(t.category);
-        const bg = i % 2 === 0 ? "#ffffff" : "#f9fafb";
-        const color = t.type === "income" ? "#059669" : "#dc2626";
-        const tags = Array.isArray(t.tags) ? t.tags.join(", ") : (t.tags || "");
-        const notes = t.notes || "";
-        const recurring = isRecurring(t) ? "✓" : "";
-        return `<tr style="background:${bg}">
-          <td style="padding:7px;border:1px solid #e5e7eb">${t.date}</td>
-          <td style="padding:7px;border:1px solid #e5e7eb">${t.merchant || "Unknown"}</td>
-          <td style="padding:7px;border:1px solid #e5e7eb">${t.description}</td>
-          <td style="padding:7px;border:1px solid #e5e7eb">${catInfo.name}</td>
-          <td style="padding:7px;border:1px solid #e5e7eb;color:${color};font-weight:bold;text-align:right">${t.type === "income" ? "+" : "-"}${formatCurrency(t.amount)}</td>
-          <td style="padding:7px;border:1px solid #e5e7eb">${t.type}</td>
-          <td style="padding:7px;border:1px solid #e5e7eb">${t.paymentMethod}</td>
-          <td style="padding:7px;border:1px solid #e5e7eb;text-align:center">${t.status}</td>
-          <td style="padding:7px;border:1px solid #e5e7eb;text-align:center;color:#7c3aed">${recurring}</td>
-          <td style="padding:7px;border:1px solid #e5e7eb;color:#4f46e5">${tags}</td>
-          <td style="padding:7px;border:1px solid #e5e7eb;color:#6b7280;font-style:italic">${notes}</td>
-        </tr>`;
-      }).join("");
-      const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body>
-        <h1 style="color:#1e40af">FinTrack Transaction Report</h1>
-        <p>Generated: ${new Date().toLocaleDateString()} | Total: ${filteredTransactions.length} transactions</p>
-        <table border="1" cellspacing="0" style="border-collapse:collapse;width:100%">
-          <thead><tr style="background:#1e40af;color:white">
-            <th style="padding:10px">Date</th><th style="padding:10px">Merchant</th><th style="padding:10px">Description</th>
-            <th style="padding:10px">Category</th><th style="padding:10px">Amount</th><th style="padding:10px">Type</th>
-            <th style="padding:10px">Payment</th><th style="padding:10px">Status</th>
-            <th style="padding:10px">Recurring</th><th style="padding:10px">Tags</th><th style="padding:10px">Notes</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table></body></html>`;
-      const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `transactions-${today}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success(`Exported ${filteredTransactions.length} transactions as Excel`);
+      await exportTransactions(filteredTransactions, format, "");
     } catch (err: any) {
-      toast.error(`Export failed: ${err.message}`);
+      toast.error(`Export failed: ${err?.message || "unknown error"}`);
     }
   };
-
-  const handleExportPDF = async () => {
-    try {
-      const rows = filteredTransactions.map((t, i) => {
-        const catInfo = getCategoryInfo(t.category);
-        const bg = i % 2 === 0 ? "#ffffff" : "#f9fafb";
-        const color = t.type === "income" ? "#059669" : "#dc2626";
-        const tags = Array.isArray(t.tags) ? t.tags.join(", ") : (t.tags || "");
-        const notes = t.notes || "";
-        const recurring = isRecurring(t);
-        return `<tr style="background:${bg}">
-          <td style="padding:7px;border:1px solid #ddd;font-size:10px">${t.date}</td>
-          <td style="padding:7px;border:1px solid #ddd;font-size:10px">
-            ${t.merchant || "Unknown"}
-            ${recurring ? '<span style="font-size:8px;background:#ede9fe;color:#7c3aed;border-radius:4px;padding:1px 4px;margin-left:4px">↻ Recurring</span>' : ""}
-          </td>
-          <td style="padding:7px;border:1px solid #ddd;font-size:10px">${t.description}</td>
-          <td style="padding:7px;border:1px solid #ddd;font-size:10px">${catInfo.name}</td>
-          <td style="padding:7px;border:1px solid #ddd;font-size:10px;color:${color};font-weight:bold;text-align:right">${t.type === "income" ? "+" : "-"}${formatCurrency(t.amount)}</td>
-          <td style="padding:7px;border:1px solid #ddd;font-size:10px;color:#4f46e5">${tags}</td>
-          <td style="padding:7px;border:1px solid #ddd;font-size:10px;color:#6b7280;font-style:italic">${notes}</td>
-        </tr>`;
-      }).join("");
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) throw new Error("Popup blocked. Please allow popups to export PDF.");
-      printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>FinTrack Transaction Report</title>
-        <style>
-          body{font-family:Arial,sans-serif;padding:20px}
-          h1{color:#1e40af;font-size:24px}
-          table{width:100%;border-collapse:collapse}
-          th{background:#1e40af;color:white;padding:8px;text-align:left;font-size:10px}
-          .print-btn{position:fixed;top:20px;right:20px;background:#2563eb;color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-weight:600}
-          @media print{.print-btn{display:none}}
-        </style>
-        </head><body>
-        <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
-        <h1>FinTrack Transaction Report</h1>
-        <p style="color:#6b7280">Generated: ${new Date().toLocaleString()} | Total: ${filteredTransactions.length} transactions</p>
-        <table>
-          <thead><tr>
-            <th>Date</th><th>Merchant</th><th>Description</th><th>Category</th>
-            <th style="text-align:right">Amount</th><th>Tags</th><th>Notes</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-        </body></html>`);
-      printWindow.document.close();
-      setTimeout(() => printWindow.print(), 500);
-      toast.success("PDF print dialog opened");
-    } catch (err: any) {
-      toast.error(`Export failed: ${err.message}`);
-    }
-  };
+  const handleExportCSV = () => runExport("csv");
+  const handleExportExcel = () => runExport("excel");
+  const handleExportPDF = () => runExport("pdf");
 
   const onToggleSelect = (id: string) => {
     setSelectedTransactions((prev) =>
@@ -929,31 +835,11 @@ export default function TransactionManager() {
             }}
             onBulkExport={async (format) => {
               const selectedTxs = filteredTransactions.filter((t) => selectedTransactions.includes(t.id!));
-              const today = new Date().toISOString().split("T")[0];
               try {
-                if (format === "csv") {
-                  const headers = "Date,Merchant,Description,Category,Amount,Type,Payment Method,Status,Recurring,Tags,Notes";
-                  const rows = selectedTxs.map((t) => {
-                    const catInfo = getCategoryInfo(t.category);
-                    const tags = Array.isArray(t.tags) ? t.tags.join("; ") : (t.tags || "");
-                    const notes = (t.notes || "").replace(/"/g, '""');
-                    const recurring = isRecurring(t) ? "Yes" : "No";
-                    return `"${t.date}","${t.merchant || "Unknown"}","${t.description}","${catInfo.name}","${formatCurrency(t.amount)}","${t.type}","${t.paymentMethod}","${t.status}","${recurring}","${tags}","${notes}"`;
-                  });
-                  const blob = new Blob(["\uFEFF" + [headers, ...rows].join("\n")], { type: "text/csv;charset=utf-8;" });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `transactions-selected-${today}.csv`;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                  toast.success(`Exported ${selectedTxs.length} selected transactions as CSV`);
-                  setSelectedTransactions([]);
-                }
+                await exportTransactions(selectedTxs, format, "-selected");
+                setSelectedTransactions([]);
               } catch (err: any) {
-                toast.error(`Export failed: ${err.message}`);
+                toast.error(`Export failed: ${err?.message || "unknown error"}`);
               }
             }}
             onBulkDuplicate={() => {

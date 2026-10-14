@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import { Check, X as XIcon, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -56,14 +56,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const value: ToastContextValue = {
+  // Must stay the same object across renders: pages list `toast` in their
+  // useCallback/useEffect deps, so a new object on every toast show/hide made
+  // them re-fetch all their data (and jump the page back to the top).
+  const value = useMemo<ToastContextValue>(() => ({
     toast: {
       success: (msg, dur, action) => addToast('success', msg, dur, action),
       error: (msg, dur, action) => addToast('error', msg, dur, action),
       info: (msg, dur, action) => addToast('info', msg, dur, action),
       warning: (msg, dur, action) => addToast('warning', msg, dur, action),
     },
-  };
+  }), [addToast]);
 
   return (
     <ToastContext.Provider value={value}>

@@ -342,6 +342,11 @@ export default function DashboardPage() {
 
   useEffect(() => { if (isAuthenticated) fetchDashboardData(); }, [isAuthenticated, fetchDashboardData]);
 
+  // Skeletons only before the first load. On a refresh the old numbers stay in
+  // place until the new ones arrive — swapping them for (shorter) skeletons
+  // collapsed the page and threw the user back to the top while scrolling.
+  const initialLoading = loadingData && !lastUpdated;
+
   // ── Recompute derived data ✅ FIXED: stats from raw transactions ─────────
   useEffect(() => {
     const days = parseInt(dateRange);
@@ -598,7 +603,7 @@ export default function DashboardPage() {
             )}
 
             {/* ── AI Top Insight Banner — signature wow feature, first thing seen ── */}
-            {!loadingData && hasTransactions && (
+            {!initialLoading && hasTransactions && (
               <AITopInsightBanner transactions={allTransactions} />
             )}
 
@@ -611,7 +616,7 @@ export default function DashboardPage() {
             )}
 
             {/* ── Stat Cards ── */}
-            {loadingData ? (
+            {initialLoading ? (
               <Grid columns={4} gap="lg">
                 {[0,1,2,3].map((i) => <CardSkeleton key={i} />)}
               </Grid>
@@ -664,7 +669,7 @@ export default function DashboardPage() {
             )}
 
             {/* ── AI Insights Section ── */}
-            {!loadingData && hasTransactions && (
+            {!initialLoading && hasTransactions && (
               <>
                 {/* Section header — inline style gradient bypasses Tailwind purge */}
                 <div
@@ -707,7 +712,7 @@ export default function DashboardPage() {
             )}
 
             {/* ── Charts row 1 ── */}
-            {loadingData ? (
+            {initialLoading ? (
               <Grid columns={2} gap="lg">
                 <SkeletonChart />
                 <SkeletonChart />
@@ -728,7 +733,7 @@ export default function DashboardPage() {
             )}
 
             {/* ── Charts row 2 ── */}
-            {!loadingData && (
+            {!initialLoading && (
               <Grid columns={2} gap="lg">
                 {categoryData.length > 0 ? (
                   <Section title="Spending by Category">
@@ -763,7 +768,7 @@ export default function DashboardPage() {
             )}
 
             {/* ── Secondary AI widgets (below charts) ── */}
-            {!loadingData && hasTransactions && (
+            {!initialLoading && hasTransactions && (
               <>
                 {/* Bill Reminders — full-width so all upcoming bills are visible */}
                 <BillRemindersCard transactions={allTransactions} />

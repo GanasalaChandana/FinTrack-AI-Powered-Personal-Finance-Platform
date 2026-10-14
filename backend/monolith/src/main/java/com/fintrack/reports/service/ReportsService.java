@@ -1,12 +1,13 @@
 package com.fintrack.reports.service;
 
+import com.fintrack.budgets.dto.GoalDTO;
+import com.fintrack.budgets.repository.BudgetRepository;
+import com.fintrack.budgets.service.GoalService;
+import com.fintrack.transactions.entity.Transaction;
+import com.fintrack.transactions.repository.TransactionRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -15,23 +16,19 @@ import java.time.format.TextStyle;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Reads straight from the repositories. It used to call this same app over
+ * HTTP (left over from the microservices version) without the user's token,
+ * so every call got a 401 and reports came back empty or zero.
+ */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ReportsService {
 
-    private final RestTemplate restTemplate;
-
-    // Transaction service runs on port 8082
-    @Value("${services.transactions.url:http://localhost:8082}")
-    private String transactionsServiceUrl;
-
-    // Goals/Budgets service runs on port 8085
-    @Value("${services.budgets.url:http://localhost:8085}")
-    private String budgetsServiceUrl;
-
-    public ReportsService(@Qualifier("reportsRestTemplate") RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
-    }
+    private final TransactionRepository transactionRepository;
+    private final BudgetRepository budgetRepository;
+    private final GoalService goalService;
 
     /**
      * Get comprehensive financial reports
@@ -183,24 +180,15 @@ public class ReportsService {
      */
     public List<Map<String, Object>> getSavingsGoals(String userId) {
         try {
-            String url = budgetsServiceUrl + "/api/goals?userId=" + userId;
-
-            log.debug("Fetching savings goals from: {}", url);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<?> entity = new HttpEntity<>(headers);
-
-            ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    new ParameterizedTypeReference<List<Map<String, Object>>>() {
-                    });
-
-            List<Map<String, Object>> goals = response.getBody();
-            if (goals == null || goals.isEmpty()) {
-                log.info("No savings goals found for user: {}", userId);
+            List<Map<String, Object>> goals = new ArrayList<>();
+            for (GoalDTO g : goalService.getAllGoalsByUserId(userId)) {
+                Map<String, Object> m = new HashMap<>();
+                m.put("name", g.getName());
+                m.put("currentAmount", g.getCurrentAmount() != null ? g.getCurrentAmount() : BigDecimal.ZERO);
+                m.put("targetAmount", g.getTargetAmount() != null ? g.getTargetAmount() : BigDecimal.ZERO);
+                goals.add(m);
+            }
+            if (goals.isEmpty()) {
                 return new ArrayList<>();
             }
 
@@ -304,7 +292,8 @@ public class ReportsService {
             BigDecimal amount = (BigDecimal) category.get("amount");
             BigDecimal budget = (BigDecimal) category.get("budget");
 
-            if (amount.compareTo(budget) > 0 && insights.size() < 4) {
+            // No budget set for this category → nothing to compare against
+            if (budget.signum() > 0 && amount.compareTo(budget) > 0 && insights.size() < 4) {
                 BigDecimal overBudget = amount.subtract(budget);
                 BigDecimal percentage = overBudget.divide(budget, 2, RoundingMode.HALF_UP)
                         .multiply(BigDecimal.valueOf(100));
@@ -325,55 +314,36 @@ public class ReportsService {
     private List<Map<String, Object>> getTransactionsFromService(String userId, LocalDate startDate,
             LocalDate endDate) {
         try {
-            String url = String.format("%s/api/transactions/reports?userId=%s&startDate=%s&endDate=%s",
-                    transactionsServiceUrl, userId, startDate.toString(), endDate.toString());
-
-            log.debug("Fetching transactions from: {}", url);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<?> entity = new HttpEntity<>(headers);
-
-            ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    new ParameterizedTypeReference<List<Map<String, Object>>>() {
-                    });
-
-            List<Map<String, Object>> transactions = response.getBody();
-            log.debug("Fetched {} transactions", transactions != null ? transactions.size() : 0);
-
-            return transactions != null ? transactions : new ArrayList<>();
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Transaction t : transactionRepository.findByUserIdAndDateBetween(userId, startDate, endDate)) {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", t.getId());
+                m.put("date", t.getDate() != null ? t.getDate().toString() : null);
+                m.put("description", t.getDescription());
+                String merchant = t.getMerchant();
+                m.put("merchant", merchant != null && !merchant.isEmpty() ? merchant : t.getDescription());
+                m.put("category", t.getCategory());
+                m.put("amount", t.getAmount());
+                m.put("type", t.getType());
+                result.add(m);
+            }
+            return result;
         } catch (Exception e) {
-            log.error("Error fetching transactions from service: {}", e.getMessage());
+            log.error("Error loading transactions for reports: {}", e.getMessage(), e);
             return new ArrayList<>();
         }
     }
 
     private BigDecimal getBudgetForCategory(String userId, String category) {
-        try {
-            String url = String.format("%s/api/budgets/category?userId=%s&category=%s",
-                    budgetsServiceUrl, userId, category);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<?> entity = new HttpEntity<>(headers);
-
-            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    new ParameterizedTypeReference<Map<String, Object>>() {
-                    });
-
-            if (response.getBody() != null && response.getBody().get("amount") != null) {
-                return new BigDecimal(response.getBody().get("amount").toString());
-            }
-        } catch (Exception e) {
-            log.debug("Budget not found for category {}: {}", category, e.getMessage());
-        }
-        return BigDecimal.valueOf(1000);
+        // The user's budget for this category; 0 when there is none (the old
+        // code fell back to an invented $1,000 because its lookup always failed)
+        // (one budget per category per month, so take this month's)
+        String month = java.time.YearMonth.now().toString();
+        return budgetRepository.findByUserIdAndMonth(userId, month).stream()
+                .filter(b -> category != null && category.equalsIgnoreCase(b.getCategory()))
+                .findFirst()
+                .map(b -> b.getBudget() != null ? BigDecimal.valueOf(b.getBudget()) : BigDecimal.ZERO)
+                .orElse(BigDecimal.ZERO);
     }
 
     // ========== Helper Methods ==========

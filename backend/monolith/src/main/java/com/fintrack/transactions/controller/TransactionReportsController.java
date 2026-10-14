@@ -35,9 +35,21 @@ public class TransactionReportsController {
      */
     @GetMapping("/reports")
     public ResponseEntity<List<Map<String, Object>>> getTransactionsForReports(
-            @RequestParam String userId,
+            @RequestParam(required = false) String userId,
+            @RequestHeader(value = "X-User-Id", required = false) String callerId,
             @RequestParam String startDate,
             @RequestParam String endDate) {
+        // The owner always comes from the login token; a userId in the URL is only
+        // accepted when it's the caller's own (it used to be trusted as-is).
+        if (callerId == null || callerId.isBlank()) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+        }
+        if (userId != null && !userId.isBlank() && !userId.equals(callerId)) {
+            log.warn("Transaction reports: user {} tried to read user {}'s data", callerId, userId);
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
+        userId = callerId;
+
 
         log.debug("Reports request - userId: {}, startDate: {}, endDate: {}",
                 userId, startDate, endDate);
@@ -71,10 +83,22 @@ public class TransactionReportsController {
      */
     @GetMapping("/reports/by-type")
     public ResponseEntity<List<Map<String, Object>>> getTransactionsByType(
-            @RequestParam String userId,
+            @RequestParam(required = false) String userId,
+            @RequestHeader(value = "X-User-Id", required = false) String callerId,
             @RequestParam String type,
             @RequestParam String startDate,
             @RequestParam String endDate) {
+        // The owner always comes from the login token; a userId in the URL is only
+        // accepted when it's the caller's own (it used to be trusted as-is).
+        if (callerId == null || callerId.isBlank()) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+        }
+        if (userId != null && !userId.isBlank() && !userId.equals(callerId)) {
+            log.warn("Transaction reports: user {} tried to read user {}'s data", callerId, userId);
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
+        userId = callerId;
+
 
         log.debug("Reports by type - userId: {}, type: {}, startDate: {}, endDate: {}",
                 userId, type, startDate, endDate);
@@ -108,9 +132,21 @@ public class TransactionReportsController {
      */
     @GetMapping("/reports/totals")
     public ResponseEntity<Map<String, Object>> getTransactionTotals(
-            @RequestParam String userId,
+            @RequestParam(required = false) String userId,
+            @RequestHeader(value = "X-User-Id", required = false) String callerId,
             @RequestParam String startDate,
             @RequestParam String endDate) {
+        // The owner always comes from the login token; a userId in the URL is only
+        // accepted when it's the caller's own (it used to be trusted as-is).
+        if (callerId == null || callerId.isBlank()) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+        }
+        if (userId != null && !userId.isBlank() && !userId.equals(callerId)) {
+            log.warn("Transaction reports: user {} tried to read user {}'s data", callerId, userId);
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
+        userId = callerId;
+
 
         log.debug("Reports totals - userId: {}, startDate: {}, endDate: {}",
                 userId, startDate, endDate);
@@ -150,9 +186,21 @@ public class TransactionReportsController {
      */
     @GetMapping("/reports/categories")
     public ResponseEntity<List<Map<String, Object>>> getCategoryBreakdown(
-            @RequestParam String userId,
+            @RequestParam(required = false) String userId,
+            @RequestHeader(value = "X-User-Id", required = false) String callerId,
             @RequestParam String startDate,
             @RequestParam String endDate) {
+        // The owner always comes from the login token; a userId in the URL is only
+        // accepted when it's the caller's own (it used to be trusted as-is).
+        if (callerId == null || callerId.isBlank()) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+        }
+        if (userId != null && !userId.isBlank() && !userId.equals(callerId)) {
+            log.warn("Transaction reports: user {} tried to read user {}'s data", callerId, userId);
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
+        userId = callerId;
+
 
         log.debug("Category breakdown - userId: {}, startDate: {}, endDate: {}",
                 userId, startDate, endDate);

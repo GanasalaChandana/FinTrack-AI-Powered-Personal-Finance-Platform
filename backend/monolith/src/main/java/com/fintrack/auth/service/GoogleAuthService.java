@@ -149,7 +149,7 @@ public class GoogleAuthService {
             String familyName, String fullName, String pictureUrl) {
 
         log.debug("🔍 Looking up user by email: {}", email);
-        Optional<User> existingUser = userRepository.findByEmail(email);
+        Optional<User> existingUser = userRepository.findByEmailIgnoreCase(email);
 
         if (existingUser.isPresent()) {
             User user = existingUser.get();
@@ -175,9 +175,9 @@ public class GoogleAuthService {
         log.info("➕ Creating new user for: {}", email);
 
         User newUser = User.builder()
-                .email(email)
+                .email(email.trim().toLowerCase(java.util.Locale.ROOT))
                 .googleId(googleId)
-                .username(email.split("@")[0]) // Use email prefix as username
+                .username(userRepository.uniqueUsername(null, email)) // email prefix, made unique
                 .firstName(givenName != null ? givenName : fullName)
                 .lastName(familyName)
                 .name(fullName)

@@ -1,6 +1,5 @@
 package com.fintrack.auth.service;
 
-import java.util.UUID;
 import java.util.Locale;
 import com.fintrack.auth.dto.AuthResponse;
 import com.fintrack.auth.dto.LoginRequest;
@@ -51,7 +50,7 @@ public class AuthService {
 
         User user = User.builder()
                 .email(email)
-                .username(uniqueUsername(request.getUsername(), email))
+                .username(userRepository.uniqueUsername(request.getUsername(), email))
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
@@ -65,21 +64,6 @@ public class AuthService {
         demoService.seedDemoData(saved.getId().toString());
 
         return buildAuthResponse(saved);
-    }
-
-    /**
-     * Usernames are unique in the database but were taken straight from the
-     * email prefix, so john@gmail.com blocked john@yahoo.com from signing up.
-     */
-    private String uniqueUsername(String requested, String email) {
-        String base = (requested == null || requested.isBlank()) ? email.split("@")[0] : requested.trim();
-        base = base.length() > 90 ? base.substring(0, 90) : base;
-        if (!userRepository.existsByUsername(base)) return base;
-        for (int i = 0; i < 5; i++) {
-            String candidate = base + "-" + UUID.randomUUID().toString().substring(0, 6);
-            if (!userRepository.existsByUsername(candidate)) return candidate;
-        }
-        return base + "-" + UUID.randomUUID();
     }
 
     // ── login ─────────────────────────────────────────────────────────────────

@@ -187,7 +187,7 @@ public class AuthController {
             log.error("Google auth failed from IP {}: {}", ip, e.getMessage(), e);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", e.getMessage(), "message", "Google authentication failed. Please try again."));
+                    .body(Map.of("error", "Google authentication failed", "message", "Google authentication failed. Please try again."));
         }
     }
 
@@ -203,7 +203,7 @@ public class AuthController {
             log.error("Demo login failed: {}", e.getMessage(), e);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Demo login failed", "message", e.getMessage()));
+                    .body(Map.of("error", "Demo login failed", "message", "Demo is unavailable right now. Please try again."));
         }
     }
 

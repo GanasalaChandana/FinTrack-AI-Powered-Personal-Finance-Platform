@@ -51,7 +51,8 @@ public class SecurityConfig {
                                                                 "/api/auth/**",
                                                                 "/oauth2/**",
                                                                 "/login/oauth2/**",
-                                                                "/actuator/**",
+                                                                // Only the status ("UP") is public — used by the
+                                                                // frontend to wake the server and by Render's health check
                                                                 "/actuator/health",
                                                                 "/api/health/**",
                                                                 "/api/users/health",

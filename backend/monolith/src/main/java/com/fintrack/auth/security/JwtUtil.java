@@ -4,6 +4,7 @@ import com.fintrack.auth.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -11,9 +12,13 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
+import java.util.HexFormat;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 @Component
@@ -25,6 +30,41 @@ public class JwtUtil {
 
     @Value("${jwt.expiration:86400000}") // Default 24 hours
     private Long expiration;
+
+    private static final int MIN_SECRET_BYTES = 32; // 256 bits for HS256
+
+    // SHA-256 of secrets that are public (old defaults in this repo, tutorial
+    // example keys, the README placeholder). Anyone who knows one could forge
+    // a login for any user, so the server refuses to start with them.
+    private static final Set<String> KNOWN_PUBLIC_SECRET_HASHES = Set.of(
+            "e9cc80630a6552f2b192c6392f3dbdbdaa7b1028f28b1763c49f6d87d8de2843",
+            "3354cfcf65c7b2e6840ea6f880aede239750cb1d063950c4e8fd9fbf9ec73a32",
+            "80b43abc77d9ce5a808083f3afded947e7de2919302ae149351fd20898b4a2de");
+
+    @PostConstruct
+    void validateSecret() {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is not set. Set it to a long random value, e.g. `openssl rand -base64 48`.");
+        }
+        if (secret.getBytes(StandardCharsets.UTF_8).length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is too short — it must be at least " + MIN_SECRET_BYTES + " bytes.");
+        }
+        if (KNOWN_PUBLIC_SECRET_HASHES.contains(sha256Hex(secret))) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is a publicly known value. Replace it with a new random value.");
+        }
+    }
+
+    private static String sha256Hex(String value) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
 
     private SecretKey getSigningKey() {
         // Ensure the secret is at least 256 bits (32 bytes) for HS256

@@ -120,8 +120,13 @@ const PAGE_SIZE = 10;
 const dtUS = (d: Date, opts?: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("en-US", opts).format(d);
 
+// "2026-10-12" alone is parsed as UTC midnight, which shows the previous day
+// west of UTC — treat date-only strings as local dates instead.
+const parseDate = (iso: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T00:00:00`) : new Date(iso);
+
 const formatAbsolute = (iso: string) =>
-  dtUS(new Date(iso), { month: "short", day: "numeric", year: "numeric" });
+  dtUS(parseDate(iso), { month: "short", day: "numeric", year: "numeric" });
 
 const useIsMounted = () => {
   const [m, setM] = React.useState(false);
@@ -130,7 +135,7 @@ const useIsMounted = () => {
 };
 
 const formatRelativeClientOnly = (iso: string) => {
-  const d = new Date(iso);
+  const d = parseDate(iso);
   const today = new Date();
   const y = new Date();
   y.setDate(today.getDate() - 1);
@@ -990,7 +995,7 @@ export default function TransactionManager() {
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700 border-b-2 border-gray-200 dark:border-gray-600">
                 <tr>
-                  <th className="px-6 py-4 text-left">
+                  <th className="px-3 sm:px-4 py-4 text-left">
                     <input
                       type="checkbox"
                       checked={paginatedTransactions.length > 0 && paginatedTransactions.every((t) => selectedTransactions.includes(t.id!))}
@@ -998,13 +1003,13 @@ export default function TransactionManager() {
                       className="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500"
                     />
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Date</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Merchant</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Category</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Payment</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Amount</th>
-                  <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Status</th>
-                  <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Actions</th>
+                  <th className="px-3 sm:px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Date</th>
+                  <th className="px-3 sm:px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Merchant</th>
+                  <th className="px-3 sm:px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Category</th>
+                  <th className="hidden 2xl:table-cell px-3 sm:px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Payment</th>
+                  <th className="px-3 sm:px-4 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Amount</th>
+                  <th className="px-3 sm:px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Status</th>
+                  <th className="px-3 sm:px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -1018,7 +1023,7 @@ export default function TransactionManager() {
                       id={`txn-${t.id}`}
                       className={`transition-colors ${highlightId === t.id ? "bg-yellow-50 dark:bg-yellow-900/20 ring-2 ring-yellow-400 ring-inset" : selectedTransactions.includes(t.id!) ? "bg-blue-50 dark:bg-blue-900/20" : "hover:bg-gray-50 dark:hover:bg-gray-700/50"}`}
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-4 py-4">
                         <input
                           type="checkbox"
                           checked={selectedTransactions.includes(t.id!)}
@@ -1027,7 +1032,7 @@ export default function TransactionManager() {
                         />
                       </td>
 
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-4 py-4 whitespace-nowrap">
                         {isEditing ? (
                           <input type="date" value={editForm.date} onChange={(e) => setEditForm((prev) => ({ ...prev, date: e.target.value }))} className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100" />
                         ) : (
@@ -1035,12 +1040,12 @@ export default function TransactionManager() {
                             <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                               {isMounted ? formatRelativeClientOnly(t.date) : formatAbsolute(t.date)}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">{dtUS(new Date(t.date))}</div>
+                            <div className="hidden sm:block text-xs text-gray-500 dark:text-gray-400">{dtUS(parseDate(t.date))}</div>
                           </>
                         )}
                       </td>
 
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-4 py-4">
                         {isEditing ? (
                           <div className="space-y-2 min-w-[200px]">
                             <input type="text" value={editForm.merchant || ""} onChange={(e) => setEditForm((prev) => ({ ...prev, merchant: e.target.value }))} className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100" placeholder="Merchant" />
@@ -1055,7 +1060,7 @@ export default function TransactionManager() {
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-medium text-gray-900 dark:text-gray-100">{t.merchant || "Unknown"}</span>
+                                <span className="font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">{t.merchant || "Unknown"}</span>
                                 {isRecurring(t) && (
                                   <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400">
                                     <RefreshCw className="w-2.5 h-2.5" />
@@ -1063,7 +1068,11 @@ export default function TransactionManager() {
                                   </span>
                                 )}
                               </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{t.description}</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[180px] sm:max-w-[260px]" title={t.description}>{t.description}</div>
+                              {/* Amount column is off-screen on phones and tablets — show it here too */}
+                              <div className={`lg:hidden text-sm font-bold ${t.type === "income" ? "text-green-600" : "text-red-600"}`}>
+                                {t.type === "income" ? "+" : ""}{formatCurrency(t.amount)}
+                              </div>
                               {t.aiSuggested && (
                                 <div className="flex items-center gap-1 mt-0.5">
                                   <Sparkles className="w-3 h-3 text-purple-600" />
@@ -1089,7 +1098,7 @@ export default function TransactionManager() {
                         )}
                       </td>
 
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-4 py-4">
                         {isEditing ? (
                           <select value={editForm.category} onChange={(e) => setEditForm((prev) => ({ ...prev, category: e.target.value as Exclude<CategoryId, "all"> }))} className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100">
                             {CATEGORIES.filter((c) => c.id !== "all").map((cat) => (
@@ -1104,9 +1113,9 @@ export default function TransactionManager() {
                         )}
                       </td>
 
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{t.paymentMethod}</td>
+                      <td className="hidden 2xl:table-cell px-3 sm:px-4 py-4 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">{t.paymentMethod}</td>
 
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 sm:px-4 py-4 text-right">
                         {isEditing ? (
                           <input type="number" step="0.01" value={Math.abs(editForm.amount as number || 0)} onChange={(e) => setEditForm((prev) => ({ ...prev, amount: parseFloat(e.target.value) }))} className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm text-right focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100" />
                         ) : (
@@ -1116,7 +1125,7 @@ export default function TransactionManager() {
                         )}
                       </td>
 
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 sm:px-4 py-4 text-center">
                         {isEditing ? (
                           <div className="flex gap-1 justify-center">
                             <button
@@ -1139,7 +1148,7 @@ export default function TransactionManager() {
                         )}
                       </td>
 
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-4 py-4">
                         {isEditing ? (
                           <div className="flex items-center justify-center gap-2">
                             <button onClick={handleSaveEdit} className="p-2 hover:bg-green-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors" title="Save">

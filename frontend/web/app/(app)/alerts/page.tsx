@@ -697,12 +697,12 @@ export default function AlertsPage() {
             <div className="flex items-center gap-2">
               {counts.unread > 0 && (
                 <button onClick={markAllRead}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition">
+                  className="inline-flex items-center gap-1.5 py-2 sm:py-0 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition">
                   <Check className="w-3.5 h-3.5" /> Mark all read
                 </button>
               )}
               <button onClick={dismissAll}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition">
+                className="inline-flex items-center gap-1.5 py-2 sm:py-0 text-xs font-semibold text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition">
                 <Trash2 className="w-3.5 h-3.5" /> Clear all
               </button>
             </div>
@@ -785,13 +785,13 @@ export default function AlertsPage() {
                             {!alert.read && (
                               <button onClick={() => markRead(alert.id)}
                                 title="Mark as read"
-                                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                className="p-2.5 sm:p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
                                 <Check className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
                               </button>
                             )}
                             <button onClick={() => dismiss(alert.id)}
                               title="Dismiss"
-                              className="p-1.5 rounded-lg hover:bg-red-50 transition">
+                              className="p-2.5 sm:p-1.5 rounded-lg hover:bg-red-50 transition">
                               <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 hover:text-red-400" />
                             </button>
                           </div>

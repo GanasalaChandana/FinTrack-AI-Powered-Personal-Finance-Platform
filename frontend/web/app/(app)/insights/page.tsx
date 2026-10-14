@@ -684,7 +684,7 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
                         </span>
                       </div>
                       <button onClick={() => setDismissed((p) => { const n = new Set([...p, insight.id]); saveDismissed(n); return n; })}
-                        className="p-1.5 rounded-xl text-gray-300 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 transition flex-shrink-0">
+                        className="p-2.5 sm:p-1.5 rounded-xl text-gray-300 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 transition flex-shrink-0">
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>

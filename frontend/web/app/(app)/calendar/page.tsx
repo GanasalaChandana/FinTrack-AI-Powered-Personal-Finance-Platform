@@ -20,6 +20,10 @@ const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const fmt = (v: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
 
+// Short form ($5.2K) for the narrow day cells on phones
+const fmtCompact = (v: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 }).format(v);
+
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -447,12 +451,14 @@ export default function CalendarPage() {
                   <div className="mt-1 space-y-0.5">
                     {hasIncome && (
                       <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate leading-none">
-                        +{fmt(data!.income)}
+                        <span className="sm:hidden">+{fmtCompact(data!.income)}</span>
+                        <span className="hidden sm:inline">+{fmt(data!.income)}</span>
                       </div>
                     )}
                     {hasExpenses && (
                       <div className="text-[10px] font-semibold text-red-600 dark:text-red-400 truncate leading-none">
-                        -{fmt(data!.expenses)}
+                        <span className="sm:hidden">-{fmtCompact(data!.expenses)}</span>
+                        <span className="hidden sm:inline">-{fmt(data!.expenses)}</span>
                       </div>
                     )}
                   </div>

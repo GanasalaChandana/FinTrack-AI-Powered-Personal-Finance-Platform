@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   CartesianGrid, Tooltip, Legend, XAxis, YAxis, ResponsiveContainer,
-  ReferenceLine, ComposedChart, Cell,
+  ReferenceLine, ComposedChart, Cell, PieChart as RePieChart, Pie,
 } from "recharts";
 import {
   TrendingUp, TrendingDown, Download, DollarSign, Target, Award,
@@ -17,6 +17,8 @@ import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 import { useTaxStore, TAX_CATEGORY_META, type TaxCategory } from "@/lib/stores/taxStore";
 import { reportsService, type ReportsData, type ReportsRange, type CategoryBreakdown } from "@/lib/api/services/reports.service";
 import { exportMonthlyReport } from "@/lib/utils/pdfExport";
+import { buildCustomReport, type CustomReport, type CustomMetric, type CustomRange, type CustomGroupBy } from "@/lib/customReport";
+import { csvCell } from "@/lib/exportTransactions";
 import { CheckCircle } from "lucide-react";
 import { IncomeExpenseComparison } from "@/components/charts/AdvancedCharts";
 import { Button } from "@/components/ui/Button";
@@ -189,6 +191,8 @@ const EnhancedFinancialReports: React.FC = () => {
   const taxStore = useTaxStore();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryDetail, setCategoryDetail] = useState<CategoryDetail | null>(null);
+  const [customReport, setCustomReport] = useState<(CustomReport & { name: string; metrics: CustomMetric[]; chartType: ChartType; groupBy: CustomGroupBy }) | null>(null);
+  const [customError, setCustomError] = useState<string | null>(null);
   const [customConfig, setCustomConfig] = useState<CustomReportConfig>({
     name: "My Custom Report",
     dateRange: "last-year",
@@ -863,6 +867,125 @@ const EnhancedFinancialReports: React.FC = () => {
 
   // ── Tab: Custom Reports ────────────────────────────────────────────────────
 
+  const METRIC_META: Record<CustomMetric, { label: string; color: string }> = {
+    income:      { label: "Income",      color: "#10b981" },
+    expenses:    { label: "Expenses",    color: "#ef4444" },
+    savings:     { label: "Savings",     color: "#6366f1" },
+    "net-worth": { label: "Net worth (running balance)", color: "#0ea5e9" },
+  };
+
+  // Was a no-op: the button only cleared an export error and nothing was ever generated
+  const generateCustomReport = () => {
+    setCustomError(null);
+    const metrics = customConfig.metrics as CustomMetric[];
+    if (metrics.length === 0) { setCustomError("Pick at least one metric."); setCustomReport(null); return; }
+    const report = buildCustomReport(
+      rawTransactions.map((t) => ({ date: t.date, amount: Number(t.amount) || 0, type: String(t.type ?? ""), category: t.category })),
+      customConfig.dateRange as CustomRange,
+      customConfig.groupBy as CustomGroupBy,
+    );
+    if (report.transactionCount === 0) {
+      setCustomError("No transactions in this date range — try a longer range.");
+      setCustomReport(null);
+      return;
+    }
+    setCustomReport({ ...report, name: customConfig.name.trim() || "Custom Report", metrics, chartType: customConfig.chartType, groupBy: customConfig.groupBy as CustomGroupBy });
+  };
+
+  const downloadCustomReportCsv = (r: NonNullable<typeof customReport>) => {
+    const header = [r.groupBy === "category" ? "Category" : "Period", ...r.metrics.map((m) => METRIC_META[m].label)];
+    const lines = r.rows.map((row) => [csvCell(row.label), ...r.metrics.map((m) => row[m].toFixed(2))].join(","));
+    const totals = ["Total", ...r.metrics.map((m) => r.totals[m].toFixed(2))].map((v, i) => (i === 0 ? csvCell(v) : v)).join(",");
+    const blob = new Blob(["\uFEFF" + [header.map(csvCell).join(","), ...lines, totals].join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${r.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") || "custom-report"}-${r.to}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const renderCustomReportResult = (r: NonNullable<typeof customReport>) => {
+    const series = r.metrics.map((m) => ({ key: m, ...METRIC_META[m] }));
+    const pieMetric = series[0];
+    const PIE_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#0ea5e9", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#84cc16"];
+    const axisProps = { tick: { fontSize: 11 }, stroke: "#94a3b8" };
+    const chart = (() => {
+      if (r.chartType === "pie") {
+        const data = r.rows.map((row) => ({ name: row.label, value: Math.max(0, row[pieMetric.key]) })).filter((d) => d.value > 0);
+        return (
+          <RePieChart>
+            <Pie data={data} dataKey="value" nameKey="name" outerRadius="80%" label={(e: any) => e.name}>
+              {data.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+            </Pie>
+            <Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
+          </RePieChart>
+        );
+      }
+      const common = (
+        <>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis dataKey="label" {...axisProps} />
+          <YAxis {...axisProps} tickFormatter={(v) => `$${Math.round(Number(v)).toLocaleString()}`} width={70} />
+          <Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
+          <Legend />
+        </>
+      );
+      if (r.chartType === "bar") return (
+        <BarChart data={r.rows}>{common}{series.map((s) => <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]} />)}</BarChart>
+      );
+      if (r.chartType === "area") return (
+        <AreaChart data={r.rows}>{common}{series.map((s) => <Area key={s.key} type="monotone" dataKey={s.key} name={s.label} stroke={s.color} fill={s.color} fillOpacity={0.15} />)}</AreaChart>
+      );
+      return (
+        <LineChart data={r.rows}>{common}{series.map((s) => <Line key={s.key} type="monotone" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={2} dot={r.rows.length < 40} />)}</LineChart>
+      );
+    })();
+
+    return (
+      <Card title={r.name} subtitle={`${r.from} → ${r.to} · ${r.transactionCount} transactions · grouped ${r.groupBy === "category" ? "by category" : r.groupBy === "day" ? "daily" : r.groupBy + "ly"}`} accentColor="#6366f1">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+          {series.map((s) => (
+            <div key={s.key} className="rounded-xl border border-gray-100 dark:border-gray-700 p-3">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{s.key === "net-worth" ? "Net worth change" : `Total ${s.label.toLowerCase()}`}</p>
+              <p className="text-lg font-bold" style={{ color: s.color }}>{fmt(r.totals[s.key])}</p>
+            </div>
+          ))}
+        </div>
+        {r.chartType === "pie" && series.length > 1 && (
+          <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">Pie charts show one metric — showing {pieMetric.label.toLowerCase()}.</p>
+        )}
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">{chart}</ResponsiveContainer>
+        </div>
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs uppercase text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
+                <th className="py-2 pr-4">{r.groupBy === "category" ? "Category" : "Period"}</th>
+                {series.map((s) => <th key={s.key} className="py-2 pr-4 text-right whitespace-nowrap">{s.label}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {r.rows.map((row) => (
+                <tr key={row.key} className="border-b border-gray-50 dark:border-gray-700/50">
+                  <td className="py-2 pr-4 text-gray-800 dark:text-gray-200 whitespace-nowrap">{row.label}</td>
+                  {series.map((s) => <td key={s.key} className="py-2 pr-4 text-right tabular-nums text-gray-700 dark:text-gray-300">{fmt(row[s.key])}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-4">
+          <button onClick={() => downloadCustomReportCsv(r)}
+            className="inline-flex items-center gap-2 rounded-xl border-2 border-indigo-200 dark:border-indigo-800 px-4 py-2 text-sm font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition">
+            <Download className="w-4 h-4" /> Download CSV
+          </button>
+        </div>
+      </Card>
+    );
+  };
+
   const renderCustomReportBuilder = () => (
     <div className="space-y-6">
       <Card title="Build Custom Report" subtitle="Configure and generate a tailored report" accentColor="#10b981">
@@ -943,17 +1066,22 @@ const EnhancedFinancialReports: React.FC = () => {
         </div>
 
         <div className="flex gap-3 mt-6 pt-5 border-t border-gray-100 dark:border-gray-700">
-          <button onClick={() => setExportError(null)}
+          <button onClick={generateCustomReport}
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-200/50 hover:opacity-90 transition">
             <FileText className="w-4 h-4" /> Generate Report
           </button>
           <button
-            onClick={() => setCustomConfig({ name: "My Custom Report", dateRange: "last-year", metrics: ["income", "expenses"], groupBy: "month", chartType: "line", includeCategories: [] })}
+            onClick={() => { setCustomConfig({ name: "My Custom Report", dateRange: "last-year", metrics: ["income", "expenses"], groupBy: "month", chartType: "line", includeCategories: [] }); setCustomReport(null); setCustomError(null); }}
             className="rounded-xl border-2 border-gray-200 dark:border-gray-600 px-5 py-2.5 text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             Reset
           </button>
         </div>
+        {customError && (
+          <p role="alert" className="mt-4 text-sm font-medium text-red-600 dark:text-red-400">{customError}</p>
+        )}
       </Card>
+
+      {customReport && renderCustomReportResult(customReport)}
     </div>
   );
 

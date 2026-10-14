@@ -1,6 +1,7 @@
 // services/reports.service.ts
 
 import { apiRequest, transactionsAPI, type Transaction } from "@/lib/api";
+import { escapeHtml } from "@/lib/exportTransactions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -479,16 +480,16 @@ class ReportsService {
         const type  = ((t.type ?? "") as string).toLowerCase();
         const color = type === "income" ? "#059669" : "#dc2626";
         return `<tr style="background:${bg}">
-          <td style="padding:7px 10px;border:1px solid #e5e7eb;font-size:11px">${t.date}</td>
-          <td style="padding:7px 10px;border:1px solid #e5e7eb;font-size:11px">${t.merchant || t.description}</td>
-          <td style="padding:7px 10px;border:1px solid #e5e7eb;font-size:11px">${t.category}</td>
+          <td style="padding:7px 10px;border:1px solid #e5e7eb;font-size:11px">${escapeHtml(t.date)}</td>
+          <td style="padding:7px 10px;border:1px solid #e5e7eb;font-size:11px">${escapeHtml(t.merchant || t.description)}</td>
+          <td style="padding:7px 10px;border:1px solid #e5e7eb;font-size:11px">${escapeHtml(t.category)}</td>
           <td style="padding:7px 10px;border:1px solid #e5e7eb;font-size:11px;color:${color};font-weight:600;text-align:right">
             ${type === "income" ? "+" : "-"}${_fmt(Math.abs(t.amount))}
           </td></tr>`;
       }).join("");
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>FinTrack Report — ${dateRange}</title>
+<title>FinTrack Report — ${escapeHtml(dateRange)}</title>
 <style>
   body{font-family:Arial,sans-serif;padding:24px;color:#111}
   h1{color:#4f46e5;font-size:22px;margin-bottom:4px}
@@ -505,7 +506,7 @@ class ReportsService {
 </style></head><body>
 <button class="print-btn" onclick="window.print()">🖨️ Save as PDF</button>
 <h1>FinTrack Financial Report</h1>
-<p class="meta">Period: ${dateRange.replace(/-/g, " ")} &nbsp;·&nbsp; Generated ${new Date().toLocaleString()}</p>
+<p class="meta">Period: ${escapeHtml(dateRange.replace(/-/g, " "))} &nbsp;·&nbsp; Generated ${new Date().toLocaleString()}</p>
 <div class="stats">
   <div class="stat"><div class="stat-label">Total Income</div>
     <div class="stat-value" style="color:#059669">${_fmt(data.summary.netIncome)}</div></div>

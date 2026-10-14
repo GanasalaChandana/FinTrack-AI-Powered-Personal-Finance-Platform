@@ -39,6 +39,14 @@ public class DemoService {
     private final PasswordEncoder       passwordEncoder;
     private final JwtUtil               jwtUtil;
 
+    // Every visitor shares the one demo account. Re-seeding on each login let
+    // a new visitor wipe the data of someone mid-tour, and let anyone hammer
+    // the database by calling the endpoint repeatedly. Re-seed at most once per
+    // interval, and never two re-seeds at the same time.
+    private static final long DEMO_RESEED_INTERVAL_MS = 30 * 60 * 1000L; // 30 minutes
+    private final Object demoSeedLock = new Object();
+    private volatile long demoLastSeededAt = 0;
+
     // No @Transactional here — each repository call manages its own tx.
     // This lets DataWipeService.wipeAllUserData (REQUIRES_NEW) open its own
     // connection without needing to suspend an outer tx, which can deadlock
@@ -49,13 +57,21 @@ public class DemoService {
 
         String userId = demo.getId().toString();
 
-        // Wipe runs in its own REQUIRES_NEW transaction via DataWipeService
-        // so all DELETEs commit before the first INSERT of the re-seed.
-        dataWipeService.wipeAllUserData(userId);
-        seedTransactions(userId);
-        seedBudgets(userId);
-        seedGoals(userId);
-        log.info("✅ Demo data re-seeded for user {}", userId);
+        synchronized (demoSeedLock) {
+            long now = System.currentTimeMillis();
+            if (now - demoLastSeededAt > DEMO_RESEED_INTERVAL_MS) {
+                // Wipe runs in its own REQUIRES_NEW transaction via DataWipeService
+                // so all DELETEs commit before the first INSERT of the re-seed.
+                dataWipeService.wipeAllUserData(userId);
+                seedTransactions(userId);
+                seedBudgets(userId);
+                seedGoals(userId);
+                demoLastSeededAt = now; // only after a successful seed, so failures retry
+                log.info("✅ Demo data re-seeded for user {}", userId);
+            } else {
+                log.debug("Demo data seeded {}s ago — reusing it", (now - demoLastSeededAt) / 1000);
+            }
+        }
 
         String token = jwtUtil.generateToken(demo);
 

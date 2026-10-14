@@ -6,11 +6,10 @@
 @tailwind utilities;
 
 /* ── Sidebar layout: --sidebar-w is set by Navigation.tsx via JS ── */
-/* On mobile/tablet (<1024px) the sidebar is hidden; no left padding. */
+/* Applied as lg:pl-[var(--sidebar-w)] on the app shell in ClientLayout. (A
+   global "main { padding-left: 0 !important }" used to strip the padding from
+   every <main> on phones, including the dashboard's.) */
 :root { --sidebar-w: 15rem; }
-@media (max-width: 1023px) {
-  main { padding-left: 0 !important; }
-}
 
 /* ========== CSS VARIABLES - LIGHT MODE ==========  */
 :root {

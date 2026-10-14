@@ -561,7 +561,7 @@ export default function NotificationsPage() {
                               {notif.category}
                             </span>
                           )}
-                          <span className="flex items-center gap-1 text-[11px] text-gray-300">
+                          <span className="flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400">
                             <Clock className="w-3 h-3" />
                             {timeAgo(notif.createdAt)}
                           </span>

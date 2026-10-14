@@ -82,8 +82,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         {/* Page Content — offset right of sidebar on desktop, top on mobile */}
         <main
           suppressHydrationWarning
-          className={!isAuthPage && isAuthenticated ? 'pt-14 lg:pt-0 transition-[padding-left] duration-300' : ''}
-          style={!isAuthPage && isAuthenticated ? { paddingLeft: 'var(--sidebar-w, 15rem)' } as React.CSSProperties : undefined}
+          // Sidebar offset only from lg up (the sidebar is a drawer below that)
+          className={!isAuthPage && isAuthenticated ? 'pt-14 lg:pt-0 lg:pl-[var(--sidebar-w,15rem)] transition-[padding-left] duration-300' : ''}
         >
           {children}
         </main>

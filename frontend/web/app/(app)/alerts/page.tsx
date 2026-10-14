@@ -813,7 +813,7 @@ export default function AlertsPage() {
                                 {alert.category}
                               </span>
                             )}
-                            <span className="flex items-center gap-1 text-[11px] text-gray-300 dark:text-gray-600">
+                            <span className="flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400">
                               <Clock className="w-3 h-3" />
                               {timeAgo(alert.createdAt)}
                             </span>

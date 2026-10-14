@@ -208,7 +208,7 @@ Output: "📊 Projected $3,855 vs $3,150 budget — $705 over.
 | **Backend** | Spring Boot 3.2, Java 17, Spring Security, Spring Data JPA, Maven |
 | **Database** | PostgreSQL; schema managed by Hibernate `ddl-auto=update` (Flyway scripts V1–V9 are kept in `db/migration`, but Flyway is disabled) |
 | **Auth** | JWT HS256, BCrypt, Refresh Token Rotation, IP Rate Limiting |
-| **Testing** | JUnit 5, Mockito, @WebMvcTest, MockMvc — 52 tests, 0 failures |
+| **Testing** | JUnit 5, Mockito, @WebMvcTest, MockMvc, @SpringBootTest + in-memory H2 — 102 tests, 0 failures |
 | **ML** | Python, FastAPI, scikit-learn — transaction category classifier |
 | **DevOps** | GitHub Actions CI (3 jobs), Vercel (frontend), Render (backend + DB) |
 
@@ -310,7 +310,7 @@ JWT_SECRET=$(openssl rand -base64 48) docker compose up --build
 cd backend/monolith && mvn test
 ```
 
-52 tests, 0 failures. No database, Kafka, or Redis required locally.
+102 tests, 0 failures. Integration tests use an in-memory H2 database — no PostgreSQL, Kafka, or Redis required locally.
 
 | Test Class | Coverage |
 |---|---|

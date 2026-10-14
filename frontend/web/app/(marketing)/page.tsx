@@ -242,7 +242,7 @@ export default function LandingPage() {
           </p>
 
           <p className="fade-up" style={{fontSize:14,color:"#64748b",marginBottom:36,animationDelay:"0.25s"}}>
-            Spring Boot 3.2 · Next.js 14 · PostgreSQL · 52 tests · JWT + rate limiting
+            Spring Boot 3.2 · Next.js 14 · PostgreSQL · 100+ tests · JWT + rate limiting
           </p>
 
           <div className="fade-up" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",marginBottom:12,animationDelay:"0.3s"}}>
@@ -684,8 +684,8 @@ export default function LandingPage() {
             </div>
           </div>
           <div style={{borderTop:"1px solid rgba(255,255,255,0.05)",paddingTop:24,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
-            <p style={{fontSize:13,color:"#334155"}}>© 2026 FinTrack. All rights reserved.</p>
-            <p style={{fontSize:13,color:"#334155"}}>Spring Boot 3.2 · Next.js 14 · PostgreSQL · 52 tests</p>
+            <p style={{fontSize:13,color:"#94a3b8"}}>© 2026 FinTrack. All rights reserved.</p>
+            <p style={{fontSize:13,color:"#94a3b8"}}>Spring Boot 3.2 · Next.js 14 · PostgreSQL · 100+ tests</p>
           </div>
         </div>
       </footer>

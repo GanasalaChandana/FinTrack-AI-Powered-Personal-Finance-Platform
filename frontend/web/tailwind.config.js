@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+const twColors = require('tailwindcss/colors');
+
 module.exports = {
   darkMode: 'class',
   content: [
@@ -11,7 +13,10 @@ module.exports = {
       // ========== COLOR PALETTE ==========
       colors: {
         // Primary - Indigo
+        // Full scale from Tailwind's indigo; the shades below keep their exact values.
+        // Without the rest, classes like dark:text-primary-300 silently did nothing.
         primary: {
+          ...twColors.indigo,
           50: '#EEF2FF',
           100: '#E0E7FF',
           500: '#6366F1',
@@ -20,21 +25,30 @@ module.exports = {
           900: '#1E1B4B',
         },
         // Success - Emerald
+        // Full scale from Tailwind's emerald; the shades below keep their exact values.
+        // Without the rest, classes like dark:text-success-300 silently did nothing.
         success: {
+          ...twColors.emerald,
           100: '#D1FAE5',
           500: '#10B981',
           600: '#059669',
           700: '#047857',
         },
         // Error - Red
+        // Full scale from Tailwind's red; the shades below keep their exact values.
+        // Without the rest, classes like dark:text-error-300 silently did nothing.
         error: {
+          ...twColors.red,
           100: '#FEE2E2',
           500: '#EF4444',
           600: '#DC2626',
           700: '#B91C1C',
         },
         // Warning - Amber
+        // Full scale from Tailwind's amber; the shades below keep their exact values.
+        // Without the rest, classes like dark:text-warning-300 silently did nothing.
         warning: {
+          ...twColors.amber,
           100: '#FEF3C7',
           500: '#F59E0B',
           600: '#D97706',

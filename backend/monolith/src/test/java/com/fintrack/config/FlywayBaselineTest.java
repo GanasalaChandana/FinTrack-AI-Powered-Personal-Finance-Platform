@@ -2,7 +2,6 @@ package com.fintrack.config;
 
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationInfo;
-import org.flywaydb.core.api.MigrationType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +47,7 @@ class FlywayBaselineTest {
         MigrationInfo current = flyway.info().current();
         assertEquals("1", current.getVersion().getVersion());
         assertTrue(current.getState().isApplied());
-        assertEquals(MigrationType.SQL, current.getType());
+        assertEquals("SQL", current.getType().name());
     }
 
     @Test
@@ -70,7 +69,7 @@ class FlywayBaselineTest {
         legacyFlyway.migrate();
 
         MigrationInfo current = legacyFlyway.info().current();
-        assertEquals(MigrationType.BASELINE, current.getType());
+        assertEquals("BASELINE", current.getType().name());
         assertEquals("1", current.getVersion().getVersion());
 
         Integer alertsTables = jdbc.queryForObject(

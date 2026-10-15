@@ -18,7 +18,8 @@ export function MonthEndForecastCard({ transactions }: Props) {
     const month = now.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysPassed = now.getDate();
-    const daysLeft = daysInMonth - daysPassed;
+    // Counts today (matches the Budget Forecast card and the Reports page).
+    const daysLeft = daysInMonth - daysPassed + 1;
     const monthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
 
     // Current month expenses only

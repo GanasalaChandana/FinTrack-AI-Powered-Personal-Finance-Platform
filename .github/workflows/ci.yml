@@ -24,14 +24,7 @@ jobs:
           cache: maven
 
       - name: Run tests
-        run: |
-          set -o pipefail
-          mvn -B -f backend/monolith/pom.xml test 2>&1 | tee mvn.log
-
-      - name: Surface Maven errors as annotations
-        if: failure()
-        run: |
-          grep -E '^\[ERROR\]' mvn.log | head -15 | cut -c1-400 | while IFS= read -r l; do echo "::error title=maven::${l}"; done
+        run: mvn -f backend/monolith/pom.xml test
 
       - name: Upload Surefire report
         if: always()

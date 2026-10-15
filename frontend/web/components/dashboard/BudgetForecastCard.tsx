@@ -35,7 +35,7 @@ export function BudgetForecastCard({ transactions, budgets }: Props) {
           <BarChart3 className="w-4 h-4 text-indigo-500" />
         </div>
         <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
-          Month-End Forecast
+          Budget Forecast
         </h3>
         <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
           {forecast.daysRemaining}d left

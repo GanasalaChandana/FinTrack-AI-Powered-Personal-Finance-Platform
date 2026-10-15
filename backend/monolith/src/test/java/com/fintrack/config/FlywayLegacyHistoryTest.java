@@ -23,7 +23,7 @@ class FlywayLegacyHistoryTest {
     @DisplayName("fails validation without the repair, starts with it, and does not hide other changes")
     void legacyChecksumIsRealigned() {
         DriverManagerDataSource ds = new DriverManagerDataSource(
-                "jdbc:h2:mem:legacyhistory;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL", "sa", "");
+                "jdbc:h2:mem:legacyhistory;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL;NON_KEYWORDS=MONTH,VALUE,YEAR,USER", "sa", "");
         Flyway flyway = Flyway.configure()
                 .dataSource(ds)
                 .locations("classpath:db/migration")

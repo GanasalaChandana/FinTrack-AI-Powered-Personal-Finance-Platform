@@ -2,7 +2,7 @@
 
 # FinTrack — AI-Powered Personal Finance Platform
 
-**Full-stack finance app with real-time anomaly detection, predictive budget forecasting, and smart alerts — built to production standards.**
+**Full-stack finance app with statistical anomaly detection, month-end budget forecasting, and smart alerts. Spring Boot + Next.js, deployed on Render and Vercel.**
 
 [![Live Demo](https://img.shields.io/badge/▶%20Live%20Demo-fintrack--liart.vercel.app-6366f1?style=for-the-badge&logo=vercel)](https://fintrack-liart.vercel.app)
 
@@ -24,14 +24,15 @@
 
 > What separates FinTrack from standard CRUD finance apps:
 
-- **Statistical anomaly detection** — flags unusual spend using mean + 2σ per category. Runs 100% client-side, zero latency, zero API cost
+- **Statistical anomaly detection** — flags unusual spend using mean + 2σ per category. Runs 100% in the browser, zero API cost. This is rule-based analytics, not machine learning (see [Analytics Engine](#-analytics-engine-client-side-rule-based-zero-api-cost))
 - **Next-month prediction** — 3-month weighted rolling average (weights 3-2-1) projects next month's income, expenses, and savings with trend momentum and a confidence rating
 - **Predictive budget forecasting** — daily burn rate × days remaining = end-of-month projection with per-category "at risk" warnings
 - **Spoof-resistant rate limiting** — sliding window per IP *and* per account, plus an app-wide sign-up cap, so a forged `X-Forwarded-For` can't dodge it. No Redis needed (`ConcurrentHashMap` + `Deque<Long>`)
 - **Refresh token rotation with replay detection** — SHA-256 hashed, single-use; detecting a replayed token revokes ALL active sessions
 - **Fail-fast security config** — the server refuses to start without a strong `JWT_SECRET` (and rejects known public example secrets); `/actuator` exposes only `health`; errors return generic messages, never internals
 - **Ownership checks on user-scoped routes** — other users' resources return 403/404, and a `userId` supplied in a request body or query string is no longer trusted over the authenticated caller
-- **100+ backend tests** — Mockito service tests, `@WebMvcTest` controller slices, and `@SpringBootTest` integration tests on in-memory H2 covering the security fixes
+- **100+ backend tests and 20+ frontend unit tests** — Mockito service tests, `@WebMvcTest` controller slices, and `@SpringBootTest` integration tests on in-memory H2 covering the security fixes; Vitest tests for the forecasting, anomaly and custom-report logic
+- **Versioned database migrations** — Flyway baselines the live database and owns schema changes going forward; a test checks the baseline against the JPA entities
 
 ---
 
@@ -43,6 +44,8 @@
 | AI anomaly cards + burn rate forecast visible above the fold | 8 rule types with severity badges and actionable context | 6-month spending forecast with trend line |
 
 👉 **[Try the live demo → fintrack-liart.vercel.app](https://fintrack-liart.vercel.app)**
+
+> ⏱️ **First load can be slow.** The backend runs on Render's free plan, which puts the server to sleep when idle. The first request after a quiet period can take 30+ seconds while it wakes up (the app shows a "waking up the server" message). After that it responds normally.
 
 ---
 
@@ -67,7 +70,7 @@
 
 | | Feature | What it does |
 |---|---|---|
-| 🤖 | **AI Anomaly Detection** | Mean + 2σ per category — *"Housing ($1,200) is 277% above your $324 avg — review your largest category"* |
+| 🤖 | **Anomaly Detection** | Statistical (mean + 2σ per category) — *"Housing ($1,200) is 277% above your $324 avg for this category"*. Needs a meaningful history in the category to fire |
 | 🔮 | **Next-Month Prediction** | 3-month weighted forecast — *predicts income, expenses, savings rate with trend momentum and High/Medium/Low confidence* |
 | 📈 | **Budget Forecasting** | Burn rate projection — *"On track to spend $3,855 vs $3,150 budget — $705 over. Housing at 200%."* |
 | 🔔 | **Smart Alerts** | 8 rule types: large transactions, spending spikes, category concentration, income tracking |
@@ -75,7 +78,7 @@
 | 🧾 | **Receipt Scanner** | Camera/file upload → Tesseract.js OCR extracts merchant, amount, date |
 | 📊 | **Interactive Reports** | Nine report views: overview, custom, trends, comparison, 6-month forecast, budget history, tax, income, savings. Safe CSV / Excel / PDF exports (no third-party CDN scripts) |
 | 💳 | **Payment Methods** | Transactions carry a payment method, read from CSV imports and editable per transaction |
-| 🎯 | **Category Auto-Tagging** | Python FastAPI ML service classifies transactions by merchant + amount |
+| 🎯 | **Category Auto-Tagging** | Optional Python FastAPI classifier (scikit-learn) that tags by merchant + amount. It is **off by default** (`ML_CLASSIFIER_ENABLED`); without it, categories are assigned manually |
 | 🔐 | **Secure Auth** | Email/password and Google sign-in, JWT HS256, refresh token rotation, per-IP and per-account rate limiting, BCrypt hashing, case-insensitive unique emails |
 | 👤 | **Account Controls** | Change password (8+ characters), reset data, or delete your account and all of its data |
 
@@ -92,7 +95,7 @@ flowchart TD
         rep["Reports\n9 report views · Recharts"]
         ale["Alerts · Notifications"]
 
-        subgraph AI["⚡ Client-side AI Engine (zero API cost)"]
+        subgraph AI["⚡ Client-side Analytics Engine (rule-based, zero API cost)"]
             ai1["aiInsights.ts\nmean + 2σ anomaly detection"]
             ai2["budgetForecast.ts\nburn rate projection"]
             ai3["NextMonthPrediction\n3-month weighted forecast"]
@@ -117,7 +120,7 @@ flowchart TD
     end
 
     subgraph DB["🗄️ PostgreSQL — Render managed"]
-        migrations["Schema managed by Hibernate (ddl-auto=update)"]
+        migrations["Flyway migrations (V1 baseline)\nHibernate ddl-auto=update until the Flyway-only switch"]
     end
 
     subgraph ML["🤖 ML Classifier — Python · FastAPI (optional)"]
@@ -187,22 +190,25 @@ Successful logins reset the IP and account counters. Successful sign-ups do **no
 
 ---
 
-## 🧠 AI Engine (client-side, zero API cost)
+## 🧠 Analytics Engine (client-side, rule-based, zero API cost)
+
+The "AI" features are classic statistics and heuristics that run in the browser — averages, standard deviations, burn-rate projections and similarity matching. **They are not machine-learning models.** The only ML component in the project is the optional `ml-classifier` service, which is off by default.
 
 ### Anomaly Detection — `lib/utils/aiInsights.ts`
 ```
 For each spending category (requires ≥3 transactions):
 
   mean = average transaction amount
-  σ    = standard deviation of that category
+  σ    = population standard deviation of that category
 
   deviation = |transaction - mean| / σ
 
-  deviation > 2  →  HIGH    "⚠️ Housing ($1,200) is 277% above your $324 avg.
-                              This is your largest category anomaly this month."
-  deviation > 1.5 → MEDIUM  "Food & Dining ($340) is 27% above your $268 avg.
-                              Consider reducing dining-out frequency."
+  deviation > 2  →  flagged, MEDIUM impact
+  deviation > 3  →  flagged, HIGH impact
+
+  "Dinner ($200.00) is 366% above your $43 average for this category."
 ```
+Because σ is computed over the same transactions, one outlier among *n* values can be at most √(n−1) standard deviations from the mean. In practice a category needs **at least 6 transactions** before an outlier can exceed 2σ, and at least 11 before it can reach the HIGH level. With less history, nothing is flagged.
 
 ### Budget Forecasting — `lib/utils/budgetForecast.ts`
 ```
@@ -227,11 +233,11 @@ Output: "📊 Projected $3,855 vs $3,150 budget — $705 over.
 |---|---|
 | **Frontend** | Next.js 14, TypeScript, Tailwind CSS, Recharts, React Hook Form + Zod, Tesseract.js |
 | **Backend** | Spring Boot 3.2, Java 17, Spring Security, Spring Data JPA, Maven |
-| **Database** | PostgreSQL; schema managed by Hibernate `ddl-auto=update` (Flyway scripts V1–V9 are kept in `db/migration`, but Flyway is disabled) |
+| **Database** | PostgreSQL with Flyway migrations (`V1__baseline_schema.sql`); Hibernate `ddl-auto=update` stays on until the Flyway-only switch (see Database Migrations below) |
 | **Auth** | JWT HS256, Google sign-in, BCrypt, Refresh Token Rotation, per-IP + per-account Rate Limiting |
-| **Testing** | JUnit 5, Mockito, @WebMvcTest, MockMvc, @SpringBootTest + in-memory H2 — 100+ backend tests |
-| **ML** | Python, FastAPI, scikit-learn — transaction category classifier |
-| **DevOps** | GitHub Actions CI (3 jobs), Vercel (frontend), Render (backend + DB) |
+| **Testing** | Backend: JUnit 5, Mockito, @WebMvcTest, MockMvc, @SpringBootTest + in-memory H2 (100+ tests). Frontend: Vitest unit tests (20+), Playwright smoke tests |
+| **ML** | Python, FastAPI, scikit-learn — optional transaction category classifier (off by default) |
+| **DevOps** | GitHub Actions CI (4 jobs: backend tests, TypeScript, Vitest, Playwright), Docker Compose, Vercel (frontend), Render (backend + DB) |
 
 ---
 
@@ -375,15 +381,35 @@ JWT_SECRET=$(openssl rand -base64 48) docker compose up --build
 # → app on http://localhost:3000, API on http://localhost:8080
 ```
 
+Hosting it yourself on Render + Vercel (environment variables, CORS, custom domains, Flyway rollout)? See the [Deployment Guide](DEPLOYMENT_GUIDE.md).
+
+---
+
+## 🗄️ Database Migrations
+
+Schema changes are versioned with [Flyway](https://flywaydb.org). Migrations live in `backend/monolith/src/main/resources/db/migration`.
+
+- **`V1__baseline_schema.sql`** describes the current schema. A brand-new database runs it. An existing database (like production, which Hibernate created) is *baselined* at version 1 — Flyway records it and does **not** run the script against it.
+- **To change the schema**, add a new file such as `V2__add_index_on_transactions.sql`. Never edit a migration that has already been applied; Flyway checks file checksums and will refuse to start if one changed.
+- **Rollout:** Flyway is enabled with Hibernate's `ddl-auto=update` still on (step 1). After one clean deploy, switch `spring.jpa.hibernate.ddl-auto` to `validate` (step 2) so migrations are the only thing that change the schema.
+- **Emergency switch:** set `FLYWAY_ENABLED=false` in the host's environment to turn Flyway off without a code change.
+
 ---
 
 ## 🧪 Tests
 
 ```bash
+# Backend (JUnit 5)
 cd backend/monolith && mvn test
+
+# Frontend unit tests (Vitest)
+cd frontend/web && npm test
+
+# Frontend end-to-end smoke tests (Playwright, runs against a live URL)
+cd frontend/web && npm run test:e2e
 ```
 
-100+ backend tests across 17 test classes. Integration tests use an in-memory H2 database — no PostgreSQL, Kafka, or Redis required locally.
+**Backend:** 100+ tests across 18 test classes. Integration tests use an in-memory H2 database — no PostgreSQL, Kafka, or Redis required locally.
 
 | Area | Test classes | Coverage |
 |---|---|---|
@@ -392,6 +418,9 @@ cd backend/monolith && mvn test
 | Reports | `ReportsIntegrationTest` | Reports built from real data, over-budget insights, other users' reports forbidden |
 | Auth & accounts | `RegistrationFlowTest`, `AccountManagementTest`, `DemoServiceTest` | Sign-up validation, case-insensitive email, password rules, full account deletion, demo account protection and re-seeding |
 | Security | `AuthControllerRateLimitTest`, `JwtUtilSecretValidationTest`, `ActuatorExposureTest`, `CorsTest`, `GlobalExceptionHandlerTest` | Spoofed-IP rate limiting and sign-up cap, weak/missing/public JWT secrets rejected, actuator exposure, CORS allow-list, correct status codes with generic error messages |
+| Database | `FlywayBaselineTest` | A fresh database built from `V1` passes Hibernate's strict schema validation against the entities; an existing database is baselined at V1 and the baseline script is not run against it |
+
+**Frontend:** 20+ Vitest unit tests for the pure logic in `lib/` — the custom-report builder (date windows, grouping, running balance, rounding), the month-end budget forecast (burn rate, at-risk categories, first-of-month edge case) and anomaly detection (thresholds, per-category history, minimum-data limits). Playwright specs in `frontend/web/tests/e2e` cover the main user flows against a live deployment.
 
 ---
 
@@ -399,7 +428,7 @@ cd backend/monolith && mvn test
 
 ```
 FinTrack-AI-Powered-Personal-Finance-Platform/
-├── .github/workflows/ci.yml        3-job CI: tests + TypeScript + Playwright
+├── .github/workflows/ci.yml        4-job CI: backend tests, TypeScript, Vitest, Playwright
 ├── docker-compose.yml              PostgreSQL + backend + frontend
 ├── docs/                           Screenshots used in this README
 │
@@ -411,6 +440,7 @@ FinTrack-AI-Powered-Personal-Finance-Platform/
 │   ├── alerts/                      Smart alert engine, budget alert scheduler
 │   ├── notifications/               Notification center and settings
 │   └── config/                      Security, CORS, global exception handler
+│   (plus src/main/resources/db/migration/  Flyway migrations)
 │
 ├── frontend/web/
 │   ├── app/(app)/                   Auth-gated pages (AuthGate layout)
@@ -496,6 +526,13 @@ lsof -ti:3000 | xargs kill -9
 netstat -ano | findstr :8080
 taskkill /PID <pid> /F
 ```
+
+</details>
+
+<details>
+<summary><strong>Backend fails at startup after a Flyway change — checksum mismatch or "validate" errors</strong></summary>
+
+Flyway refuses to start if an already-applied migration file was edited. Restore the original file and put the change in a new `V<next>__...sql` migration instead. To get the app running while you sort it out, set `FLYWAY_ENABLED=false`.
 
 </details>
 

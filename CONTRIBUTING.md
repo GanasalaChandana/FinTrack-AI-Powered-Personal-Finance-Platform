@@ -106,20 +106,21 @@ docker-compose up --build
 
 ## Running Tests
 
-### Backend — JUnit 5 (52 tests)
+### Backend — JUnit 5 (100+ tests)
 
 ```bash
 cd backend/monolith
 mvn test
 ```
 
-Tests use Mockito mocks — no database or external services needed.
+Unit tests use Mockito mocks and integration tests use an in-memory H2 database — no PostgreSQL or other external services needed. `FlywayBaselineTest` checks that the Flyway baseline migration matches the JPA entities, so if you change an entity, add a matching `V<next>__*.sql` migration (never edit an applied one).
 
-### Frontend — TypeScript type-check
+### Frontend — unit tests (Vitest) and type-check
 
 ```bash
 cd frontend/web
-npx tsc --noEmit
+npm test            # Vitest unit tests for lib/ logic
+npx tsc --noEmit    # TypeScript type-check
 ```
 
 ### E2E — Playwright

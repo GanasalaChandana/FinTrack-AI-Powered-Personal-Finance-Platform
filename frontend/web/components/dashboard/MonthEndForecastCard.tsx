@@ -128,7 +128,7 @@ export function MonthEndForecastCard({ transactions }: Props) {
           <div>
             <div className="flex items-center gap-2 mb-0.5">
               <CalendarDays className="w-4 h-4 text-sky-500" />
-              <span className="text-xs font-bold text-sky-500 uppercase tracking-widest">Month-End Forecast</span>
+              <span className="text-xs font-bold text-sky-500 uppercase tracking-widest">Month-End Pace</span>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">{monthName} {data.year}</p>
           </div>
@@ -143,9 +143,9 @@ export function MonthEndForecastCard({ transactions }: Props) {
         {/* Month timeline bar */}
         <div>
           <div className="flex justify-between text-[11px] text-gray-400 dark:text-gray-500 mb-1.5">
-            <span>Day {daysPassed}</span>
+            <span>Today: day {daysPassed}</span>
             <span>{daysLeft} days left</span>
-            <span>Day {daysInMonth}</span>
+            <span>Month ends: day {daysInMonth}</span>
           </div>
           {/* Time progress (gray) */}
           <div className="relative h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden mb-1">

@@ -1,6 +1,0 @@
-﻿# Generate test traffic
-for ($i = 1; $i -le 10; $i++) {
-    Write-Host "Request $i"
-    curl -s http://localhost:8084/actuator/health | Out-Null
-    Start-Sleep -Seconds 2
-}

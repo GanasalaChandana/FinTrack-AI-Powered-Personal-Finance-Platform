@@ -1,7 +1,0 @@
-spring:
-  application:
-    name: budgets-service
-
-  datasource:
-    # LOCAL DEFAULTS (when you run with mvn)
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:fintrack}?currentSchema=budgets

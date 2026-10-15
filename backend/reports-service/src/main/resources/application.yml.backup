@@ -1,9 +1,0 @@
-server:
-  port: 8084
-
-spring:
-  application:
-    name: reports-service
-
-  datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:fintrack}?currentSchema=reports

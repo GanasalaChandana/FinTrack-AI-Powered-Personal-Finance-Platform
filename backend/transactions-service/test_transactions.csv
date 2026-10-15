@@ -1,9 +1,0 @@
-﻿date,description,amount,merchant,category,type
-2025-01-15,Starbucks Coffee,5.50,Starbucks,Food & Dining,EXPENSE
-2025-01-16,Salary Deposit,3500.00,Employer,Income,INCOME
-2025-01-17,Uber Ride,15.75,Uber,Transportation,EXPENSE
-2025-01-18,Amazon Purchase,89.99,Amazon,Shopping,EXPENSE
-2025-01-19,Netflix Subscription,15.99,Netflix,Entertainment,EXPENSE
-2025-01-20,Electric Bill,125.00,Electric Company,Utilities,EXPENSE
-2025-01-21,Grocery Shopping,67.45,Safeway,Food & Dining,EXPENSE
-2025-01-22,Gas Station,45.00,Shell,Transportation,EXPENSE

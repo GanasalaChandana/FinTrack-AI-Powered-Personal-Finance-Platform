@@ -43,7 +43,7 @@ public class FlywayConfig {
     private static boolean hasLegacyEmptyV1(DataSource dataSource) {
         try {
             Integer n = new JdbcTemplate(dataSource).queryForObject(
-                    "SELECT COUNT(*) FROM flyway_schema_history WHERE version = '1' AND checksum = 0",
+                    "SELECT COUNT(*) FROM \"flyway_schema_history\" WHERE \"version\" = '1' AND \"checksum\" = 0",
                     Integer.class);
             return n != null && n > 0;
         } catch (Exception e) {

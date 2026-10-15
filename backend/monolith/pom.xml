@@ -86,18 +86,13 @@
       <scope>runtime</scope>
     </dependency>
 
-    <!-- Flyway core -->
+    <!-- Flyway. The version is managed by Spring Boot 3.2 (Flyway 9.x), which has
+         PostgreSQL support built in. Do NOT add flyway-database-postgresql here: it only
+         exists for Flyway 10+ (Spring Boot 3.3+), and mixing a 10.x module with a 9.x core
+         fails at startup. If you upgrade Spring Boot to 3.3+, add it back at that point. -->
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
-    </dependency>
-
-    <!-- Flyway PostgreSQL dialect (required for Boot 3.2+) -->
-    <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-database-postgresql</artifactId>
-      <version>10.4.1</version>
-      <scope>runtime</scope>
     </dependency>
 
     <!-- ============================= -->

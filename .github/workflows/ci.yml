@@ -57,11 +57,35 @@ jobs:
       - name: TypeScript type check
         run: npx tsc --noEmit
 
+  # ── 2b. Frontend: unit tests (Vitest) ────────────────────────────────────────
+  frontend-unit:
+    name: Frontend Unit Tests (Vitest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
   # ── 3. E2E smoke tests (Playwright) ─────────────────────────────────────────
   e2e:
     name: E2E Smoke Tests (Playwright)
     runs-on: ubuntu-latest
-    needs: [ backend-test, frontend-typecheck ]   # only run if both pass
+    needs: [ backend-test, frontend-typecheck, frontend-unit ]   # only run if all pass
     defaults:
       run:
         working-directory: frontend/web   # all steps run inside frontend/web

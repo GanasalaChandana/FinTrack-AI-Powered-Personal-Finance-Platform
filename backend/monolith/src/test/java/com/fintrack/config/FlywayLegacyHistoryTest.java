@@ -32,7 +32,7 @@ class FlywayLegacyHistoryTest {
         flyway.migrate();
 
         JdbcTemplate jdbc = new JdbcTemplate(ds);
-        jdbc.update("UPDATE flyway_schema_history SET checksum = 0 WHERE version = '1'");
+        jdbc.update("UPDATE \"flyway_schema_history\" SET \"checksum\" = 0 WHERE \"version\" = '1'");
 
         assertThrows(FlywayValidateException.class, flyway::migrate);
 
@@ -40,11 +40,11 @@ class FlywayLegacyHistoryTest {
         flyway.migrate(); // must not throw now
 
         Integer zero = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM flyway_schema_history WHERE version = '1' AND checksum = 0", Integer.class);
+                "SELECT COUNT(*) FROM \"flyway_schema_history\" WHERE \"version\" = '1' AND \"checksum\" = 0", Integer.class);
         assertEquals(0, zero.intValue());
 
         // A different checksum is a genuine edit and must still be rejected.
-        jdbc.update("UPDATE flyway_schema_history SET checksum = 12345 WHERE version = '1'");
+        jdbc.update("UPDATE \"flyway_schema_history\" SET \"checksum\" = 12345 WHERE \"version\" = '1'");
         FlywayConfig.repairLegacyPlaceholderIfPresent(flyway, ds);
         assertThrows(FlywayValidateException.class, flyway::migrate);
     }

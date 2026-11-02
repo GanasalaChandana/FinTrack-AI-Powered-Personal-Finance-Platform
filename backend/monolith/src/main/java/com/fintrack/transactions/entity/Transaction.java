@@ -84,6 +84,10 @@ public class Transaction {
     @Column(name = "payment_method", length = 100)
     private String paymentMethod;
 
+    // Set when created by a recurring rule; unique with date, so an occurrence is never created twice
+    @Column(name = "recurring_id")
+    private Long recurringId;
+
     // Getter and Setter
     public boolean isMlPredicted() {
         return mlPredicted;

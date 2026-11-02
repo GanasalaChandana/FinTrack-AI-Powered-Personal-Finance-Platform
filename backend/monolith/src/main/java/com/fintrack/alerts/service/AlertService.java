@@ -2,11 +2,13 @@ package com.fintrack.alerts.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import com.fintrack.alerts.entity.Alert;
 import com.fintrack.alerts.repository.AlertRepository;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
 
@@ -160,8 +162,14 @@ public class AlertService {
             alert.setRead(false);
             alert.setAcknowledged(false);
             alert.setCreatedAt(LocalDateTime.now());
-            alertRepository.save(alert);
-            log.debug("Alert created for userId={} type={}", userId, type);
+            alert.setDedupeKey(userId + "|" + category + "|" + type + "|" + YearMonth.now());
+            try {
+                alertRepository.save(alert);
+                log.debug("Alert created for userId={} type={}", userId, type);
+            } catch (DataIntegrityViolationException e) {
+                // Another run created the same alert between our check and insert
+                log.debug("Alert already created concurrently for userId={} type={}", userId, type);
+            }
         } else {
             log.debug("Alert already exists for userId={} type={}", userId, type);
         }

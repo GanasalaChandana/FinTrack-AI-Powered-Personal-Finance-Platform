@@ -29,6 +29,18 @@ public class Alert {
     private boolean read = false;
     private boolean acknowledged = false;
 
+    // user|category|type|month for budget alerts; unique, so the same alert can't be created twice
+    @Column(name = "dedupe_key")
+    private String dedupeKey;
+
+    public String getDedupeKey() {
+        return dedupeKey;
+    }
+
+    public void setDedupeKey(String dedupeKey) {
+        this.dedupeKey = dedupeKey;
+    }
+
     // getters/setters for all 5 fields
     public String getTitle() {
         return title;

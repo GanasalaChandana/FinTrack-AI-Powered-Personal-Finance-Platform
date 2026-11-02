@@ -4,6 +4,7 @@ import com.fintrack.budgets.entity.Budget;
 import com.fintrack.budgets.repository.BudgetRepository;
 import com.fintrack.budgets.service.BudgetsService;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +34,7 @@ public class BudgetAlertScheduler {
     }
 
     @Scheduled(fixedDelay = 3600000, initialDelay = 300000) // hourly, first run 5 min after start-up
+    @SchedulerLock(name = "budgetAlerts", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     public void checkBudgetAlerts() {
         log.info("Running budget alert check...");
         try {

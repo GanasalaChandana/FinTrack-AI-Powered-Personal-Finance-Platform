@@ -93,6 +93,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      * Find all transactions for a user (without pagination)
      * Used for comprehensive reports
      */
+    /** True if a recurring rule already created its transaction for this date. */
+    boolean existsByRecurringIdAndDate(Long recurringId, LocalDate date);
+
     List<Transaction> findByUserId(String userId);
 
     /** JPQL bulk delete — Hibernate resolves the userId field mapping so UUID/VARCHAR cast is handled correctly. */

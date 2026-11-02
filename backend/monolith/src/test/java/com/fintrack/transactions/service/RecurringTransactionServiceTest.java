@@ -72,4 +72,22 @@ class RecurringTransactionServiceTest {
         verify(transactionRepo, times(3)).save(any(Transaction.class)); // -5, -4, -3
         assertThat(daily.getActive()).isFalse();
     }
+
+    @Test
+    @DisplayName("skips an occurrence that already exists, but still moves on")
+    void skipsExistingOccurrence() {
+        LocalDate today = LocalDate.now();
+        RecurringTransaction weekly = rule(today.minusWeeks(1), "WEEKLY", null);
+        when(recurringRepo.findDueRecurringTransactions(any())).thenReturn(List.of(weekly));
+        // Last week's occurrence was already created (e.g. a run crashed before advancing)
+        when(transactionRepo.existsByRecurringIdAndDate(1L, today.minusWeeks(1))).thenReturn(true);
+
+        service.processRecurringTransactions();
+
+        ArgumentCaptor<Transaction> saved = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepo, times(1)).save(saved.capture());
+        assertThat(saved.getValue().getDate()).isEqualTo(today);
+        assertThat(saved.getValue().getRecurringId()).isEqualTo(1L);
+        assertThat(weekly.getNextOccurrence()).isEqualTo(today.plusWeeks(1));
+    }
 }

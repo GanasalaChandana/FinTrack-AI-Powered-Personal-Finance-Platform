@@ -32,6 +32,7 @@ class FlywayExistingDatabaseTest {
                 .locations("classpath:db/migration")
                 .baselineOnMigrate(true)
                 .baselineVersion("1")
+                .target("1") // this test is about the baseline; V2+ need the full schema
                 .placeholders(Map.of("text_type", "TEXT"))
                 .load();
         flyway.migrate();

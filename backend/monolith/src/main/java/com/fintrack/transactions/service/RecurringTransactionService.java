@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -100,8 +101,10 @@ public class RecurringTransactionService {
 
     // Hourly (first run 2 min after start-up) instead of once at 2 AM: the host
     // sleeps when idle, so a single nightly run was often missed entirely.
-    // Re-running is safe — each occurrence is created once, then nextOccurrence moves on.
+    // Re-running is safe: each occurrence is keyed by (rule, date), and ShedLock stops two
+    // instances running the job at the same time.
     @Scheduled(fixedDelay = 3600000, initialDelay = 120000)
+    @SchedulerLock(name = "recurringTransactions", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     @Transactional
     public void processRecurringTransactions() {
         LocalDate today = LocalDate.now();
@@ -129,7 +132,13 @@ public class RecurringTransactionService {
     }
 
     private void createTransactionFromRecurring(RecurringTransaction recurring) {
+        // Idempotent: a retry after a crash (or an overlapping run) must not duplicate an occurrence
+        if (transactionRepository.existsByRecurringIdAndDate(recurring.getId(), recurring.getNextOccurrence())) {
+            log.info("Occurrence {} of recurring ID {} already exists, skipping", recurring.getNextOccurrence(), recurring.getId());
+            return;
+        }
         Transaction transaction = new Transaction();
+        transaction.setRecurringId(recurring.getId());
         transaction.setUserId(recurring.getUserId());
         transaction.setDescription(recurring.getDescription());
         transaction.setAmount(recurring.getAmount());

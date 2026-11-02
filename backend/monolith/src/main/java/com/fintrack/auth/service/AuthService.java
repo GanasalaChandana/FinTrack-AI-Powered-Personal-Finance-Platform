@@ -12,6 +12,7 @@ import com.fintrack.auth.repository.UserRepository;
 import com.fintrack.auth.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -132,6 +133,7 @@ public class AuthService {
 
     /** Remove expired refresh tokens daily at 03:00. */
     @Scheduled(cron = "0 0 3 * * *")
+    @SchedulerLock(name = "refreshTokenCleanup", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     @Transactional
     public void purgeExpiredRefreshTokens() {
         refreshTokenRepository.deleteExpiredBefore(LocalDateTime.now());

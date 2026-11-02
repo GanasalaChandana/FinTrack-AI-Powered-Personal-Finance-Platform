@@ -12,8 +12,9 @@ import path from 'path';
 
 const AUTH_FILE = path.join(__dirname, '.auth/user.json');
 
-const EMAIL    = process.env.TEST_EMAIL    ?? 'test@example.com';
-const PASSWORD = process.env.TEST_PASSWORD ?? 'password123';
+// Trim: values pasted into GitHub secrets often carry a trailing newline
+const EMAIL    = (process.env.TEST_EMAIL    || 'test@example.com').trim();
+const PASSWORD = (process.env.TEST_PASSWORD || 'password123').trim();
 
 setup('authenticate', async ({ page }) => {
   setup.setTimeout(120_000); // default 30s is shorter than a backend wake-up

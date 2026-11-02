@@ -103,11 +103,11 @@ test.describe('FinTrack Smoke Tests', () => {
     await expect(page).toHaveURL(/settings/);
     await expect(page.locator('text=/Settings/i').first()).toBeVisible({ timeout: 8_000 });
     // All 5 tabs should be present
-    await expect(page.locator('button:has-text("Profile")')).toBeVisible();
-    await expect(page.locator('button:has-text("Security")')).toBeVisible();
-    await expect(page.locator('button:has-text("Preferences")')).toBeVisible();
-    await expect(page.locator('button:has-text("Notifications")')).toBeVisible();
-    await expect(page.locator('button:has-text("Categories")')).toBeVisible();
+    await expect(page.locator('main').getByRole('button', { name: 'Profile', exact: true })).toBeVisible();
+    await expect(page.locator('main').getByRole('button', { name: 'Security', exact: true })).toBeVisible();
+    await expect(page.locator('main').getByRole('button', { name: 'Preferences', exact: true })).toBeVisible();
+    await expect(page.locator('main').getByRole('button', { name: 'Notifications', exact: true })).toBeVisible();
+    await expect(page.locator('main').getByRole('button', { name: 'Categories', exact: true })).toBeVisible();
   });
 
   /* 10 ─ Settings: Notifications tab */
@@ -132,8 +132,8 @@ test.describe('FinTrack Smoke Tests', () => {
       const box = await sidebar.boundingBox();
       if (box) expect(box.width).toBeLessThan(100);
 
-      // Expand again
-      await collapseBtn.click();
+      // Expand again (the button's title changes to "Expand")
+      await page.locator('button[title*="expand" i], button[aria-label*="expand" i]').first().click();
       await page.waitForTimeout(400);
     }
   });

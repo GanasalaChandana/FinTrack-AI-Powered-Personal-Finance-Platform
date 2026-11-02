@@ -58,6 +58,9 @@ test.describe('Transaction Flows', () => {
     const descField = dialog.locator('input[name="description"], textarea[name="description"]').first();
     if (await descField.isVisible()) await descField.fill('Morning coffee');
 
+    const categoryField = dialog.locator('select[name="category"]');
+    if (await categoryField.isVisible()) await categoryField.selectOption({ index: 1 });
+
     // Submit
     const submitBtn = dialog.locator('button[type="submit"], button:has-text("Save"), button:has-text("Add Transaction")').first();
     if (await submitBtn.isVisible()) {

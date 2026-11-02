@@ -157,6 +157,7 @@ jobs:
 
     env:
       BASE_URL:      ${{ secrets.E2E_BASE_URL || 'https://fintrack-liart.vercel.app' }}
+      API_URL:       ${{ secrets.E2E_API_URL  || 'https://fintrack-api-e9ee.onrender.com' }}
       TEST_EMAIL:    ${{ secrets.E2E_TEST_EMAIL    }}
       TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
 

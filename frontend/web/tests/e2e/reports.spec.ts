@@ -65,7 +65,7 @@ test.describe('Reports Page — All Tabs', () => {
     await goToReports(page);
     await clickTab(page, 'Forecast');
     await expect(
-      page.locator('text=/Forecast|Project|Month/i').first()
+      page.locator('text=/Forecast|Project|Month/i').locator('visible=true').first()
     ).toBeVisible({ timeout: 10_000 });
   });
 

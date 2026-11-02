@@ -33,6 +33,7 @@
 - **Ownership checks on user-scoped routes** — other users' resources return 403/404, and a `userId` supplied in a request body or query string is no longer trusted over the authenticated caller
 - **100+ backend tests and 20+ frontend unit tests** — Mockito service tests, `@WebMvcTest` controller slices, and `@SpringBootTest` integration tests on in-memory H2 covering the security fixes; Vitest tests for the forecasting, anomaly and custom-report logic
 - **Versioned database migrations** — Flyway baselines the live database and owns schema changes going forward; a test checks the baseline against the JPA entities
+- **Safe to scale out** — every scheduled job takes a database lock (ShedLock), so with several instances each job runs once; recurring transactions and budget alerts carry unique keys, so a crash-and-retry can't create duplicates
 
 ---
 
@@ -120,7 +121,7 @@ flowchart TD
     end
 
     subgraph DB["🗄️ PostgreSQL — Render managed"]
-        migrations["Flyway migrations (V1 baseline)\nHibernate ddl-auto=update until the Flyway-only switch"]
+        migrations["Flyway migrations (V1 baseline, V2 indexes + locks)\nHibernate ddl-auto=update until the Flyway-only switch"]
     end
 
     subgraph ML["🤖 ML Classifier — Python · FastAPI (optional)"]
@@ -390,7 +391,8 @@ Hosting it yourself on Render + Vercel (environment variables, CORS, custom doma
 Schema changes are versioned with [Flyway](https://flywaydb.org). Migrations live in `backend/monolith/src/main/resources/db/migration`.
 
 - **`V1__baseline_schema.sql`** describes the current schema. A brand-new database runs it. An existing database (like production, which Hibernate created) is *baselined* at version 1 — Flyway records it and does **not** run the script against it.
-- **To change the schema**, add a new file such as `V2__add_index_on_transactions.sql`. Never edit a migration that has already been applied; Flyway checks file checksums and will refuse to start if one changed.
+- **`V2__indexes_job_locks_and_idempotency.sql`** adds the per-user query indexes, the `shedlock` table for scheduled-job locks, and the unique keys that stop duplicate recurring transactions and budget alerts.
+- **To change the schema**, add a new file such as `V3__add_something.sql`. Never edit a migration that has already been applied; Flyway checks file checksums and will refuse to start if one changed.
 - **Rollout:** Flyway is enabled with Hibernate's `ddl-auto=update` still on (step 1). After one clean deploy, switch `spring.jpa.hibernate.ddl-auto` to `validate` (step 2) so migrations are the only thing that change the schema.
 - **Emergency switch:** set `FLYWAY_ENABLED=false` in the host's environment to turn Flyway off without a code change.
 

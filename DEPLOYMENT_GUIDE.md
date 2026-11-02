@@ -27,11 +27,14 @@ A plain `postgresql://...` URL will not work.
 
 ## 2. Backend (Render)
 
-Create a **Web Service** from this repository:
+CI builds the backend image on GitHub and Render only runs it, so deploys use no Render build minutes:
 
-- **Runtime:** Docker
-- **Root directory / Docker context:** `backend/monolith` (it has its own `Dockerfile`; the app listens on port `8080`)
-- **Health check path:** `/actuator/health`
+- On every push to `main` that changes `backend/monolith` (after the backend tests pass), the **Build & Push Backend Image** job pushes `ghcr.io/<owner>/fintrack-monolith:latest` (and `:<commit sha>`). You can also run it by hand: *Actions → CI → Run workflow*.
+- Make the package public once (*GitHub → Packages → fintrack-monolith → Package settings → Change visibility*), or give Render registry credentials.
+- In Render create a **Web Service → Existing Image** with that image, port `8080`, **health check path** `/actuator/health`.
+- Copy the service's **Deploy Hook** URL into the GitHub secret `RENDER_DEPLOY_HOOK_URL`; CI calls it after each push so Render pulls the new image.
+
+(Building from the repository with Render's own Docker build also works: Docker context `backend/monolith`, which has its own `Dockerfile`.)
 
 Environment variables:
 

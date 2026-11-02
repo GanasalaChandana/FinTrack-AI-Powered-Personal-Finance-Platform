@@ -347,6 +347,10 @@ function AuthPageContent() {
         throw new Error('Too many attempts. Please wait 2-3 minutes and try again.');
       }
 
+      if (response.status === 409 && mode === 'signup') {
+        throw new Error('An account with this email already exists. Sign in instead — or use "Sign in with Google" if you signed up with Google.');
+      }
+
       if (!response.ok) {
         let errorMessage = mode === 'signin' ? 'Login failed' : 'Registration failed';
         

@@ -149,7 +149,7 @@ jobs:
   # ── 3. E2E smoke tests (Playwright) ─────────────────────────────────────────
   e2e:
     name: E2E Smoke Tests (Playwright)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # Playwright 1.59 has no browsers for ubuntu-26.04 (now ubuntu-latest)
     needs: [ backend-test, frontend-typecheck, frontend-unit ]   # only run if all pass
     defaults:
       run:

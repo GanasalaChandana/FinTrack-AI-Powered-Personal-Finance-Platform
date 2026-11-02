@@ -16,27 +16,23 @@ const EMAIL    = process.env.TEST_EMAIL    ?? 'test@example.com';
 const PASSWORD = process.env.TEST_PASSWORD ?? 'password123';
 
 setup('authenticate', async ({ page }) => {
-  // Navigate to the login/register page
-  await page.goto('/register?mode=signin');
+  // Go straight to the sign-in form (/register redirects to sign-UP mode)
+  await page.goto('/login?mode=signin');
 
-  // Wait for the page to be ready
-  await page.waitForLoadState('networkidle');
-
-  // Fill in credentials — target the email input
-  const emailInput = page.locator('input[type="email"], input[name="email"], input[placeholder*="email" i]').first();
+  const emailInput = page.locator('input[type="email"], input[name="email"]').first();
   const passInput  = page.locator('input[type="password"]').first();
+  await expect(emailInput).toBeVisible();
 
   await emailInput.fill(EMAIL);
   await passInput.fill(PASSWORD);
 
-  // Click sign in button
-  const signInBtn = page.locator(
-    'button[type="submit"], button:has-text("Sign In"), button:has-text("Log In"), button:has-text("Login")'
-  ).first();
-  await signInBtn.click();
+  // The page has a "Sign In" tab *and* a "Sign In" submit button; the submit
+  // button comes last in the page.
+  await page.getByRole('button', { name: /^sign in/i }).last().click();
 
-  // Wait for redirect to dashboard — confirms login succeeded
-  await page.waitForURL('**/dashboard', { timeout: 15_000 });
+  // Wait for redirect to dashboard — confirms login succeeded. Generous timeout:
+  // the free-tier backend can take a minute to wake up.
+  await page.waitForURL('**/dashboard', { timeout: 90_000 });
 
   // Confirm we landed on the dashboard
   await expect(page).toHaveURL(/dashboard/);

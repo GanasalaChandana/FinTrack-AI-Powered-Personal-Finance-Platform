@@ -37,11 +37,20 @@ export interface AnomalyDetection {
   expectedAmount: number;
 }
 
+// Insights are about spending: drop income (the API sends lowercase types) and
+// use positive amounts, since some sources store expenses as negatives.
+const expensesOnly = (txns: Transaction[] = []): Transaction[] =>
+  txns
+    .filter((t) => String(t.type ?? '').toUpperCase() !== 'INCOME')
+    .map((t) => ({ ...t, amount: Math.abs(Number(t.amount) || 0) }));
+
 export const generateAIInsights = (
-  transactions: Transaction[],
-  previousPeriodTransactions?: Transaction[]
+  allTransactions: Transaction[],
+  allPreviousPeriodTransactions?: Transaction[]
 ): SpendingInsight[] => {
   const insights: SpendingInsight[] = [];
+  const transactions = expensesOnly(allTransactions);
+  const previousPeriodTransactions = allPreviousPeriodTransactions && expensesOnly(allPreviousPeriodTransactions);
 
   // 1. Detect spending anomalies
   const anomalies = detectAnomalies(transactions);
@@ -100,7 +109,7 @@ export const generateAIInsights = (
     insights.push({
       id: 'recurring-found',
       type: 'info',
-      title: `${recurring.length} Recurring Transactions Detected`,
+      title: `${recurring.length} Recurring Transaction${recurring.length === 1 ? '' : 's'} Detected`,
       message: `Found ${recurring.length} likely subscription or recurring payments totalling $${recurringTotal.toFixed(2)}/month. Review for any unused services.`,
       impact: 'low',
       actionable: true,
@@ -133,7 +142,7 @@ export const generateAIInsights = (
         id: `top-category-${index}`,
         type: 'info',
         title: `${cat.category} Is ${cat.percentage.toFixed(0)}% of Your Spending`,
-        message: `${cat.category} accounts for ${cat.percentage.toFixed(0)}% of all expenses ($${cat.amount.toFixed(2)}) across ${cat.count} transactions.${tip ? ` ${tip}` : ''}`,
+        message: `${cat.category} accounts for ${cat.percentage.toFixed(0)}% of all expenses ($${cat.amount.toFixed(2)}) across ${cat.count} transaction${cat.count === 1 ? '' : 's'}.${tip ? ` ${tip}` : ''}`,
         impact: 'medium',
         category: cat.category,
         amount: cat.amount,

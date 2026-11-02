@@ -82,3 +82,18 @@ describe("generateAIInsights", () => {
     expect(priorities).toEqual([...priorities].sort((a, b) => a - b));
   });
 });
+
+describe("income is not treated as spending", () => {
+  it("ignores income when ranking spending categories", () => {
+    const txns: Transaction[] = [
+      { id: "s", date: day(3), amount: 2500, category: "Salary", description: "Salary", type: "income" as any },
+      expense(day(4), 80, "Groceries"),
+      expense(day(5), 20, "Transport"),
+    ];
+    const insights = generateAIInsights(txns);
+    expect(insights.some((i) => i.category === "Salary")).toBe(false);
+    const top = insights.find((i) => i.id === "top-category-0");
+    expect(top?.category).toBe("Groceries");
+    expect(top?.message).toContain("across 1 transaction.");
+  });
+});

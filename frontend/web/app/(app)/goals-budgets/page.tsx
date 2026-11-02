@@ -187,7 +187,7 @@ function GoalForm({ initial, onSave, onClose }: GoalFormProps) {
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
@@ -364,7 +364,7 @@ function ContributeModal({ goal, onSave, onClose }: ContributeModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Add Contribution</h2>
@@ -763,7 +763,7 @@ function WizardModal5030({ onApply, onClose }: { onApply: (b: AppliedBudget[]) =
   const totalApply = Object.values(alloc).filter(v => v > 0).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
@@ -1148,7 +1148,7 @@ function GoalsSection() {
 
       {/* Clear all confirm */}
       {showClearConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-gray-100 dark:border-gray-700 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/30">
@@ -1521,7 +1521,7 @@ export default function GoalsBudgetsPage() {
 
         {/* ── Clear all budgets confirm ── */}
         {showClearBudgetsConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-gray-100 dark:border-gray-700 max-h-[calc(100dvh-2rem)] overflow-y-auto">
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/30">

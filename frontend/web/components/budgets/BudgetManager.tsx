@@ -198,7 +198,7 @@ function DeleteConfirmModal({
   categoryName: string; onConfirm: () => void; onCancel: () => void; isDeleting: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
       <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-sm border border-gray-100 dark:border-gray-700 p-7 max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <div className="flex flex-col items-center text-center gap-4 mb-6">
           <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
@@ -470,7 +470,9 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
                       overallPct >= 100 ? "text-red-600" : overallPct >= 80 ? "text-amber-500" : "text-emerald-600"
                     }`}>{Math.round(overallPct)}%</p>
                   </div>
-                  <div className="h-3 rounded-full bg-gray-200 dark:bg-gray-600 overflow-hidden">
+                  <div className="h-3 rounded-full bg-gray-200 dark:bg-gray-600 overflow-hidden"
+                    role="progressbar" aria-label="Monthly budget used"
+                    aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.round(overallPct))}>
                     <div className="h-full rounded-full transition-all duration-700"
                       style={{
                         width: `${overallPct}%`,
@@ -629,7 +631,7 @@ interface BudgetModalProps {
 
 function BudgetModal({ mode, form, errors, isSaving, onChange, onClose, onSubmit }: BudgetModalProps) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
       <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col max-h-[90vh]">
         <div className="bg-indigo-600 px-6 py-5 flex items-center justify-between shrink-0">
           <div>

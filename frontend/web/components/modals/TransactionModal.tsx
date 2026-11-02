@@ -96,6 +96,14 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
   const [expenseCategories, setExpenseCategories] = useState<string[]>(getExpenseCategories());
   const [incomeCategories] = useState<string[]>(getIncomeCategories());
 
+  // Escape closes the modal, like every other dialog
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     // Re-read custom categories whenever the modal opens
     if (isOpen) setExpenseCategories(getExpenseCategories());
@@ -208,7 +216,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
   return (
     // Scrollable overlay: the form is taller than a phone screen, and a fixed,
     // centered box cut off its Save button with no way to scroll to it.
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-y-auto bg-black/50">
      <div className="flex min-h-full items-center justify-center p-4">
       <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-800 shadow-2xl">
         {/* Header */}
@@ -270,6 +278,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
                 <DollarSign className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
+                  name="merchant"
                   value={formData.merchant}
                   onChange={(e) => setFormData({ ...formData, merchant: e.target.value })}
                   className={inputClass("merchant")}
@@ -289,6 +298,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
                 <input
                   type="number"
                   step="0.01"
+                  name="amount"
                   value={formData.amount || ""}
                   onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
                   className={inputClass("amount")}
@@ -320,6 +330,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
               <div className="relative">
                 <Tag className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <select
+                  name="category"
                   value={formData.category}
                   onChange={(e) => { setFormData({ ...formData, category: e.target.value }); setAiSuggested(false); }}
                   className={`w-full appearance-none rounded-lg border ${
@@ -450,6 +461,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
             <div className="relative">
               <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
               <textarea
+                name="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}

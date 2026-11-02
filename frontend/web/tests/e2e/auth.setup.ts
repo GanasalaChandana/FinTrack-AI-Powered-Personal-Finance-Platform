@@ -16,6 +16,8 @@ const EMAIL    = process.env.TEST_EMAIL    ?? 'test@example.com';
 const PASSWORD = process.env.TEST_PASSWORD ?? 'password123';
 
 setup('authenticate', async ({ page }) => {
+  setup.setTimeout(120_000); // default 30s is shorter than a backend wake-up
+
   // Go straight to the sign-in form (/register redirects to sign-UP mode)
   await page.goto('/login?mode=signin');
 

@@ -214,6 +214,14 @@ p {
   line-height: 1.6;
 }
 
+/* The rule above beats inherited colour, so paragraphs inside white-text cards
+   (gradient heroes, banners) turned grey on purple. Let them inherit there.
+   :where() keeps this as weak as the rule above, so a colour class set on the
+   paragraph itself still wins. */
+:where(.text-white) p {
+  color: inherit;
+}
+
 a {
   color: var(--color-primary-600);
   text-decoration: none;

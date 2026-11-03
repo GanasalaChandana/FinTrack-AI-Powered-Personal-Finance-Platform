@@ -8,6 +8,7 @@ import {
   Scissors, Smartphone, Coffee, Zap,
 } from "lucide-react";
 import { transactionsAPI, type Transaction as ApiTransaction } from "@/lib/api";
+import { detectRecurring } from "@/lib/utils/recurringDetection";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,29 @@ const THRESHOLDS = {
 };
 
 // ── Insight engine ────────────────────────────────────────────────────────────
+
+/**
+ * Subscriptions as the Subscriptions page sees them: services that recur on a
+ * regular schedule (shared detector), costed per month. Counting individual
+ * keyword-matching payments made 10 Netflix/Spotify charges "10 subscriptions"
+ * and called their 3-month total a monthly cost.
+ */
+function detectedSubscriptions(transactions: ApiTransaction[]) {
+  const subs = detectRecurring(transactions as any).items.filter((i) => i.isSubscription);
+  const perMonth = (a: number, f: string) => (f === "weekly" ? a * 4.33 : f === "biweekly" ? a * 2.17 : a);
+  const monthly = subs.reduce((s, i) => s + perMonth(Math.abs(i.amount), i.frequency), 0);
+  return { count: subs.length, monthly, names: subs.map((i) => i.merchant) };
+}
+
+/** Costs you can't trim week to week (rent, utilities, insurance…): flagged, but no "cut 15%" savings. */
+const FIXED_COST_CATEGORIES = new Set([
+  "Housing", "Rent", "Mortgage", "Bills & Utilities", "Utilities", "Insurance", "Education", "Healthcare",
+]);
+
+/** Number of distinct months the transactions span (at least 1), to turn totals into monthly averages. */
+function monthsCovered(txns: ApiTransaction[]): number {
+  return Math.max(new Set(txns.map((t) => (t.date ?? "").slice(0, 7)).filter(Boolean)).size, 1);
+}
 
 function generateInsights(transactions: ApiTransaction[]): SpendingInsight[] {
   const insights: SpendingInsight[] = [];
@@ -88,14 +112,20 @@ function generateInsights(transactions: ApiTransaction[]): SpendingInsight[] {
     const total = expenses.reduce((s, t) => s + Math.abs(t.amount), 0);
     const pct   = total > 0 ? (topAmt / total) * 100 : 0;
     if (pct > THRESHOLDS.categoryDominancePct) {
+      const fixed = FIXED_COST_CATEGORIES.has(topCat);
+      const monthlyAvg = topAmt / monthsCovered(expenses);
       insights.push({
         id: "top-category", type: "info", priority: 2,
         title: `${topCat} Dominates Your Spending`,
-        message: `${topCat} is ${pct.toFixed(0)}% of all expenses — $${topAmt.toFixed(2)} total.`,
+        message: `${topCat} is ${pct.toFixed(0)}% of all expenses — $${topAmt.toFixed(2)} total.` +
+          (fixed ? " It's mostly a fixed cost, so the time to act is at renewal or when you compare providers." : ""),
         impact: pct > 50 ? "high" : "medium",
         category: topCat, amount: topAmt, actionable: true,
-        actions: ["Set a budget for this category", "Find cheaper alternatives", "Track weekly instead of monthly"],
-        savingsEstimate: topAmt * 0.1 * 12, // 10% reduction × 12 months
+        actions: fixed
+          ? ["Compare providers before your next renewal", "Check for unused services in this category", "Plan other spending around it"]
+          : ["Set a budget for this category", "Find cheaper alternatives", "Track weekly instead of monthly"],
+        // A fixed cost isn't something you cut by 10% next month; others: 10% of the monthly average, per year
+        savingsEstimate: fixed ? 0 : monthlyAvg * 0.1 * 12,
       });
     }
   }
@@ -129,25 +159,21 @@ function generateInsights(transactions: ApiTransaction[]): SpendingInsight[] {
       message: `${small.length} transactions under $${THRESHOLDS.microSpendMax} totalled $${smallTotal.toFixed(2)}. Small buys compound fast.`,
       impact: "medium", amount: smallTotal, actionable: true,
       actions: ["Apply the 24-hour rule before small purchases", "Set a daily cash allowance", "Delete shopping apps"],
-      savingsEstimate: smallTotal * 0.3 * 12,
+      // 30% of the monthly average, per year (smallTotal spans the whole history)
+      savingsEstimate: (smallTotal / monthsCovered(small)) * 0.3 * 12,
     });
   }
 
   // ── 5. Subscription audit ──────────────────────────────────────────────────
-  const subKeywords = ["subscription", "netflix", "spotify", "disney", "hulu", "apple", "amazon prime", "youtube", "gym"];
-  const subs = transactions.filter((t) => {
-    const d = (t.description ?? "").toLowerCase();
-    return subKeywords.some((k) => d.includes(k));
-  });
-  if (subs.length > 0) {
-    const subsTotal = subs.reduce((s, t) => s + Math.abs(t.amount), 0);
+  const subs = detectedSubscriptions(transactions);
+  if (subs.count > 0) {
     insights.push({
       id: "subscriptions", type: "tip", priority: 3,
-      title: `${subs.length} Subscriptions Detected`,
-      message: `${subs.length} recurring services cost $${subsTotal.toFixed(2)}/month — $${(subsTotal * 12).toFixed(2)}/year.`,
-      impact: "medium", amount: subsTotal, actionable: true,
+      title: `${subs.count} Subscription${subs.count === 1 ? "" : "s"} Detected`,
+      message: `${subs.names.slice(0, 3).join(", ")}${subs.count > 3 ? "…" : ""} cost $${subs.monthly.toFixed(2)}/month — $${(subs.monthly * 12).toFixed(2)}/year.`,
+      impact: "medium", amount: subs.monthly, actionable: true,
       actions: ["List every active subscription", "Cancel unused services", "Switch to annual billing (saves ~20%)"],
-      savingsEstimate: subsTotal * 0.25 * 12, // cut 25%
+      savingsEstimate: subs.monthly * 0.25 * 12, // cut 25%
     });
   }
 
@@ -315,10 +341,15 @@ function generateActionPlan(transactions: ApiTransaction[]): ActionTip[] {
     .map(([name, total]) => ({ name, monthlyAvg: total / months }))
     .sort((a, b) => b.monthlyAvg - a.monthlyAvg)
     .slice(0, 3);
+  // Only flexible spending gets a "trim it" tip
+  const flexibleTop = Object.entries(catTotals)
+    .filter(([name]) => !FIXED_COST_CATEGORIES.has(name))
+    .map(([name, total]) => ({ name, monthlyAvg: total / months }))
+    .sort((a, b) => b.monthlyAvg - a.monthlyAvg)[0];
 
   // Tip: trim top category by 15%
-  if (topCats[0] && topCats[0].monthlyAvg > 50) {
-    const c = topCats[0];
+  if (flexibleTop && flexibleTop.monthlyAvg > 50) {
+    const c = flexibleTop;
     const saving = Math.round(c.monthlyAvg * 0.15 * 12);
     tips.push({
       id: "top-cat-cut",
@@ -331,8 +362,12 @@ function generateActionPlan(transactions: ApiTransaction[]): ActionTip[] {
   }
 
   // Tip: second category if meaningfully large
-  if (topCats[1] && topCats[1].monthlyAvg > 30) {
-    const c = topCats[1];
+  const secondFlexible = Object.entries(catTotals)
+    .filter(([name]) => !FIXED_COST_CATEGORIES.has(name) && name !== flexibleTop?.name)
+    .map(([name, total]) => ({ name, monthlyAvg: total / months }))
+    .sort((x, y) => y.monthlyAvg - x.monthlyAvg)[0];
+  if (secondFlexible && secondFlexible.monthlyAvg > 30) {
+    const c = secondFlexible;
     const saving = Math.round(c.monthlyAvg * 0.1 * 12);
     tips.push({
       id: "second-cat-cut",
@@ -344,18 +379,14 @@ function generateActionPlan(transactions: ApiTransaction[]): ActionTip[] {
     });
   }
 
-  // Tip: subscriptions
-  const subKeywords = ["netflix", "spotify", "disney", "hulu", "apple", "amazon prime", "youtube", "gym", "subscription", "prime"];
-  const subs = expenses.filter(t =>
-    subKeywords.some(k => (t.description ?? "").toLowerCase().includes(k) || (t.merchant ?? "").toLowerCase().includes(k))
-  );
-  if (subs.length > 0) {
-    const monthlySubCost = subs.reduce((s, t) => s + Math.abs(t.amount ?? 0), 0) / months;
-    const saving = Math.round(monthlySubCost * 0.3 * 12);
+  // Tip: subscriptions (same detection as the Subscriptions page)
+  const subs = detectedSubscriptions(transactions);
+  if (subs.count > 0) {
+    const saving = Math.round(subs.monthly * 0.3 * 12);
     tips.push({
       id: "sub-audit",
-      title: `Audit ${subs.length} subscription${subs.length !== 1 ? "s" : ""}`,
-      description: `Detected subscriptions cost ~$${Math.round(monthlySubCost)}/month. Cancelling even 1–2 unused ones saves $${saving}/year.`,
+      title: `Audit ${subs.count} subscription${subs.count !== 1 ? "s" : ""}`,
+      description: `Your subscriptions cost ~$${Math.round(subs.monthly)}/month. Cancelling even 1–2 unused ones saves $${saving}/year.`,
       annualSavings: saving,
       iconType: "smartphone",
     });
@@ -705,7 +736,7 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
                             ${insight.amount.toFixed(2)}
                           </span>
                         )}
-                        {insight.savingsEstimate != null && (
+                        {insight.savingsEstimate != null && insight.savingsEstimate > 0 && (
                           <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-extrabold flex items-center gap-1">
                             <TrendingUp className="w-3 h-3" />
                             Save ~${insight.savingsEstimate.toFixed(0)}/yr

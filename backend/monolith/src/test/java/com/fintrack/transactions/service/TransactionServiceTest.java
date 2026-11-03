@@ -39,7 +39,7 @@ class TransactionServiceTest {
     private TransactionRepository transactionRepository;
 
     @Mock
-    private CategoryClassifier categoryClassifier;
+    private CategoryRuleService categoryRules;
 
     @InjectMocks
     private TransactionService transactionService;
@@ -87,7 +87,7 @@ class TransactionServiceTest {
             assertThat(result).isNotNull();
             assertThat(result.getCategory()).isEqualTo("Food & Dining");
             // ML classifier should NOT be called when category is provided
-            verify(categoryClassifier, never()).classify(anyString(), anyString());
+            verify(categoryRules, never()).suggest(any(), any(), any());
         }
 
         @Test
@@ -101,14 +101,14 @@ class TransactionServiceTest {
             // no category set
             req.setDate(LocalDate.now());
 
-            when(categoryClassifier.classify(anyString(), anyString()))
+            when(categoryRules.suggest(any(), any(), any()))
                     .thenReturn("Shopping");
             Transaction saved = buildTxn(2L, "EXPENSE", 59.99, "Shopping");
             when(transactionRepository.save(any())).thenReturn(saved);
 
             TransactionResponse result = transactionService.createTransaction(req, USER_ID);
 
-            verify(categoryClassifier).classify(anyString(), anyString());
+            verify(categoryRules).suggest(any(), any(), any());
             assertThat(result.getCategory()).isEqualTo("Shopping");
         }
 

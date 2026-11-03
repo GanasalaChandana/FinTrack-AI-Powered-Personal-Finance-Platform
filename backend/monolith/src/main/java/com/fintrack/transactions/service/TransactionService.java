@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
-    private final CategoryClassifier categoryClassifier;
+    private final CategoryRuleService categoryRules;
 
     @Transactional
     public TransactionResponse createTransaction(CreateTransactionRequest request, String userId) {
@@ -41,7 +41,8 @@ public class TransactionService {
 
         // Auto-categorize if category not provided
         if (request.getCategory() == null || request.getCategory().isEmpty()) {
-            String category = categoryClassifier.classify(request.getDescription(), request.getMerchant());
+            // The user's own category for this merchant if they set one before, else keyword rules
+            String category = categoryRules.suggest(userId, request.getMerchant(), request.getDescription());
             transaction.setCategory(category);
             log.info("Auto-categorized as: {}", category);
         } else {
@@ -77,7 +78,8 @@ public class TransactionService {
 
         // Auto-categorize if category not provided
         if (request.getCategory() == null || request.getCategory().isEmpty()) {
-            String category = categoryClassifier.classify(request.getDescription(), request.getMerchant());
+            // The user's own category for this merchant if they set one before, else keyword rules
+            String category = categoryRules.suggest(userId, request.getMerchant(), request.getDescription());
             transaction.setCategory(category);
         } else {
             transaction.setCategory(request.getCategory());
@@ -129,6 +131,12 @@ public class TransactionService {
 
         Transaction transaction = transactionRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
+
+        // A changed category is remembered for this merchant's future transactions
+        String newCategory = request.getCategory();
+        if (newCategory != null && !newCategory.isBlank() && !newCategory.equals(transaction.getCategory())) {
+            categoryRules.learn(userId, request.getMerchant(), request.getDescription(), newCategory);
+        }
 
         transaction.setDescription(request.getDescription());
         transaction.setAmount(request.getAmount());
@@ -219,9 +227,30 @@ public class TransactionService {
                 .toList();
     }
 
-    public String classifyTransaction(String description) {
-        log.info("Classifying transaction: {}", description);
-        return categoryClassifier.classify(description, null);
+    public String classifyTransaction(String description, String userId) {
+        return categoryRules.suggest(userId, null, description);
+    }
+
+    /**
+     * Sets the category on all of the user's transactions from the same merchant
+     * (and remembers it for future ones). Returns how many were changed.
+     */
+    @Transactional
+    public int recategorizeMerchant(String userId, String merchant, String category) {
+        String key = CategoryRuleService.key(merchant, null);
+        if (key == null || category == null || category.isBlank()) return 0;
+        categoryRules.learn(userId, merchant, null, category);
+        int changed = 0;
+        for (Transaction t : transactionRepository.findByUserId(userId)) {
+            if (key.equals(CategoryRuleService.key(t.getMerchant(), t.getDescription()))
+                    && !category.equals(t.getCategory())) {
+                t.setCategory(category);
+                t.setUpdatedAt(LocalDateTime.now());
+                transactionRepository.save(t);
+                changed++;
+            }
+        }
+        return changed;
     }
 
     public Map<String, Object> getSummary(String userId, String startDate, String endDate) {

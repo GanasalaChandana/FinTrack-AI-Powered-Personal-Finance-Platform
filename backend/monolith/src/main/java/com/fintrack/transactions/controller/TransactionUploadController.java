@@ -167,7 +167,9 @@ public class TransactionUploadController {
 
                     // Parse category
                     String category = getColumnValue(record, "category", "type", "class");
-                    transaction.setCategory(category != null ? category : "Other");
+                    // No category column: left empty so the transaction gets the user's learned
+                    // category for the merchant, or the keyword rules
+                    transaction.setCategory(category);
 
                     // Parse transaction type (optional)
                     String typeStr = getColumnValue(record, "type", "transaction_type", "txn_type");

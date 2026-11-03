@@ -271,6 +271,37 @@ export default function TransactionManager() {
 
   const [prefillTx, setPrefillTx] = React.useState<any>(null);
   const { toast } = useToast();
+
+  // Same normalisation as the backend's CategoryRuleService.key
+  const merchantKey = (t: { merchant?: string | null; description?: string }) =>
+    (t.merchant || t.description || "").toLowerCase().replace(/#\s*\d+/g, " ").replace(/\s+/g, " ").trim();
+
+  /**
+   * After a category change: the backend now uses the new category for this
+   * merchant's future transactions. Offer to update the existing ones too.
+   */
+  const offerApplyToMerchant = (edited: Transaction, previousCategory: string, newCategoryLabel: string, backendCategory: string) => {
+    const key = merchantKey(edited);
+    if (!key || previousCategory === edited.category) return;
+    const others = transactions.filter((t) => t.id !== edited.id && merchantKey(t) === key && t.category !== edited.category);
+    const name = edited.merchant || edited.description;
+    if (others.length === 0) {
+      toast.success(`Saved. Future ${name} transactions will be ${newCategoryLabel}.`);
+      return;
+    }
+    toast.success(`Saved. Future ${name} transactions will be ${newCategoryLabel}.`, 10000, {
+      label: `Apply to ${others.length} more`,
+      onClick: async () => {
+        try {
+          const { updated } = await transactionsAPI.recategorizeMerchant(edited.merchant || edited.description, backendCategory);
+          await loadTransactions();
+          toast.success(`Updated ${updated} ${name} transaction${updated === 1 ? "" : "s"}`);
+        } catch {
+          toast.error("Couldn't update the other transactions");
+        }
+      },
+    });
+  };
   const [highlightId, setHighlightId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -501,12 +532,17 @@ export default function TransactionManager() {
               }
             : t,
         );
+      const before = transactions.find((t) => t.id === editingId);
       setTransactions(updateFn);
       setFilteredTransactions(updateFn);
       setEditingId(null);
       setEditForm({});
       setEditTagsStr("");
-      toast.success("Transaction updated successfully");
+      if (before && before.category !== normalized.category) {
+        offerApplyToMerchant({ ...normalized, merchant: editForm.merchant || normalized.merchant }, before.category, normalized.categoryName || backendCategory, backendCategory);
+      } else {
+        toast.success("Transaction updated successfully");
+      }
     } catch (err) {
       toast.error("Failed to update transaction");
     }
@@ -565,10 +601,15 @@ export default function TransactionManager() {
             ? { ...normalized, status: (tx.status as any) || t.status, merchant: tx.merchant || normalized.merchant, tags: tagsArr.length > 0 ? tagsArr : normalized.tags }
             : t,
         );
+      const before = transactions.find((t) => t.id === id);
       setTransactions(updateFn);
       setFilteredTransactions(updateFn);
       setModalEditTx(null);
-      toast.success("Transaction updated successfully");
+      if (before && before.category !== normalized.category) {
+        offerApplyToMerchant({ ...normalized, merchant: tx.merchant || normalized.merchant }, before.category, normalized.categoryName || tx.category, tx.category);
+      } else {
+        toast.success("Transaction updated successfully");
+      }
     } catch (err) {
       toast.error("Failed to update transaction");
       throw err; // keep the form open

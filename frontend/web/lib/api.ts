@@ -433,6 +433,13 @@ export const transactionsAPI = {
     return job;
   },
 
+  /** Sets the category on all of a merchant's transactions; the backend also remembers it. */
+  recategorizeMerchant: (merchant: string, category: string): Promise<{ updated: number }> =>
+    apiRequest("/api/transactions/recategorize", {
+      method: "POST",
+      body: JSON.stringify({ merchant, category }),
+    }, true),
+
   exportCsv: async (): Promise<Blob> => {
     const url = buildApiUrl("/api/transactions/export", true);
     const response = await fetch(url, { method: "GET", headers: authHeaders() });

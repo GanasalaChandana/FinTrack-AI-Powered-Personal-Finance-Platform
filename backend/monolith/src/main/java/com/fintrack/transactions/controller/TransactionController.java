@@ -64,8 +64,26 @@ public class TransactionController {
         }
         String description = request.get("description");
         log.debug("Classifying transaction for user: {}", userId);
-        String category = transactionService.classifyTransaction(description);
+        String category = transactionService.classifyTransaction(description, userId);
         return ResponseEntity.ok(Map.of("category", category));
+    }
+
+    /** Body: {"merchant": "...", "category": "..."}. Recategorizes that merchant's transactions. */
+    @PostMapping("/recategorize")
+    public ResponseEntity<Map<String, Object>> recategorizeMerchant(
+            @RequestBody Map<String, String> request,
+            @RequestHeader(name = "X-User-Id", required = false) String userId) {
+
+        if (userId == null || userId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String merchant = request.get("merchant");
+        String category = request.get("category");
+        if (merchant == null || merchant.isBlank() || category == null || category.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "merchant and category are required"));
+        }
+        int updated = transactionService.recategorizeMerchant(userId, merchant, category.trim());
+        return ResponseEntity.ok(Map.of("updated", updated));
     }
 
     @GetMapping("/summary")

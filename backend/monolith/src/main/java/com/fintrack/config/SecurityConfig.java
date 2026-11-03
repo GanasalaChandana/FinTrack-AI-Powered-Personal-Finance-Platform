@@ -56,7 +56,9 @@ public class SecurityConfig {
                                                                 "/actuator/health",
                                                                 "/api/health/**",
                                                                 "/api/users/health",
-                                                                "/error")
+                                                                "/error",
+                                                                // Bare root: a plain banner for bots and port checks
+                                                                "/")
                                                 .permitAll()
 
                                                 // Everything else requires authentication

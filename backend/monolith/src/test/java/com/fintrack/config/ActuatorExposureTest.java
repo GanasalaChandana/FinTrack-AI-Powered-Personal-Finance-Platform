@@ -51,4 +51,14 @@ class ActuatorExposureTest {
         mockMvc.perform(post("/api/alerts/trigger-check"))
                 .andExpect(status().is(anyOf(is(401), is(404))));
     }
+
+    @Test
+    @DisplayName("the bare root answers 200 without a login, but the API still needs one")
+    void root_isPublicBanner() throws Exception {
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string("FinTrack API"));
+        mockMvc.perform(get("/api/transactions"))
+                .andExpect(status().is(anyOf(is(401), is(403))));
+    }
 }

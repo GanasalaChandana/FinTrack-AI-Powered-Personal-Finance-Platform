@@ -69,6 +69,9 @@ interface Category {
 
 interface Transaction extends Omit<ApiTransaction, "category" | "type"> {
   category: Exclude<CategoryId, "all">;
+  // The real category from the server ("Housing", "Salary", …); `category` is only
+  // the display bucket, and saving the bucket would overwrite the real name.
+  categoryName?: string;
   type: TxType;
   status: TxStatus;
   paymentMethod: string;
@@ -172,7 +175,10 @@ const mapCategoryToUI = (category: string): Exclude<CategoryId, "all"> => {
 const mapCategoryToBackend = (
   category: Exclude<CategoryId, "all">,
   type: TxType,
+  original?: string,
 ): string => {
+  // Still in the same bucket → keep the real name (e.g. "Housing", "Salary")
+  if (original && mapCategoryToUI(original) === category) return original;
   if (type === "income") return "Income";
   const map: Record<Exclude<CategoryId, "all">, string> = {
     food: "Food & Dining",
@@ -320,6 +326,7 @@ export default function TransactionManager() {
     description: t.description,
     merchant: (t as any).merchant || t.description || "Unknown",
     category: mapCategoryToUI(t.category),
+    categoryName: t.category || "Other",
     date: t.date,
     type: fromBackendType(t.type),
     recurring: t.recurring,
@@ -365,6 +372,10 @@ export default function TransactionManager() {
     [],
   );
 
+  // The badge shows the real category ("Housing"), not just its bucket ("Other")
+  const categoryLabel = (t: Transaction, cat: Category) =>
+    t.categoryName && t.categoryName !== "Income" ? t.categoryName : cat.name;
+
   const totals = React.useMemo(() => {
     const income = filteredTransactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
     const expenses = filteredTransactions.filter((t) => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
@@ -392,7 +403,7 @@ export default function TransactionManager() {
       date: t.date.slice(0, 10),
       merchant: t.merchant || "Unknown",
       description: t.description || "",
-      category: getCategoryInfo(t.category).name,
+      category: t.categoryName || getCategoryInfo(t.category).name,
       amount: Math.abs(t.amount),
       type: t.type === "income" ? "income" : "expense",
       paymentMethod: t.paymentMethod || "",
@@ -464,7 +475,7 @@ export default function TransactionManager() {
     if (!editingId) return;
     try {
       const uiType = (editForm.type ?? "expense") as TxType;
-      const backendCategory = mapCategoryToBackend(editForm.category as Exclude<CategoryId, "all">, uiType);
+      const backendCategory = mapCategoryToBackend(editForm.category as Exclude<CategoryId, "all">, uiType, editForm.categoryName);
       const tagsArr = editTagsStr.split(",").map((s) => s.trim()).filter(Boolean);
       const updated = await transactionsAPI.update(editingId, {
         date: editForm.date!,
@@ -520,7 +531,7 @@ export default function TransactionManager() {
     setModalEditTx({
       id: t.id,
       type: t.type,
-      category: mapCategoryToBackend(t.category, t.type),
+      category: mapCategoryToBackend(t.category, t.type, t.categoryName),
       amount: Math.abs(t.amount),
       date: t.date.slice(0, 10),
       merchant: t.merchant || "",
@@ -569,7 +580,7 @@ export default function TransactionManager() {
   const handleDuplicate = (transaction: Transaction) => {
     setPrefillTx({
       type: transaction.type,
-      category: mapCategoryToBackend(transaction.category, transaction.type),
+      category: mapCategoryToBackend(transaction.category, transaction.type, transaction.categoryName),
       amount: Math.abs(transaction.amount),
       date: new Date().toISOString().split("T")[0],
       merchant: transaction.merchant || "",
@@ -649,7 +660,7 @@ export default function TransactionManager() {
         filtered = filtered.filter((t) =>
           (t.merchant || "").toLowerCase().includes(q) ||
           t.description.toLowerCase().includes(q) ||
-          (t.category || "").toLowerCase().includes(q)
+          (t.categoryName || t.category || "").toLowerCase().includes(q)
         );
       }
       // Standard filters (only when not using NL mode)
@@ -822,7 +833,7 @@ export default function TransactionManager() {
                       date: transaction.date,
                       description: transaction.description,
                       merchant: transaction.merchant || null,
-                      category: mapCategoryToBackend(categoryId as Exclude<CategoryId, "all">, transaction.type),
+                      category: mapCategoryToBackend(categoryId as Exclude<CategoryId, "all">, transaction.type, transaction.categoryName),
                       amount: Math.abs(transaction.amount),
                       type: transaction.type.toUpperCase(),
                       status: transaction.status ?? "completed",
@@ -983,7 +994,7 @@ export default function TransactionManager() {
                           <span className="text-gray-500 dark:text-gray-400">· 💳 {t.paymentMethod}</span>
                         )}
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold ${cat.badgeBg} ${cat.badgeText}`}>
-                          <span>{cat.icon}</span>{cat.name}
+                          <span>{cat.icon}</span>{categoryLabel(t, cat)}
                         </span>
                         {t.status !== "completed" && (
                           <span className="inline-flex px-2 py-0.5 rounded-full font-semibold bg-yellow-100 dark:bg-amber-900/20 text-yellow-700 dark:text-amber-400">Pending</span>
@@ -1139,7 +1150,7 @@ export default function TransactionManager() {
                         ) : (
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${cat.badgeBg} ${cat.badgeText}`}>
                             <span>{cat.icon}</span>
-                            {cat.name}
+                            {categoryLabel(t, cat)}
                           </span>
                         )}
                       </td>

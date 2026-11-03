@@ -52,9 +52,10 @@ export function MonthEndForecastCard({ transactions }: Props) {
       ? (prevMonthTotal - spentSoFar) / daysLeft
       : null;
 
-    // % change vs last month
+    // % change vs last month (projected). Nothing spent yet this month means there
+    // is nothing to project, not "100% less than last month".
     const vsLastMonth =
-      prevMonthTotal > 0
+      prevMonthTotal > 0 && spentSoFar > 0
         ? ((projected - prevMonthTotal) / prevMonthTotal) * 100
         : null;
 
@@ -136,7 +137,7 @@ export function MonthEndForecastCard({ transactions }: Props) {
           {vsLastMonth !== null && (
             <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold ${badgeBg}`}>
               <TrendIcon className="w-3 h-3" />
-              {Math.abs(vsLastMonth).toFixed(0)}% vs last month
+              {Math.abs(vsLastMonth).toFixed(0)}% {vsLastMonth >= 0 ? "above" : "below"} last month
             </div>
           )}
         </div>

@@ -59,9 +59,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Check if Authorization header exists
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.warn("⚠️ No valid Authorization header for protected endpoint: {}", requestPath);
+        // The token comes from the Authorization header (API clients) or the
+        // HttpOnly session cookie (the web app)
+        final String jwt;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwt = authHeader.substring(7);
+        } else {
+            String cookieJwt = AuthCookies.read(request, AuthCookies.ACCESS);
+            if (cookieJwt != null && !AuthCookies.passesCsrfCheck(request)) {
+                log.warn("⚠️ Cookie-authenticated {} without {} header refused: {}",
+                        request.getMethod(), AuthCookies.CSRF_HEADER, requestPath);
+                cookieJwt = null;
+            }
+            jwt = cookieJwt;
+        }
+        if (jwt == null) {
+            log.debug("No credentials for protected endpoint: {}", requestPath);
             filterChain.doFilter(request, response);
             return;
         }
@@ -69,7 +82,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String[] resolvedUserId = {null};
 
         try {
-            final String jwt = authHeader.substring(7);
             log.debug("🔑 Validating JWT token for endpoint: {}", requestPath);
 
             // Signature + expiry, then the (cached) revocation check

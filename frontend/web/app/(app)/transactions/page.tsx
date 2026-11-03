@@ -275,8 +275,7 @@ export default function TransactionManager() {
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
-    const token = localStorage.getItem("authToken") || localStorage.getItem("ft_token");
-    if (!token) {
+    if (!localStorage.getItem("user")) {
       router.replace("/register?mode=signin");
       return;
     }
@@ -353,8 +352,7 @@ export default function TransactionManager() {
       if (err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
         setError("Authentication failed. Please sign in again.");
         setTimeout(() => {
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("ft_token");
+          localStorage.removeItem("user");
           router.replace("/register?mode=signin");
         }, 2000);
       } else {

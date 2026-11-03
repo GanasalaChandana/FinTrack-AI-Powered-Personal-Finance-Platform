@@ -43,7 +43,7 @@ class RegistrationFlowTest {
     @DisplayName("two people with the same email name (john@…) can both sign up")
     void sameEmailPrefix_bothSucceed() throws Exception {
         call("/api/auth/register", signup("john@gmail.test", "Secret123!", "john"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.token").exists());
+                .andExpect(status().isOk()).andExpect(cookie().exists("ft_at"));
         call("/api/auth/register", signup("john@yahoo.test", "Secret123!", "john"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.user.username").value(not("john")));
     }
@@ -74,6 +74,6 @@ class RegistrationFlowTest {
         call("/api/auth/register", signup("Mixed.Case@Example.test", "Secret123!", "mixed")).andExpect(status().isOk());
         call("/api/auth/register", signup("mixed.case@example.test", "Secret123!", "mixed2")).andExpect(status().isConflict());
         call("/api/auth/login", "{\"email\":\"MIXED.case@example.TEST\",\"password\":\"Secret123!\"}")
-                .andExpect(status().isOk()).andExpect(jsonPath("$.token").exists());
+                .andExpect(status().isOk()).andExpect(cookie().exists("ft_at"));
     }
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { getToken } from "@/lib/api";
+import { isAuthenticated as hasSession } from "@/lib/api";
 import { DemoBanner } from "@/components/dashboard/DemoBanner";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
@@ -16,7 +16,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     const checkAuth = () => {
       if (typeof window === "undefined") return;
 
-      const token = getToken();
+      const token = hasSession();
 
       if (!token) {
         const next = pathname && pathname !== "/" ? `?next=${encodeURIComponent(pathname)}` : "";

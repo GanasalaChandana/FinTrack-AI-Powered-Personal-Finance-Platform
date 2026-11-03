@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken } from '@/lib/api';
+import { isAuthenticated as hasSession } from '@/lib/api';
 import { showToast } from '@/lib/toast';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { CSVImportModal } from '@/components/CSVImportModal';
@@ -35,7 +35,7 @@ export default function ComponentDemoPage() {
 
   // Require authentication
   useEffect(() => {
-    if (!getToken()) {
+    if (!hasSession()) {
       router.replace('/login');
     }
   }, [router]);

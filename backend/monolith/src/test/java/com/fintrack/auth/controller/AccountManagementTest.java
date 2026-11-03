@@ -37,12 +37,22 @@ class AccountManagementTest {
     private static final AtomicInteger ip = new AtomicInteger(1);
 
     private JsonNode signup(String email) throws Exception {
-        String body = mockMvc.perform(post("/api/auth/register")
+        var body = mockMvc.perform(post("/api/auth/register")
                         .header("X-Forwarded-For", "203.0.113." + ip.getAndIncrement())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + email + "\",\"password\":\"Secret123!\"}"))
-                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        return json.readTree(body);
+                .andExpect(status().isOk()).andReturn();
+        return session(body);
+    }
+
+    /** Response body plus the session tokens, which now arrive only as HttpOnly cookies. */
+    private JsonNode session(org.springframework.test.web.servlet.MvcResult r) throws Exception {
+        var n = (com.fasterxml.jackson.databind.node.ObjectNode) json.readTree(r.getResponse().getContentAsString());
+        var at = r.getResponse().getCookie("ft_at");
+        var rt = r.getResponse().getCookie("ft_rt");
+        if (at != null) n.put("token", at.getValue());
+        if (rt != null) n.put("refreshToken", rt.getValue());
+        return n;
     }
 
     @Test
@@ -73,9 +83,8 @@ class AccountManagementTest {
     @Test
     @DisplayName("the shared demo account can't be deleted or have its password changed")
     void demoAccount_protected() throws Exception {
-        String body = mockMvc.perform(post("/api/auth/demo")).andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        String bearer = "Bearer " + json.readTree(body).get("token").asText();
+        String bearer = "Bearer " + session(mockMvc.perform(post("/api/auth/demo")).andExpect(status().isOk())
+                .andReturn()).get("token").asText();
 
         mockMvc.perform(delete("/api/users/me").header("Authorization", bearer)).andExpect(status().isForbidden());
         mockMvc.perform(post("/api/users/change-password").header("Authorization", bearer)
@@ -115,11 +124,11 @@ class AccountManagementTest {
         String email = "pw-" + UUID.randomUUID() + "@test.dev";
         String oldBearer = "Bearer " + signup(email).get("token").asText();
 
-        String body = mockMvc.perform(post("/api/users/change-password").header("Authorization", oldBearer)
+        var body = mockMvc.perform(post("/api/users/change-password").header("Authorization", oldBearer)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"currentPassword\":\"Secret123!\",\"newPassword\":\"Another456!\"}"))
-                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        String newBearer = "Bearer " + json.readTree(body).get("token").asText();
+                .andExpect(status().isOk()).andReturn();
+        String newBearer = "Bearer " + session(body).get("token").asText();
 
         mockMvc.perform(get("/api/transactions").header("Authorization", oldBearer))
                 .andExpect(status().is(org.hamcrest.Matchers.anyOf(org.hamcrest.Matchers.is(401), org.hamcrest.Matchers.is(403))));
@@ -139,10 +148,10 @@ class AccountManagementTest {
     @Test
     @DisplayName("signing out of the shared demo account doesn't sign out other demo visitors")
     void demoLogout_keepsOtherVisitors() throws Exception {
-        String a = "Bearer " + json.readTree(mockMvc.perform(post("/api/auth/demo")).andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString()).get("token").asText();
-        String b = "Bearer " + json.readTree(mockMvc.perform(post("/api/auth/demo")).andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString()).get("token").asText();
+        String a = "Bearer " + session(mockMvc.perform(post("/api/auth/demo")).andExpect(status().isOk())
+                .andReturn()).get("token").asText();
+        String b = "Bearer " + session(mockMvc.perform(post("/api/auth/demo")).andExpect(status().isOk())
+                .andReturn()).get("token").asText();
 
         mockMvc.perform(post("/api/auth/logout").header("Authorization", a)).andExpect(status().isNoContent());
 
@@ -162,8 +171,7 @@ class AccountManagementTest {
         JsonNode auth = signup("refresh-" + UUID.randomUUID() + "@test.dev");
         String firstRefresh = auth.get("refreshToken").asText();
 
-        JsonNode renewed = json.readTree(refresh(firstRefresh).andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString());
+        JsonNode renewed = session(refresh(firstRefresh).andExpect(status().isOk()).andReturn());
         String bearer = "Bearer " + renewed.get("token").asText();
         mockMvc.perform(get("/api/transactions").header("Authorization", bearer)).andExpect(status().isOk());
 
@@ -175,5 +183,63 @@ class AccountManagementTest {
         mockMvc.perform(post("/api/auth/logout").header("Authorization", "Bearer " + again.get("token").asText()))
                 .andExpect(status().isNoContent());
         refresh(again.get("refreshToken").asText()).andExpect(status().isUnauthorized());
+    }
+
+    // ── cookie sessions (the web app) ────────────────────────────────────────
+
+    @Test
+    @DisplayName("tokens are only in HttpOnly cookies, never in the response body")
+    void tokens_onlyInHttpOnlyCookies() throws Exception {
+        var r = mockMvc.perform(post("/api/auth/register")
+                        .header("X-Forwarded-For", "203.0.113." + ip.getAndIncrement())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"cookie-" + UUID.randomUUID() + "@test.dev\",\"password\":\"Secret123!\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
+                .andExpect(jsonPath("$.user.email").exists())
+                .andReturn();
+        var at = r.getResponse().getCookie("ft_at");
+        var rt = r.getResponse().getCookie("ft_rt");
+        assertThat(at.isHttpOnly()).isTrue();
+        assertThat(at.getSecure()).isTrue();
+        assertThat(rt.isHttpOnly()).isTrue();
+        assertThat(rt.getPath()).isEqualTo("/api/auth");
+    }
+
+    @Test
+    @DisplayName("the session cookie authenticates reads; writes also need the X-Requested-With header")
+    void cookieSession_andCsrfHeader() throws Exception {
+        var at = new jakarta.servlet.http.Cookie("ft_at",
+                signup("csrf-" + UUID.randomUUID() + "@test.dev").get("token").asText());
+        String tx = "{\"description\":\"Coffee\",\"amount\":4.5,\"merchant\":\"Cafe\",\"category\":\"Food\",\"type\":\"EXPENSE\",\"date\":\"2026-10-01\"}";
+
+        mockMvc.perform(get("/api/transactions").cookie(at)).andExpect(status().isOk());
+        // A cross-site form post would carry the cookie but can't add the header
+        mockMvc.perform(post("/api/transactions").cookie(at).contentType(MediaType.APPLICATION_JSON).content(tx))
+                .andExpect(status().is(org.hamcrest.Matchers.anyOf(org.hamcrest.Matchers.is(401), org.hamcrest.Matchers.is(403))));
+        mockMvc.perform(post("/api/transactions").cookie(at).header("X-Requested-With", "fintrack")
+                        .contentType(MediaType.APPLICATION_JSON).content(tx))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    @DisplayName("refresh works from the cookie, and logout clears the cookies")
+    void cookieRefresh_andLogoutClears() throws Exception {
+        JsonNode auth = signup("cr-" + UUID.randomUUID() + "@test.dev");
+        var rt = new jakarta.servlet.http.Cookie("ft_rt", auth.get("refreshToken").asText());
+
+        var renewed = mockMvc.perform(post("/api/auth/refresh").cookie(rt).header("X-Requested-With", "fintrack")
+                        .header("X-Forwarded-For", "198.51.100." + ip.getAndIncrement()))
+                .andExpect(status().isOk()).andReturn();
+        var at = renewed.getResponse().getCookie("ft_at");
+        assertThat(at.getValue()).isNotBlank();
+
+        var out = mockMvc.perform(post("/api/auth/logout").cookie(at).header("X-Requested-With", "fintrack"))
+                .andExpect(status().isNoContent()).andReturn();
+        assertThat(out.getResponse().getCookie("ft_at").getMaxAge()).isZero();
+        assertThat(out.getResponse().getCookie("ft_rt").getMaxAge()).isZero();
+        mockMvc.perform(get("/api/transactions").cookie(at))
+                .andExpect(status().is(org.hamcrest.Matchers.anyOf(org.hamcrest.Matchers.is(401), org.hamcrest.Matchers.is(403))));
     }
 }

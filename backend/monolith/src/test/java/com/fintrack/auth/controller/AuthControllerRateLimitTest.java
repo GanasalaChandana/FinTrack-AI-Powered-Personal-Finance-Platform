@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     controllers = AuthController.class,
     excludeAutoConfiguration = SecurityAutoConfiguration.class
 )
-@Import(LoginRateLimiter.class)
+@Import({LoginRateLimiter.class, com.fintrack.auth.security.AuthCookies.class})
 @ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD) // fresh limiter state per test
 @DisplayName("AuthController rate limiting")

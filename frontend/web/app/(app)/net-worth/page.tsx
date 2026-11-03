@@ -299,8 +299,7 @@ export default function NetWorthPage() {
   const [editingTarget, setEditingTarget] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("authToken") || localStorage.getItem("ft_token");
-    if (!token) { router.replace("/register?mode=signin"); return; }
+    if (!localStorage.getItem("user")) { router.replace("/register?mode=signin"); return; }
     const loaded = loadData();
     const withSnapshot = takeSnapshot(loaded);
     setData(withSnapshot);

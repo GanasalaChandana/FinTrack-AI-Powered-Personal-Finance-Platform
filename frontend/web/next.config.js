@@ -57,6 +57,14 @@ const nextConfig = {
     ];
   },
 
+  // The browser talks to the API through this site's own domain, so the backend's
+  // HttpOnly session cookies are first-party (Safari and others block third-party
+  // cookies). Vercel waits up to 120s for the backend, enough for a Render cold start.
+  async rewrites() {
+    const backend = (process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080').replace(/\/$/, '');
+    return [{ source: '/api/:path*', destination: `${backend}/api/:path*` }];
+  },
+
   async redirects() {
     return [
       {

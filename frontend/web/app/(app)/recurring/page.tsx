@@ -10,25 +10,22 @@ import { RecurringTransactionsDashboard } from "@/components/RecurringTransactio
 
 // ── API helpers ────────────────────────────────────────────────────────────────
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_BASE_URL = ""; // same-origin: /api/* is proxied to the backend (session cookies)
 
-const getToken  = () => typeof window !== "undefined"
-  ? (localStorage.getItem("ft_token") || localStorage.getItem("authToken")) : null;
 const getUserId = () => typeof window !== "undefined"
   ? localStorage.getItem("userId") : null;
 
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}, isRetry = false): Promise<T> {
-  const token  = getToken();
   const userId = getUserId();
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(token  && { Authorization: `Bearer ${token}` }),
+      "X-Requested-With": "fintrack",
       ...(userId && { "X-User-Id": userId }),
       ...options.headers,
     },
-    credentials: "include",
+    credentials: "same-origin",
   });
   if (!res.ok) {
     if (res.status === 401 && typeof window !== "undefined") {

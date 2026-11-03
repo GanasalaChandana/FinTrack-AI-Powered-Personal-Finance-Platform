@@ -48,15 +48,14 @@ interface SmartAlert {
 
 // ── Backend API helpers ────────────────────────────────────────────────────────
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_BASE_URL = ""; // same-origin: /api/* is proxied to the backend (session cookies)
 
 function getAuthHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
-  const token  = localStorage.getItem("ft_token") || localStorage.getItem("authToken");
   const userId = localStorage.getItem("userId");
   return {
     "Content-Type": "application/json",
-    ...(token  && { Authorization: `Bearer ${token}` }),
+    "X-Requested-With": "fintrack",
     ...(userId && { "X-User-Id": userId }),
   };
 }

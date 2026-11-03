@@ -9,9 +9,12 @@ COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
 COPY . .
-# NEXT_PUBLIC_* values are inlined at build time, so the API URL is a build arg
+# The browser calls /api/* on this server, which proxies to BACKEND_URL (the
+# rewrite is fixed at build time, so it's a build arg)
 ARG NEXT_PUBLIC_API_URL=http://localhost:8080
+ARG BACKEND_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    BACKEND_URL=$BACKEND_URL \
     NEXT_TELEMETRY_DISABLED=1 \
     BUILD_STANDALONE=1
 RUN npm run build

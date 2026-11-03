@@ -14,9 +14,8 @@ export interface User {
   [key: string]: any;
 }
 
+/** The tokens themselves arrive as HttpOnly cookies, not in the body. */
 export interface AuthResponse {
-  token: string;
-  refreshToken?: string;
   user: User;
   message?: string;
 }
@@ -120,73 +119,51 @@ export interface Notification {
 // Base URL helpers
 // =====================
 
-function getBaseUrl(): string {
-  const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-  return url.replace(/\/$/, "");
+/**
+ * In the browser the API is reached through this site's own domain: next.config.js
+ * rewrites /api/* to the backend. That keeps the HttpOnly session cookies first-party.
+ */
+export function apiBase(): string {
+  if (typeof window !== "undefined") return "";
+  return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080").replace(/\/$/, "");
 }
 
-function getTransactionsUrl(): string {
-  return getBaseUrl();
+/**
+ * Headers for every API call. The session itself travels in HttpOnly cookies that
+ * page scripts can't read; this header is required on cookie-authenticated writes
+ * (a cross-site form can't set it).
+ */
+export function authHeaders(): Record<string, string> {
+  return { "X-Requested-With": "fintrack" };
 }
 
-function buildApiUrl(endpoint: string, useTransactionsService: boolean = false): string {
-  const baseUrl = useTransactionsService ? getTransactionsUrl() : getBaseUrl();
+function buildApiUrl(endpoint: string, _useTransactionsService: boolean = false): string {
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-  return `${baseUrl}${cleanEndpoint}`;
+  return `${apiBase()}${cleanEndpoint}`;
 }
 
 // =====================
-// Auth token helpers
+// Session helpers
 // =====================
+// The tokens are HttpOnly cookies set by the backend. The browser only keeps the
+// (non-secret) user profile, which is how the UI knows someone is signed in.
 
-const PRIMARY_TOKEN_KEY = "authToken";
-const LEGACY_TOKEN_KEY = "ft_token";
-// Long-lived (30 days), single-use: exchanged at /api/auth/refresh for a new pair
-const REFRESH_TOKEN_KEY = "refreshToken";
+const OLD_TOKEN_KEYS = ["authToken", "ft_token", "refreshToken"];
 
-export function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
+/** Removes tokens stored by older versions of the app (they lived in localStorage). */
+function clearLegacyTokens(): void {
+  OLD_TOKEN_KEYS.forEach((k) => localStorage.removeItem(k));
+  sessionStorage.removeItem("authToken");
+  document.cookie = "authToken=; path=/; max-age=0";
 }
 
-export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  const token =
-    localStorage.getItem(PRIMARY_TOKEN_KEY) ||
-    localStorage.getItem(LEGACY_TOKEN_KEY) ||
-    sessionStorage.getItem(PRIMARY_TOKEN_KEY) ||
-    getCookieToken();
-  return token || null;
-}
-
-function getCookieToken(): string | null {
-  if (typeof document === "undefined") return null;
-  const cookies = document.cookie.split("; ");
-  const tokenCookie = cookies.find((row) => row.startsWith(`${PRIMARY_TOKEN_KEY}=`));
-  return tokenCookie ? tokenCookie.split("=")[1] : null;
-}
-
-export function setToken(token: string, refreshToken?: string | null): void {
-  if (typeof window === "undefined") return;
-  if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-  localStorage.setItem(PRIMARY_TOKEN_KEY, token);
-  localStorage.setItem(LEGACY_TOKEN_KEY, token);
-  sessionStorage.setItem(PRIMARY_TOKEN_KEY, token);
-  // Add Secure flag on HTTPS (production). SameSite=Lax prevents CSRF.
-  const isSecure = window.location.protocol === "https:";
-  document.cookie = `${PRIMARY_TOKEN_KEY}=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax${isSecure ? "; Secure" : ""}`;
-}
-
+/** Clears the local session (user profile). The cookies are cleared by POST /api/auth/logout. */
 export function removeToken(): void {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(PRIMARY_TOKEN_KEY);
-  localStorage.removeItem(LEGACY_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  clearLegacyTokens();
   localStorage.removeItem("user");
   localStorage.removeItem("userId");
   localStorage.removeItem("isDemo");
-  sessionStorage.removeItem(PRIMARY_TOKEN_KEY);
-  document.cookie = `${PRIMARY_TOKEN_KEY}=; path=/; max-age=0`;
 }
 
 export function getUser(): User | null {
@@ -200,16 +177,19 @@ export function getUser(): User | null {
   }
 }
 
+/** Stores the signed-in user's profile (call after the backend has set the session cookies). */
 export function setUser(user: User): void {
   if (typeof window === "undefined") return;
+  clearLegacyTokens();
   localStorage.setItem("user", JSON.stringify(user));
   if (user.id) {
     localStorage.setItem("userId", user.id.toString());
   }
 }
 
+/** True when a user profile is stored; the backend still checks the session cookie on every call. */
 export function isAuthenticated(): boolean {
-  return !!getToken();
+  return !!getUser();
 }
 
 // =====================
@@ -223,33 +203,23 @@ let isRefreshingToken = false;
 let tokenRefreshPromise: Promise<boolean> | null = null;
 
 /**
- * Tries to silently renew the session with the stored refresh token.
- * Returns true when there is a new access token to retry with.
+ * Tries to silently renew the session with the refresh-token cookie.
+ * Returns true when the backend issued new session cookies.
  */
-async function tryRefreshToken(failedToken: string | null): Promise<boolean> {
-  // Another tab may already have renewed the session (refresh tokens are single-use,
-  // so it must not be spent twice): if the stored token changed, just retry with it.
-  const current = getToken();
-  if (failedToken !== null && current && current !== failedToken) return true;
-
+async function tryRefreshToken(): Promise<boolean> {
   if (isRefreshingToken && tokenRefreshPromise) return tokenRefreshPromise;
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return false;
 
   isRefreshingToken = true;
   tokenRefreshPromise = (async () => {
     try {
-      const res = await fetch(`${getBaseUrl()}/api/auth/refresh`, {
+      const res = await fetch(`${apiBase()}/api/auth/refresh`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
+        headers: authHeaders(),
       });
       if (res.ok) {
-        const data = await res.json();
-        if (data?.token) {
-          setToken(data.token, data.refreshToken);
-          return true;
-        }
+        const data = await res.json().catch(() => null);
+        if (data?.user) setUser(data.user);
+        return true;
       }
       return false;
     } catch {
@@ -270,8 +240,6 @@ export async function apiRequest<T = any>(
   isRetry: boolean = false
 ): Promise<T> {
   const url = buildApiUrl(endpoint, useTransactionsService);
-  const token = getToken();
-  const user = getUser();
 
   const requestKey = `${options.method || "GET"}-${endpoint}-${JSON.stringify(options.body || "")}`;
 
@@ -283,15 +251,8 @@ export async function apiRequest<T = any>(
 
   const headers: Record<string, string> = {
     ...(!isFormData && { "Content-Type": "application/json" }),
+    ...authHeaders(),
   };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  if (user?.id) {
-    headers["X-User-Id"] = user.id.toString();
-  }
 
   if (options.headers) {
     const existingHeaders = new Headers(options.headers);
@@ -303,7 +264,7 @@ export async function apiRequest<T = any>(
   const config: RequestInit = {
     ...options,
     headers,
-    credentials: "include",
+    credentials: "same-origin",
   };
 
   const requestPromise = (async () => {
@@ -333,11 +294,12 @@ export async function apiRequest<T = any>(
       }
 
       if (!response.ok) {
-        if (response.status === 401) {
-          // Attempt a silent token refresh before giving up (once per request)
-          const refreshed = !isRetry && (await tryRefreshToken(token));
-          if (refreshed) {
-            // Token renewed — retry the original request once with the new token
+        if (response.status === 401 && !endpoint.startsWith("/api/auth/")) {
+          // Renew the session and retry once. Retry even when this tab's refresh
+          // failed: another tab may have just renewed it (refresh tokens are
+          // single-use), and the shared cookie is then already new.
+          if (!isRetry) {
+            await tryRefreshToken();
             pendingRequests.delete(requestKey);
             return apiRequest<T>(endpoint, options, useTransactionsService, true);
           }
@@ -473,11 +435,7 @@ export const transactionsAPI = {
 
   exportCsv: async (): Promise<Blob> => {
     const url = buildApiUrl("/api/transactions/export", true);
-    const token = getToken();
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await fetch(url, { method: "GET", headers: authHeaders() });
     if (!response.ok) throw new Error("Failed to export transactions");
     return response.blob();
   },
@@ -516,7 +474,6 @@ export const authAPI = {
       method: "POST",
       body: JSON.stringify(payload),
     }, false);
-    if (response.token) setToken(response.token, response.refreshToken);
     if (response.user) setUser(response.user);
     return response;
   },
@@ -526,7 +483,6 @@ export const authAPI = {
       method: "POST",
       body: JSON.stringify(credentials),
     }, false);
-    if (response.token) setToken(response.token, response.refreshToken);
     if (response.user) setUser(response.user);
     return response;
   },
@@ -545,7 +501,7 @@ export const authAPI = {
     apiRequest<User>("/api/auth/me", { method: "GET" }, false),
 
   /** Renews the session with the stored refresh token; true on success. */
-  refreshToken: (): Promise<boolean> => tryRefreshToken(null),
+  refreshToken: (): Promise<boolean> => tryRefreshToken(),
 
   updateProfile: async (userData: Partial<User>): Promise<User> => {
     const response = await apiRequest<User>("/api/auth/profile", {
@@ -573,7 +529,6 @@ export const authAPI = {
     const response = await apiRequest<AuthResponse>("/api/auth/demo", {
       method: "POST",
     }, false);
-    if (response.token) setToken(response.token, response.refreshToken);
     if (response.user) setUser(response.user);
     // Mark this session as a demo so the banner shows
     if (typeof window !== "undefined") {
@@ -796,7 +751,7 @@ export const reportsAPI = {
 
 export const healthAPI = {
   check: (): Promise<{ status: string; timestamp: string }> =>
-    apiRequest("/actuator/health", { method: "GET" }, false),
+    apiRequest("/api/auth/health", { method: "GET" }, false),
 
   ping: (): Promise<{ message: string }> =>
     apiRequest("/api/health/ping", { method: "GET" }, false),

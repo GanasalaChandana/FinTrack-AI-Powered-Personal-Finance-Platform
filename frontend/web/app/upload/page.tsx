@@ -17,12 +17,8 @@ import {
 
 /* ---------- Auth helpers ---------- */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_BASE_URL = ""; // same-origin: /api/* is proxied to the backend (session cookies)
 
-const getToken = (): string | null =>
-  typeof window !== "undefined"
-    ? localStorage.getItem("ft_token") || localStorage.getItem("authToken")
-    : null;
 
 const getUserId = (): string | null =>
   typeof window !== "undefined" ? localStorage.getItem("userId") : null;
@@ -135,19 +131,17 @@ const CSVUploadSystem: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append("file", file);
-
-      const token  = getToken();
       const userId = getUserId();
 
       const url = `${API_BASE_URL}/api/transactions/upload?clearFirst=${clearFirst}`;
       const response = await fetch(url, {
         method: "POST",
         headers: {
-          ...(token  && { Authorization: `Bearer ${token}` }),
+          "X-Requested-With": "fintrack",
           ...(userId && { "X-User-Id": userId }),
         },
         body: formData,
-        credentials: "include",
+        credentials: "same-origin",
       });
 
       if (response.status === 401) {

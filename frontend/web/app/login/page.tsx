@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { GoogleCredentialResponse } from '@/types/google';
-import { setToken, setUser } from '@/lib/api';
+import { setUser, authHeaders } from '@/lib/api';
 import { 
   Eye, 
   EyeOff, 
@@ -25,7 +25,7 @@ const wakeUpBackend = async (apiUrl: string): Promise<boolean> => {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 45000);
-    const response = await fetch(`${apiUrl}/actuator/health`, {
+    const response = await fetch(`${apiUrl}/api/auth/health`, {
       method: 'GET',
       signal: controller.signal,
     });
@@ -155,7 +155,7 @@ function AuthPageContent() {
     setError('');
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const API_URL = ''; // same-origin: /api/* is proxied to the backend
       
       const isAwake = await ensureBackendAwake(API_URL);
       if (!isAwake && retryCount === 0) {
@@ -173,9 +173,9 @@ function AuthPageContent() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          ...authHeaders(),
         },
-        credentials: 'include',
-        mode: 'cors',
+        credentials: 'same-origin',
         signal: controller.signal,
         body: JSON.stringify({
           credential: response.credential,
@@ -214,14 +214,13 @@ function AuthPageContent() {
 
       const data = await res.json();
 
-      if (data.token) {
-        setToken(data.token, data.refreshToken);
-        if (data.user?.id) localStorage.setItem('userId', data.user.id.toString());
-        if (data.user) setUser(data.user);
+      // The session itself was set as HttpOnly cookies by the response
+      if (data.user) {
+        setUser(data.user);
         setSuccess(true);
         setTimeout(() => router.push('/dashboard'), 1000);
       } else {
-        throw new Error('No authentication token received');
+        throw new Error('Sign-in failed: no user in the response');
       }
 
     } catch (err) {
@@ -290,7 +289,7 @@ function AuthPageContent() {
     isSubmitting.current = true;
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const API_URL = ''; // same-origin: /api/* is proxied to the backend
       
       const isAwake = await ensureBackendAwake(API_URL);
       if (!isAwake && retryCount === 0) {
@@ -323,9 +322,9 @@ function AuthPageContent() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          ...authHeaders(),
         },
-        credentials: 'include',
-        mode: 'cors',
+        credentials: 'same-origin',
         signal: controller.signal,
         body: JSON.stringify(requestBody),
       });
@@ -366,14 +365,13 @@ function AuthPageContent() {
 
       const data = await response.json();
 
-      if (data.token) {
-        setToken(data.token, data.refreshToken);
-        if (data.user?.id) localStorage.setItem('userId', data.user.id.toString());
-        if (data.user) setUser(data.user);
+      // The session itself was set as HttpOnly cookies by the response
+      if (data.user) {
+        setUser(data.user);
         setSuccess(true);
         setTimeout(() => router.push('/dashboard'), 1000);
       } else {
-        throw new Error('No authentication token received');
+        throw new Error('Sign-in failed: no user in the response');
       }
 
     } catch (err) {

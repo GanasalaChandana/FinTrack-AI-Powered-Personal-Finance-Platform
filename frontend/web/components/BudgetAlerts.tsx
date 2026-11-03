@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import toast from "react-hot-toast";
 import { AlertTriangle, XCircle } from "lucide-react";
 import { alertService, type BudgetAlert } from "@/lib/api/services/alert.service";
-import { getToken } from "@/lib/api";
+import { isAuthenticated as hasSession } from "@/lib/api";
 
 // 🛡️ Helper to check public/auth routes
 function isPublicRoute(path: string | null): boolean {
@@ -37,7 +37,7 @@ export function BudgetAlerts() {
     if (!mounted) return;
     if (isPublicRoute(pathname)) return;
 
-    const token = getToken();
+    const token = hasSession();
     if (!token) {
       setIsAuthenticated(false);
       return;
@@ -47,7 +47,7 @@ export function BudgetAlerts() {
     fetchAlerts();
 
     const interval = setInterval(() => {
-      if (!isPublicRoute(window.location.pathname) && getToken()) {
+      if (!isPublicRoute(window.location.pathname) && hasSession()) {
         fetchAlerts();
       }
     }, 30000);
@@ -57,7 +57,7 @@ export function BudgetAlerts() {
 
   const fetchAlerts = async () => {
     try {
-      const token = getToken();
+      const token = hasSession();
       if (!token) return;
 
       const newAlerts = await alertService.getAlerts();

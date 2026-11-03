@@ -55,7 +55,7 @@ Import the repository in Vercel:
 
 - **Root directory:** `frontend/web`
 - **Framework preset:** Next.js
-- **Environment variable:** `NEXT_PUBLIC_API_URL` = your backend's public URL (for example `https://your-backend.onrender.com`). It is inlined at build time, so redeploy after changing it.
+- **Environment variable:** `NEXT_PUBLIC_API_URL` = your backend's public URL (for example `https://your-backend.onrender.com`). The browser never calls it directly: `next.config.js` proxies `/api/*` on the Vercel domain to it, so the backend's HttpOnly session cookies are first-party. It's read at build time, so redeploy after changing it. (`BACKEND_URL`, if set, takes precedence for the proxy target.)
 
 To use a custom domain, add it under the project's **Settings → Domains** and follow the DNS records Vercel shows, then update the CORS allow-list as described above.
 
@@ -93,5 +93,6 @@ Starts PostgreSQL, the backend and the frontend.
 | Backend exits at startup mentioning the JWT secret | `JWT_SECRET` missing, too short, or a known public example value |
 | `HikariPool` / connection refused | `DATABASE_URL` isn't a JDBC URL, or the DB isn't reachable from the service |
 | Browser shows CORS errors but the API works with curl | The frontend's origin isn't in the CORS allow-list |
-| Frontend calls `localhost:8080` in production | `NEXT_PUBLIC_API_URL` wasn't set at build time; set it and redeploy |
+| API calls fail in production (proxied to `localhost:8080`) | `NEXT_PUBLIC_API_URL` wasn't set at build time; set it and redeploy |
+| Signed out on every page load | The session cookies are `Secure`: serve the site over HTTPS (or `localhost`). Locally over plain HTTP on another host, set `AUTH_COOKIE_SECURE=false` on the backend |
 | Flyway checksum mismatch | A migration that was already applied has been edited; restore it and add a new migration |

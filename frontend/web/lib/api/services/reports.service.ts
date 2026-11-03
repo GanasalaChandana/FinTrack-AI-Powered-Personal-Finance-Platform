@@ -66,9 +66,7 @@ export interface ReportsData {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const API_GATEWAY = (
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
-).replace(/\/$/, "");
+const API_GATEWAY = ""; // same-origin: /api/* is proxied to the backend (session cookies)
 
 const buildUrl = (path: string) =>
   `${API_GATEWAY}${path.startsWith("/") ? path : `/${path}`}`;
@@ -430,10 +428,6 @@ class ReportsService {
   }
 
   async exportReportPDF(dateRange: ReportsRange = "last-30-days"): Promise<Blob> {
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("authToken") || localStorage.getItem("ft_token")
-        : null;
     const userId =
       typeof window !== "undefined" ? localStorage.getItem("userId") : null;
 
@@ -442,10 +436,10 @@ class ReportsService {
       const response = await fetch(url, {
         method: "GET",
         headers: {
-          ...(token  && { Authorization: `Bearer ${token}` }),
+          "X-Requested-With": "fintrack",
           ...(userId && { "X-User-Id": userId }),
         },
-        credentials: "include",
+        credentials: "same-origin",
       });
       if (response.ok) return response.blob();
       throw new Error(`${response.status}`);

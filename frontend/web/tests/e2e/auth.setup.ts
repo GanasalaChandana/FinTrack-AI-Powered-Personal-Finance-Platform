@@ -9,14 +9,13 @@
 
 import { test as setup, expect } from '@playwright/test';
 import path from 'path';
-import { deleteTestTransactions } from './testData';
+import { deleteTestTransactions, API_HEADERS } from './testData';
 
 const AUTH_FILE = path.join(__dirname, '.auth/user.json');
 
 // Trim: values pasted into GitHub secrets often carry a trailing newline
 const EMAIL    = (process.env.TEST_EMAIL    || 'test@example.com').trim();
 const PASSWORD = (process.env.TEST_PASSWORD || 'password123').trim();
-const API_URL  = (process.env.API_URL || 'http://localhost:8080').trim().replace(/\/$/, '');
 
 setup('authenticate', async ({ page }) => {
   setup.setTimeout(120_000); // default 30s is shorter than a backend wake-up
@@ -49,20 +48,19 @@ setup('authenticate', async ({ page }) => {
   await deleteTestTransactions(page);
 
   // The budget tests need at least one budget; a fresh test account has none
-  const token = await page.evaluate(() => localStorage.getItem('authToken'));
-  if (token) {
-    const headers = { Authorization: `Bearer ${token}` };
-    const existing = await page.request.get(`${API_URL}/api/budgets`, { headers });
+  {
+    const headers = API_HEADERS;
+    const existing = await page.request.get(`/api/budgets`, { headers });
     if (existing.ok() && (await existing.json()).length === 0) {
       const month = new Date().toISOString().slice(0, 7);
-      await page.request.post(`${API_URL}/api/budgets`, {
+      await page.request.post(`/api/budgets`, {
         headers,
         data: { category: 'Food & Dining', budget: 400, spent: 0, icon: '🍔', color: '#f97316', month },
       });
     }
   }
 
-  // Save storage state (localStorage token + cookies)
+  // Save storage state (session cookies + the stored user profile)
   await page.context().storageState({ path: AUTH_FILE });
   console.log('✅ Auth state saved to', AUTH_FILE);
 });

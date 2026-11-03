@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { getToken } from "@/lib/api";
+import { isAuthenticated as hasSession } from "@/lib/api";
 
 import Navigation from "@/components/Navigation";
 import { BudgetAlerts } from "@/components/BudgetAlerts";
@@ -47,7 +47,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     }
 
     // For protected pages, check token
-    const token = getToken();
+    const token = hasSession();
     if (!token) {
       router.replace("/register?mode=signin&reason=auth_required");
       return;

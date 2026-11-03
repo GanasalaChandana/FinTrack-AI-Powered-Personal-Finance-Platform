@@ -12,11 +12,11 @@ import {
   PiggyBank, DollarSign, Settings, Download, Store, Receipt,
 } from "lucide-react";
 import { usePWA } from "@/components/providers/PWAProvider";
-import { authAPI, getToken, removeToken } from "@/lib/api";
+import { authAPI, isAuthenticated as hasSession, removeToken } from "@/lib/api";
 import { useThemePreference } from "@/lib/hooks/useThemePreference";
 import { CommandPalette } from "@/components/CommandPalette";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE_URL = ''; // same-origin: /api/* is proxied to the backend (session cookies)
 
 interface Alert {
   id: string; userId: string; type: string; title: string;
@@ -262,7 +262,7 @@ export default function Navigation() {
     setMounted(true);
     if (typeof window === 'undefined') return;
 
-    const token = getToken();
+    const token = hasSession();
     setHasToken(!!token);
 
     const readBudget = () => {
@@ -276,7 +276,7 @@ export default function Navigation() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        if (getToken()) setIsPaletteOpen(p => !p);
+        if (hasSession()) setIsPaletteOpen(p => !p);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -284,7 +284,7 @@ export default function Navigation() {
     if (token && !isPublic(pathname)) {
       loadAlerts(); loadNotifs();
       const iv = setInterval(() => {
-        if (!isPublic(window.location.pathname) && getToken() && pollFailures.current < 4) {
+        if (!isPublic(window.location.pathname) && hasSession() && pollFailures.current < 4) {
           loadAlerts(); loadNotifs();
         }
       }, 120_000);
@@ -330,8 +330,7 @@ export default function Navigation() {
   // ── data ─────────────────────────────────────────────────────────────────
   // A 401 here usually means the access token expired: renew it like every other
   // request does (next poll uses the new one) and only sign out if that fails.
-  const renewOrSignOut = async (failedToken: string) => {
-    if (getToken() !== failedToken) return; // another request already renewed it
+  const renewOrSignOut = async () => {
     if (await authAPI.refreshToken()) return;
     removeToken(); setHasToken(false);
   };
@@ -339,18 +338,18 @@ export default function Navigation() {
   const loadAlerts = async () => {
     try {
       if (isPublic(window.location.pathname)) return;
-      const token = getToken(); if (!token) return;
+      if (!hasSession()) return;
       const userId = localStorage.getItem('userId');
       const res = await fetch(`${API_BASE_URL}/api/alerts`, {
-        headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest', ...(userId && { 'X-User-Id': userId }) },
-        credentials: 'omit',
+        headers: { 'X-Requested-With': 'fintrack', ...(userId && { 'X-User-Id': userId }) },
+        credentials: 'same-origin',
       });
       if (res.ok) {
         pollFailures.current = 0;
         const d = await res.json();
         setAlerts(d.slice(0, 5));
         setAlertsUnread(d.filter((a: Alert) => !a.read).length);
-      } else if (res.status === 401) { await renewOrSignOut(token); }
+      } else if (res.status === 401) { await renewOrSignOut(); }
       else pollFailures.current++;
     } catch { pollFailures.current++; }
   };
@@ -358,36 +357,36 @@ export default function Navigation() {
   const loadNotifs = async () => {
     try {
       if (isPublic(window.location.pathname)) return;
-      const token = getToken(); if (!token) return;
+      if (!hasSession()) return;
       const u = JSON.parse(localStorage.getItem('user') || '{}'); if (!u.id) return;
       const res = await fetch(`${API_BASE_URL}/api/notifications/user/${u.id}`, {
-        headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' },
-        credentials: 'omit',
+        headers: { 'X-Requested-With': 'fintrack' },
+        credentials: 'same-origin',
       });
       if (res.ok) {
         pollFailures.current = 0;
         const d = await res.json();
         setNotifs(d.slice(0, 5));
         setNotifsUnread(d.filter((n: Notification) => !n.read).length);
-      } else if (res.status === 401) { await renewOrSignOut(token); }
+      } else if (res.status === 401) { await renewOrSignOut(); }
       else pollFailures.current++;
     } catch { pollFailures.current++; }
   };
 
   const markAlertRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const token = getToken(); if (!token) return;
+    if (!hasSession()) return;
     const res = await fetch(`${API_BASE_URL}/api/alerts/${id}/acknowledge`, {
-      method: 'POST', headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
+      method: 'POST', headers: { 'X-Requested-With': 'fintrack' }, credentials: 'same-origin',
     });
     if (res.ok) { setAlerts(a => a.map(x => x.id === id ? { ...x, read: true } : x)); setAlertsUnread(n => Math.max(0, n - 1)); }
   };
 
   const dismissAlert = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const token = getToken(); if (!token) return;
+    if (!hasSession()) return;
     const res = await fetch(`${API_BASE_URL}/api/alerts/${id}`, {
-      method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
+      method: 'DELETE', headers: { 'X-Requested-With': 'fintrack' }, credentials: 'same-origin',
     });
     if (res.ok) {
       const d = alerts.find(a => a.id === id);
@@ -398,20 +397,20 @@ export default function Navigation() {
 
   const markNotifRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const token = getToken(); if (!token) return;
+    if (!hasSession()) return;
     const u = JSON.parse(localStorage.getItem('user') || '{}'); if (!u.id) return;
     const res = await fetch(`${API_BASE_URL}/api/notifications/${id}/read?userId=${u.id}`, {
-      method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
+      method: 'PATCH', headers: { 'X-Requested-With': 'fintrack' }, credentials: 'same-origin',
     });
     if (res.ok) { setNotifs(n => n.map(x => x.id === id ? { ...x, read: true } : x)); setNotifsUnread(n => Math.max(0, n - 1)); }
   };
 
   const dismissNotif = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const token = getToken(); if (!token) return;
+    if (!hasSession()) return;
     const u = JSON.parse(localStorage.getItem('user') || '{}'); if (!u.id) return;
     const res = await fetch(`${API_BASE_URL}/api/notifications/${id}?userId=${u.id}`, {
-      method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'omit',
+      method: 'DELETE', headers: { 'X-Requested-With': 'fintrack' }, credentials: 'same-origin',
     });
     if (res.ok) {
       const d = notifs.find(n => n.id === id);

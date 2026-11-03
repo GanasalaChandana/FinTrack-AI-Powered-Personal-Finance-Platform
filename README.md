@@ -29,6 +29,7 @@
 - **Predictive budget forecasting** — daily burn rate × days remaining = end-of-month projection with per-category "at risk" warnings
 - **Spoof-resistant rate limiting** — sliding window per IP *and* per account, plus an app-wide sign-up cap, so a forged `X-Forwarded-For` can't dodge it. No Redis needed (`ConcurrentHashMap` + `Deque<Long>`)
 - **Instant session revocation** — every access token carries the user's token version; signing out, changing the password or deleting the account bumps it, so older tokens are refused at once (checked against a 15-second cache, not on every query)
+- **HttpOnly cookie sessions** — the access and refresh tokens live in HttpOnly, Secure, SameSite=Lax cookies that page scripts can't read; the web app reaches the API through its own domain (a Vercel rewrite) so they are first-party, and cookie-authenticated writes must carry an `X-Requested-With` header (CSRF)
 - **Refresh token rotation with replay detection** — SHA-256 hashed, single-use; detecting a replayed token revokes ALL active sessions
 - **Fail-fast security config** — the server refuses to start without a strong `JWT_SECRET` (and rejects known public example secrets); `/actuator` exposes only `health`; errors return generic messages, never internals
 - **Ownership checks on user-scoped routes** — other users' resources return 403/404, and a `userId` supplied in a request body or query string is no longer trusted over the authenticated caller
@@ -125,7 +126,7 @@ flowchart TD
         migrations["Flyway migrations (V1 baseline, V2 indexes + locks)\nHibernate ddl-auto=validate"]
     end
 
-    FE -- "HTTPS · Bearer JWT" --> BE
+    FE -- "HTTPS · /api proxied · HttpOnly cookie JWT" --> BE
     rl --> jwt --> ctrl --> svc --> API
     svc -- "JPA" --> DB
 ```
@@ -239,7 +240,7 @@ Output: "📊 Projected $3,855 vs $3,150 budget — $705 over.
 
 ## 🔌 API Reference
 
-All routes except `/api/auth/**` and the health checks require `Authorization: Bearer <token>`. You don't send a user ID: the JWT filter reads it from the verified token and injects `X-User-Id` itself, overwriting any value the client supplies, so a caller can't act as another user.
+All routes except `/api/auth/**` and the health checks require a session: the `ft_at` HttpOnly cookie (web app; writes also need `X-Requested-With`) or `Authorization: Bearer <token>` (API clients). You don't send a user ID: the JWT filter reads it from the verified token and injects `X-User-Id` itself, overwriting any value the client supplies, so a caller can't act as another user.
 
 **Auth** (rate-limited: per IP, plus per account on login)
 ```

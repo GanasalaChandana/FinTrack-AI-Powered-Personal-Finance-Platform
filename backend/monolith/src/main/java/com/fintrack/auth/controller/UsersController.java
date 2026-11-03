@@ -30,6 +30,7 @@ public class UsersController {
     private final AccountDeletionService accountDeletionService;
     private final TokenRevocationService tokenRevocationService;
     private final AuthService authService;
+    private final com.fintrack.auth.security.AuthCookies authCookies;
 
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final int MAX_PASSWORD_LENGTH = 128;
@@ -123,7 +124,8 @@ public class UsersController {
         // Removes all of the user's data and sessions, then the account
         accountDeletionService.deleteAccount(userOpt.get().getId());
         tokenRevocationService.forget(userOpt.get().getId()); // old tokens: user gone -> refused
-        return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
+        return ResponseEntity.ok().header(org.springframework.http.HttpHeaders.SET_COOKIE, authCookies.cleared())
+                .body(Map.of("message", "Account deleted successfully"));
     }
 
     /**
@@ -169,8 +171,9 @@ public class UsersController {
         // ...but keep this one signed in with a fresh token
         User refreshed = userService.findByEmail(user.getEmail()).orElse(user);
         var tokens = authService.issueTokens(refreshed);
-        return ResponseEntity.ok(Map.of("message", "Password changed successfully",
-                "token", tokens.getToken(), "refreshToken", tokens.getRefreshToken()));
+        var issued = authCookies.issue(tokens); // new session cookies for this browser
+        return ResponseEntity.ok().headers(issued.getHeaders())
+                .body(Map.of("message", "Password changed successfully"));
     }
 
     // DTO for profile updates

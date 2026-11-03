@@ -32,6 +32,7 @@ public class AuthController {
     private final LoginRateLimiter rateLimiter;
     private final JwtUtil jwtUtil;
     private final TokenRevocationService tokenRevocationService;
+    private final com.fintrack.auth.security.AuthCookies authCookies;
 
     // Separate per-account limiter: the IP can be faked via X-Forwarded-For, the
     // target email can't. Kept apart from the IP table so flooding it with fake
@@ -66,7 +67,7 @@ public class AuthController {
             log.info("Registration attempt from IP {} for email: {}", ip, request.getEmail());
             AuthResponse response = authService.register(request);
             // No reset on success: resetting let one IP create unlimited accounts
-            return ResponseEntity.ok(response);
+            return authCookies.issue(response);
 
         } catch (Exception e) {
             log.error("Registration failed for {}: {}", request.getEmail(), e.getMessage());
@@ -109,7 +110,7 @@ public class AuthController {
             rateLimiter.reset(ip); // successful login — reset counters for this IP and account
             emailRateLimiter.reset(emailKey);
             log.info("Login successful for: {}", request.getEmail());
-            return ResponseEntity.ok(response);
+            return authCookies.issue(response);
 
         } catch (Exception e) {
             log.warn("Login failed from IP {} for {}: {}", ip, request.getEmail(), e.getMessage());
@@ -123,7 +124,7 @@ public class AuthController {
     // ── POST /api/auth/refresh ────────────────────────────────────────────────
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestBody Map<String, String> body,
+    public ResponseEntity<?> refresh(@RequestBody(required = false) Map<String, String> body,
                                      HttpServletRequest httpRequest) {
         String ip = resolveClientIp(httpRequest);
 
@@ -136,7 +137,12 @@ public class AuthController {
                                  "message", "Please try again in " + retryAfter + " seconds."));
         }
 
-        String refreshToken = body.get("refreshToken");
+        // From the HttpOnly cookie (web app; needs the CSRF header) or the body (API clients)
+        String refreshToken = body != null ? body.get("refreshToken") : null;
+        if ((refreshToken == null || refreshToken.isBlank())
+                && com.fintrack.auth.security.AuthCookies.passesCsrfCheck(httpRequest)) {
+            refreshToken = com.fintrack.auth.security.AuthCookies.read(httpRequest, com.fintrack.auth.security.AuthCookies.REFRESH);
+        }
         if (refreshToken == null || refreshToken.isBlank()) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
@@ -146,7 +152,7 @@ public class AuthController {
         try {
             AuthResponse response = authService.refreshAccessToken(refreshToken);
             rateLimiter.reset(ip);
-            return ResponseEntity.ok(response);
+            return authCookies.issue(response);
         } catch (Exception e) {
             log.warn("Token refresh failed from IP {}: {}", ip, e.getMessage());
             return ResponseEntity
@@ -162,9 +168,13 @@ public class AuthController {
      * working immediately. Always 204, so it is safe to call with an expired token.
      */
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader(value = "Authorization", required = false) String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String jwt = authHeader.substring(7);
+    public ResponseEntity<Void> logout(@RequestHeader(value = "Authorization", required = false) String authHeader,
+                                       HttpServletRequest httpRequest) {
+        String jwt = authHeader != null && authHeader.startsWith("Bearer ") ? authHeader.substring(7)
+                : com.fintrack.auth.security.AuthCookies.passesCsrfCheck(httpRequest)
+                        ? com.fintrack.auth.security.AuthCookies.read(httpRequest, com.fintrack.auth.security.AuthCookies.ACCESS)
+                        : null;
+        if (jwt != null) {
             try {
                 String userId = jwtUtil.isTokenValid(jwt) ? jwtUtil.extractUserId(jwt) : null;
                 // The demo account is shared: one visitor signing out mustn't sign out everyone else
@@ -174,7 +184,7 @@ public class AuthController {
                 log.debug("Logout with an unusable token: {}", e.getMessage());
             }
         }
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent().header(org.springframework.http.HttpHeaders.SET_COOKIE, authCookies.cleared()).build();
     }
 
     // ── POST /api/auth/google ─────────────────────────────────────────────────
@@ -203,7 +213,7 @@ public class AuthController {
             log.info("Google auth attempt from IP {}", ip);
             AuthResponse response = googleAuthService.authenticateWithGoogle(request.getCredential());
             rateLimiter.reset(ip);
-            return ResponseEntity.ok(response);
+            return authCookies.issue(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
@@ -223,7 +233,7 @@ public class AuthController {
         try {
             log.info("Demo login requested");
             AuthResponse response = demoService.loginAsDemo();
-            return ResponseEntity.ok(response);
+            return authCookies.issue(response);
         } catch (Exception e) {
             log.error("Demo login failed: {}", e.getMessage(), e);
             return ResponseEntity

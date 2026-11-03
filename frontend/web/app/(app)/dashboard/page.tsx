@@ -37,8 +37,8 @@ import { TransactionModal } from "@/components/modals/TransactionModal";
 import { CSVImportModal, type CSVRow } from "@/components/CSVImportModal";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { OnboardingWizard, shouldShowOnboarding } from "@/components/OnboardingWizard";
-import {
-  getToken,
+import { getUser,
+  isAuthenticated as hasSession,
   isAuthenticated as checkAuth,
   transactionsAPI,
   budgetsAPI,
@@ -290,11 +290,8 @@ export default function DashboardPage() {
     if (typeof window === "undefined") return;
     if (!checkAuth()) { router.replace("/register?mode=signin&reason=session_required"); return; }
     try {
-      const token = getToken();
-      if (token) {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        setUserName(payload.name || payload.email?.split("@")[0] || "");
-      }
+      const u = getUser();
+      if (u) setUserName(u.firstName || u.name || u.email?.split("@")[0] || "");
     } catch {}
     setIsAuthenticated(true);
     setIsLoading(false);

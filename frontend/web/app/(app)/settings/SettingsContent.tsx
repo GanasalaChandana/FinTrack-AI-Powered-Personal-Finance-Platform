@@ -8,7 +8,7 @@ import {
   BellOff, Palette, Sun, Moon, Monitor, FileJson,
   FileSpreadsheet, AlertCircle,
 } from 'lucide-react';
-import { apiRequest, getToken, getUser, removeToken, setToken } from '@/lib/api';
+import { apiRequest, getUser, removeToken } from '@/lib/api';
 
 /* ===================== Types ===================== */
 type TabKey = 'profile' | 'security' | 'preferences' | 'categories' | 'notifications';
@@ -146,12 +146,11 @@ export default function SettingsContent() {
     if (pwData.newPassword.length < 8)                       return showToast('New password must be at least 8 characters', 'error');
     setPwSaving(true);
     try {
-      const res = await apiRequest<{ token?: string; refreshToken?: string }>('/api/users/change-password', {
+      // Every other session is signed out; the response sets new session cookies for this one
+      await apiRequest('/api/users/change-password', {
         method: 'POST',
         body: JSON.stringify({ currentPassword: pwData.currentPassword, newPassword: pwData.newPassword }),
       });
-      // Every older token is revoked by a password change; keep this session on the new one
-      if (res?.token) setToken(res.token, res.refreshToken);
       setPwData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       showToast('Password changed successfully!');
     } catch (e: any) {

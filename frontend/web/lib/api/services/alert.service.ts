@@ -1,5 +1,5 @@
 // services/alert.service.ts
-import { authAPI, getToken, removeToken } from '@/lib/api';
+import { authAPI, isAuthenticated as hasSession, removeToken } from '@/lib/api';
 
 export interface BudgetAlert {
   id: string;
@@ -30,7 +30,7 @@ function isPublicRoute(): boolean {
 
 // Helper to get alerts API URL
 function getAlertsApiUrl(endpoint: string): string {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  const baseUrl = ''; // same-origin: /api/* is proxied to the backend (session cookies)
   return `${baseUrl}${endpoint}`;
 }
 
@@ -42,18 +42,14 @@ async function alertsApiRequest<T>(endpoint: string, options: RequestInit = {}, 
   }
 
   const url = getAlertsApiUrl(endpoint);
-  const token = getToken();
-
-  // 🛡️ Block requests without token
-  if (!token) {
-    throw new Error('No authentication token');
+  if (!hasSession()) {
+    throw new Error('Not signed in');
   }
 
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
-    'X-Requested-With': 'XMLHttpRequest',
+    'X-Requested-With': 'fintrack',
   };
 
   try {
@@ -63,7 +59,7 @@ async function alertsApiRequest<T>(endpoint: string, options: RequestInit = {}, 
         ...headers,
         ...options.headers,
       },
-      credentials: 'omit',
+      credentials: 'same-origin',
     });
 
 
@@ -102,8 +98,7 @@ export const alertService = {
       }
 
       // 🛡️ Check for token before making request
-      const token = getToken();
-      if (!token) {
+      if (!hasSession()) {
         return [];
       }
 
@@ -121,8 +116,7 @@ export const alertService = {
   async acknowledgeAlert(alertId: string): Promise<void> {
     try {
       // 🛡️ Check for token before making request
-      const token = getToken();
-      if (!token) {
+      if (!hasSession()) {
         console.error('Cannot acknowledge alert: no authentication token');
         throw new Error('Not authenticated');
       }
@@ -140,8 +134,7 @@ export const alertService = {
   async acknowledgeAll(): Promise<void> {
     try {
       // 🛡️ Check for token before making request
-      const token = getToken();
-      if (!token) {
+      if (!hasSession()) {
         console.error('Cannot acknowledge alerts: no authentication token');
         throw new Error('Not authenticated');
       }

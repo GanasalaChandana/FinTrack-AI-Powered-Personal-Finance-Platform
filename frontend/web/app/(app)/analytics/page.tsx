@@ -236,8 +236,7 @@ export default function AnalyticsPage() {
   const [merchantSort, setMerchantSort] = useState<"total" | "count" | "avg">("total");
 
   useEffect(() => {
-    const token = localStorage.getItem("authToken") || localStorage.getItem("ft_token");
-    if (!token) { router.replace("/register?mode=signin"); return; }
+    if (!localStorage.getItem("user")) { router.replace("/register?mode=signin"); return; }
     transactionsAPI.getAll().then((data) => {
       setTransactions(Array.isArray(data) ? data : []);
     }).catch(() => setTransactions([])).finally(() => setLoading(false));

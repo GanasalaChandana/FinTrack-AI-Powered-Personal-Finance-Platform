@@ -38,24 +38,25 @@ const COLORS = [
   '#f97316', // orange
 ];
 
+const CustomTooltip = ({ active, payload, total }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    const percentage = ((data.value / total) * 100).toFixed(1);
+    return (
+      <div className="bg-white p-3 rounded-lg shadow-lg border-2 border-gray-200">
+        <p className="font-bold text-gray-900">{data.name}</p>
+        <p className="text-sm text-gray-600">
+          {formatCurrency(data.value)} ({percentage}%)
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function CategoryPieChart({ data }: CategoryPieChartProps) {
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      const percentage = ((data.value / total) * 100).toFixed(1);
-      return (
-        <div className="bg-white p-3 rounded-lg shadow-lg border-2 border-gray-200">
-          <p className="font-bold text-gray-900">{data.name}</p>
-          <p className="text-sm text-gray-600">
-            {formatCurrency(data.value)} ({percentage}%)
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-6">
@@ -83,7 +84,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
               />
             ))}
           </Pie>
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip total={total} />} />
         </PieChart>
       </ResponsiveContainer>
 

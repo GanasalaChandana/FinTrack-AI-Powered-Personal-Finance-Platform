@@ -187,9 +187,6 @@ function getCategoryBudget(name: string): number {
 function computeReportsData(allTxns: Transaction[], range: ReportsRange): ReportsData {
   const now = new Date();
 
-  if (allTxns.length > 0) {
-    console.log("📊 Sample transaction:", JSON.stringify(allTxns[0], null, 2));
-  }
 
   const cutoff    = cutoffDate(range);
   const prevEnd   = new Date(cutoff);
@@ -198,7 +195,6 @@ function computeReportsData(allTxns: Transaction[], range: ReportsRange): Report
   let current  = allTxns.filter((t) => inWindow(t, cutoff, now));
   let previous = allTxns.filter((t) => inWindow(t, prevStart, prevEnd));
 
-  console.log(`📊 Cutoff: ${cutoff.toISOString()} | In window: ${current.length} / ${allTxns.length}`);
 
   // ── KEY FIX: If date filter returns nothing, show ALL data ─────────────────
   // This handles cases where stored transaction dates are outside the selected
@@ -224,7 +220,6 @@ function computeReportsData(allTxns: Transaction[], range: ReportsRange): Report
   const prevSavings  = prevIncome - prevExpenses;
   const prevRate     = prevIncome > 0 ? (prevSavings / prevIncome) * 100 : 0;
 
-  console.log(`📊 Income: $${curIncome.toFixed(2)} | Expenses: $${curExpenses.toFixed(2)} | Savings: $${curSavings.toFixed(2)}`);
 
   // Compare only when the history covers the whole previous period; otherwise
   // the "change" is against a mostly empty period. 0 hides the change chip.
@@ -389,12 +384,10 @@ class ReportsService {
       const raw  = await apiRequest<any>(`/api/reports/financial?range=${encodeURIComponent(dateRange)}`, { method: "GET" });
       const data: ReportsData = raw?.data ?? raw;
       if (!isEmptyReport(data)) {
-        console.log("✅ Reports: using microservice data");
         return data;
       }
-      console.log("ℹ️ Reports API empty — computing from transactions");
-    } catch (err) {
-      console.log("ℹ️ Reports API unavailable — computing from transactions");
+    } catch {
+      // Backend report unavailable: fall back to computing from transactions
     }
     return this._computeFromTransactions(dateRange);
   }
@@ -407,7 +400,6 @@ class ReportsService {
         type:   ((t.type ?? "expense") as string).toLowerCase() as "income" | "expense",
         amount: Math.abs(t.amount),
       }));
-      console.log(`✅ Computing reports from ${safeTxns.length} transactions`);
       return computeReportsData(safeTxns, dateRange);
     } catch (err) {
       console.error("❌ Failed to fetch transactions:", err);

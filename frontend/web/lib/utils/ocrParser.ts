@@ -92,7 +92,6 @@ export const parseReceiptImage = async (imageFile: File): Promise<ParsedReceipt>
   try {
     // Perform OCR
     const result = await Tesseract.recognize(imageFile, 'eng', {
-      logger: (m) => console.log(m),
     });
 
     const text = result.data.text;
@@ -262,7 +261,8 @@ function normalizeDate(raw: string): string {
     const sep = raw.includes('/') ? '/' : '-';
     const parts = raw.split(sep);
     if (parts.length === 3) {
-      let [a, b, c] = parts;
+      const [a, b] = parts;
+      let c = parts[2];
       // Two-digit year → four-digit
       if (c.length === 2) c = `20${c}`;
       // If first part looks like a 4-digit year: YYYY-MM-DD already

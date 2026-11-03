@@ -38,7 +38,6 @@ function getAlertsApiUrl(endpoint: string): string {
 async function alertsApiRequest<T>(endpoint: string, options: RequestInit = {}, isRetry = false): Promise<T> {
   // 🛡️ CRITICAL: Block requests on public routes
   if (isPublicRoute()) {
-    console.log('🚫 Blocked API request on public route:', window.location.pathname);
     throw new Error('Cannot make API request on public route');
   }
 
@@ -47,11 +46,9 @@ async function alertsApiRequest<T>(endpoint: string, options: RequestInit = {}, 
 
   // 🛡️ Block requests without token
   if (!token) {
-    console.log('🚫 No authentication token - skipping API request');
     throw new Error('No authentication token');
   }
 
-  console.log('📡 Making request to:', url, '- Token present:', !!token);
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -69,7 +66,6 @@ async function alertsApiRequest<T>(endpoint: string, options: RequestInit = {}, 
       credentials: 'omit',
     });
 
-    console.log('📥 Response status:', response.status);
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -102,14 +98,12 @@ export const alertService = {
     try {
       // 🛡️ CRITICAL: Don't make request on public routes
       if (isPublicRoute()) {
-        console.log('⏭️ Skipping getAlerts - on public route');
         return [];
       }
 
       // 🛡️ Check for token before making request
       const token = getToken();
       if (!token) {
-        console.log('⏭️ No token - returning empty alerts array');
         return [];
       }
 
@@ -117,10 +111,8 @@ export const alertService = {
         method: 'GET',
       });
       
-      console.log('✅ Successfully fetched alerts:', response.length);
       return Array.isArray(response) ? response : [];
     } catch (error) {
-      console.log('⚠️ Failed to fetch alerts (returning empty array):', error);
       // Return empty array instead of throwing to prevent UI crashes
       return [];
     }
@@ -139,7 +131,6 @@ export const alertService = {
         method: 'POST',
       });
       
-      console.log('✅ Alert acknowledged:', alertId);
     } catch (error) {
       console.error('❌ Failed to acknowledge alert:', error);
       throw error;
@@ -159,7 +150,6 @@ export const alertService = {
         method: 'POST',
       });
       
-      console.log('✅ All alerts acknowledged');
     } catch (error) {
       console.error('❌ Failed to acknowledge all alerts:', error);
       throw error;

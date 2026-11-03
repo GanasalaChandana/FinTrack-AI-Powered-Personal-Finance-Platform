@@ -49,7 +49,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     // For protected pages, check token
     const token = getToken();
     if (!token) {
-      console.log("🚫 ClientLayout: No token on protected page, redirecting");
       router.replace("/register?mode=signin&reason=auth_required");
       return;
     }

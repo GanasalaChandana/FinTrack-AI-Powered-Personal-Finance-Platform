@@ -103,7 +103,7 @@ export default function DebtPayoffPage() {
     const totalPayment = totalMinimum + extraPayment;
 
     // Simulate month by month across all debts
-    let balances = orderedDebts.map(d => ({ ...d, bal: d.balance }));
+    const balances = orderedDebts.map(d => ({ ...d, bal: d.balance }));
     let month = 0;
     let totalInterest = 0;
     const timeline: Array<{ month: number; totalDebt: number; label?: string }> = [];
@@ -142,7 +142,7 @@ export default function DebtPayoffPage() {
     }
 
     // Minimum-only scenario for comparison
-    let minBalances = orderedDebts.map(d => ({ ...d, bal: d.balance }));
+    const minBalances = orderedDebts.map(d => ({ ...d, bal: d.balance }));
     let minMonths = 0;
     let minInterest = 0;
     while (minBalances.some(d => d.bal > 0) && minMonths < 600) {
@@ -177,7 +177,7 @@ export default function DebtPayoffPage() {
     const totalPay  = totalMin + extraPayment;
 
     const runSim = (ordered: Debt[]) => {
-      let balances = ordered.map(d => ({ ...d, bal: d.balance }));
+      const balances = ordered.map(d => ({ ...d, bal: d.balance }));
       let month = 0;
       let totalInterest = 0;
       const timeline: Array<{ month: number; balance: number }> = [];

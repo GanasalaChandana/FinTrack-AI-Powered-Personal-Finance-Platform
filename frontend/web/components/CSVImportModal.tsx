@@ -357,7 +357,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
   const stepIdx     = step === "upload" ? 0 : step === "map" ? 1 : 2;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
          onClick={e => e.target === e.currentTarget && !importing && onClose()}>
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col border border-gray-200 dark:border-gray-700 overflow-hidden">
 

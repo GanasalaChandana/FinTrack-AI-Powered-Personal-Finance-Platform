@@ -21,6 +21,16 @@ export interface AuthResponse {
   message?: string;
 }
 
+export interface ImportJob {
+  jobId: string;
+  status: "PENDING" | "RUNNING" | "DONE" | "FAILED";
+  total: number;
+  processed: number;
+  imported: number;
+  failed: number;
+  error?: string;
+}
+
 export interface Transaction {
   id?: string;
   date: string;
@@ -435,6 +445,30 @@ export const transactionsAPI = {
   /** Delete ALL transactions for the current user. Used before CSV import to avoid mixing demo data. */
   clearAll: async (): Promise<void> => {
     await apiRequest<{ message: string }>("/api/transactions/all", { method: "DELETE" }, true);
+  },
+
+  /** Starts a background import of many rows; returns the job to poll. */
+  startImport: (transactions: Omit<Transaction, "id">[]): Promise<ImportJob> =>
+    apiRequest<ImportJob>("/api/transactions/import", {
+      method: "POST",
+      body: JSON.stringify({ transactions }),
+    }, true),
+
+  getImportJob: (jobId: string): Promise<ImportJob> =>
+    apiRequest<ImportJob>(`/api/transactions/import/${jobId}`, { method: "GET" }, true),
+
+  /** Starts an import and resolves when it has finished (calls onProgress while it runs). */
+  importAll: async (
+    transactions: Omit<Transaction, "id">[],
+    onProgress?: (job: ImportJob) => void,
+  ): Promise<ImportJob> => {
+    let job = await transactionsAPI.startImport(transactions);
+    while (job.status === "PENDING" || job.status === "RUNNING") {
+      onProgress?.(job);
+      await new Promise((r) => setTimeout(r, 1000));
+      job = await transactionsAPI.getImportJob(job.jobId);
+    }
+    return job;
   },
 
   exportCsv: async (): Promise<Blob> => {

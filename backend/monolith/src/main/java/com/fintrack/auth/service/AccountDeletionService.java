@@ -37,6 +37,7 @@ public class AccountDeletionService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final TransactionRepository transactionRepository;
+    private final com.fintrack.transactions.repository.ImportJobRepository importJobRepository;
     private final RecurringTransactionRepository recurringTransactionRepository;
     private final BudgetRepository budgetRepository;
     private final GoalRepository goalRepository;
@@ -55,6 +56,7 @@ public class AccountDeletionService {
         String id = userId.toString();
 
         transactionRepository.deleteAllByUserId(id);
+        importJobRepository.deleteAllByUserId(id);
         recurringTransactionRepository.deleteAllByUserIdForAccountDeletion(id);
         budgetRepository.deleteAllByUserId(id);
         goalRepository.deleteAllByUserId(id);

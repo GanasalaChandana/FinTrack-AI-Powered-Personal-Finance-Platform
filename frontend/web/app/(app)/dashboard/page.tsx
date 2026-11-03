@@ -408,13 +408,17 @@ export default function DashboardPage() {
       if (goalErr)   toast.error("Failed to clear existing goals");
     }
 
-    // 3. Create in small batches (was one request per row, all at once)
+    // 3. One request for all rows; the server saves them in the background
+    //    (was one request per row, so a big file meant thousands of requests)
     let imported = 0;
-    for (let i = 0; i < valid.length; i += 10) {
-      const results = await Promise.all(
-        valid.slice(i, i + 10).map((tx) => transactionsAPI.create(tx).then(() => true).catch(() => false)),
-      );
-      imported += results.filter(Boolean).length;
+    let importError: string | undefined;
+    try {
+      if (valid.length > 50) toast.info(`Importing ${valid.length} transactions…`);
+      const job = await transactionsAPI.importAll(valid);
+      imported = job.imported;
+      importError = job.error;
+    } catch (e: any) {
+      importError = e?.message;
     }
 
     await fetchDashboardData();
@@ -423,7 +427,7 @@ export default function DashboardPage() {
     const skipped = rows.length - valid.length;
     const failed = valid.length - imported;
     if (imported === 0) {
-      toast.error("Import failed — no transactions could be saved. Please try again.");
+      toast.error(importError ? `Import failed: ${importError}` : "Import failed — no transactions could be saved. Please try again.");
     } else if (failed > 0 || skipped > 0) {
       toast.warning(`Imported ${imported} of ${rows.length} rows` +
         (failed > 0 ? ` · ${failed} failed to save` : "") +

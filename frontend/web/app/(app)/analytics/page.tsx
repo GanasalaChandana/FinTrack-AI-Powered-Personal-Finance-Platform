@@ -197,7 +197,13 @@ function getSummaryStats(transactions: Transaction[]) {
   const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, "0")}`;
   const thisTotal = expenses.filter((t) => t.date?.startsWith(thisMonth)).reduce((s, t) => s + Math.abs(t.amount), 0);
   const lastTotal = expenses.filter((t) => t.date?.startsWith(lastMonth)).reduce((s, t) => s + Math.abs(t.amount), 0);
-  const momChange = lastTotal > 0 ? ((thisTotal - lastTotal) / lastTotal) * 100 : null;
+  // Compare like with like: this month so far vs the same days of last month
+  // (vs all of last month, every month looked like a huge drop in its first days)
+  const today = now.getDate();
+  const lastSamePeriod = expenses
+    .filter((t) => t.date?.startsWith(lastMonth) && Number(t.date.slice(8, 10)) <= today)
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
+  const momChange = lastSamePeriod > 0 ? ((thisTotal - lastSamePeriod) / lastSamePeriod) * 100 : null;
 
   return { total, avg, largest, thisTotal, lastTotal, momChange, txCount: expenses.length };
 }
@@ -496,7 +502,7 @@ export default function AnalyticsPage() {
             { label: "Total Spent",       value: fmt(stats.total),    icon: DollarSign,  color: "from-red-500 to-red-600" },
             { label: "This Month",        value: fmt(stats.thisTotal), icon: Calendar,    color: "from-orange-500 to-orange-600",
               sub: stats.momChange !== null
-                ? `${stats.momChange > 0 ? "+" : ""}${stats.momChange.toFixed(1)}% vs last month`
+                ? `${stats.momChange > 0 ? "+" : ""}${stats.momChange.toFixed(1)}% vs same days last month`
                 : undefined,
               subColor: stats.momChange !== null ? (stats.momChange > 0 ? "text-red-500" : "text-emerald-500") : undefined,
             },

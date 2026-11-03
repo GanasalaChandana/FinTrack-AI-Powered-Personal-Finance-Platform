@@ -129,6 +129,7 @@ export function HealthScoreWidget({ transactions, budgets }: Props) {
           const barColor = comp.status === "excellent" ? "bg-emerald-400"
                          : comp.status === "good"      ? "bg-blue-400"
                          : comp.status === "fair"      ? "bg-amber-400"
+                         : comp.status === "none"      ? "bg-gray-300"
                          : "bg-red-400";
           return (
             <div key={key} className="flex items-center gap-2">

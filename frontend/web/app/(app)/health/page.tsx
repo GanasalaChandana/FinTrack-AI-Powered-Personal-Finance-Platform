@@ -25,7 +25,7 @@ interface ComponentScore {
   score: number;
   maxScore: number;
   percentage: number;
-  status: "excellent" | "good" | "fair" | "poor";
+  status: "excellent" | "good" | "fair" | "poor" | "none"; // none = not scored yet
   description: string;
 }
 
@@ -81,13 +81,14 @@ function calcEmergencyFund(data: FinancialData): ComponentScore {
 }
 
 function calcBudgetAdherence(data: FinancialData): ComponentScore {
-  const adh =
-    data.monthlyBudget > 0
-      ? Math.max(
-          0,
-          (1 - Math.abs(data.actualSpending - data.monthlyBudget) / data.monthlyBudget) * 100
-        )
-      : 0;
+  // No budgets → nothing to adhere to; it's left out of the total rather than scored as poor
+  if (!(data.monthlyBudget > 0)) {
+    return { score: 0, maxScore: 0, percentage: 0, status: "none",
+             description: "No budgets set yet. Add budgets in Goals & Budget to score this." };
+  }
+  // Only overspending counts against you; coming in under budget is 100%
+  const over = Math.max(0, data.actualSpending - data.monthlyBudget);
+  const adh = Math.max(0, (1 - over / data.monthlyBudget) * 100);
   if (adh >= 95) return { score: 100, maxScore: 100, percentage: adh, status: "excellent", description: "Excellent budget adherence!" };
   if (adh >= 85) return { score: 85,  maxScore: 100, percentage: adh, status: "good",      description: "Good budget management. Minor adjustments needed." };
   if (adh >= 70) return { score: 70,  maxScore: 100, percentage: adh, status: "fair",      description: "Fair budget adherence. Review spending categories." };
@@ -139,12 +140,15 @@ function calculateFinancialHealthScore(data: FinancialData): HealthScoreResult {
     paymentHistory:  calcPaymentHistory(data),
   };
 
+  // Weighted out of 1000. A component that can't be scored yet (maxScore 0, e.g. no
+  // budgets set) is left out and the others are re-weighted, instead of counting as poor.
+  const weights: [ComponentScore, number][] = [
+    [components.savingsRate, 2.5], [components.debtToIncome, 2.5], [components.emergencyFund, 2.0],
+    [components.budgetAdherence, 2.0], [components.paymentHistory, 1.0],
+  ];
+  const scored = weights.filter(([c]) => c.maxScore > 0);
   const totalScore = Math.round(
-    components.savingsRate.score     * 2.5 +
-    components.debtToIncome.score    * 2.5 +
-    components.emergencyFund.score   * 2.0 +
-    components.budgetAdherence.score * 2.0 +
-    components.paymentHistory.score  * 1.0
+    (scored.reduce((s, [c, w]) => s + c.score * w, 0) / scored.reduce((s, [, w]) => s + 100 * w, 0)) * 1000
   );
 
   // ✅ FIX: use getGrade() instead of inline ternary with wrong thresholds
@@ -163,6 +167,7 @@ function calculateFinancialHealthScore(data: FinancialData): HealthScoreResult {
   const recommendations: string[] = [];
 
   Object.entries(components).forEach(([key, c]) => {
+    if (c.status === "none") return;
     if (c.status === "excellent" || c.status === "good") strengths.push(LABELS[key].strength);
     else improvements.push(LABELS[key].improvement);
   });
@@ -205,6 +210,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; bar: string; lab
   good:      { bg: "bg-indigo-50",  text: "text-indigo-700",  bar: "bg-indigo-500",  label: "Good" },
   fair:      { bg: "bg-amber-50",   text: "text-amber-700",   bar: "bg-amber-400",   label: "Fair" },
   poor:      { bg: "bg-red-50",     text: "text-red-700",     bar: "bg-red-500",     label: "Poor" },
+  none:      { bg: "bg-slate-100",  text: "text-slate-600",   bar: "bg-slate-300",   label: "Not set" },
 };
 
 const GRADE_STYLES: Record<string, { color: string; bg: string; ring: string }> = {

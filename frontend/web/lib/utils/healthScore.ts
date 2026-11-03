@@ -32,7 +32,7 @@ export interface ComponentScore {
   score: number;
   maxScore: number;
   percentage: number;
-  status: 'excellent' | 'good' | 'fair' | 'poor';
+  status: 'excellent' | 'good' | 'fair' | 'poor' | 'none'; // none = not scored yet
   description: string;
 }
 
@@ -53,12 +53,14 @@ export const calculateFinancialHealthScore = (data: FinancialData): HealthScoreR
   const paymentHistory = calculatePaymentHistory(data);
 
   // Calculate total score (out of 1000)
+  // A component that can't be scored yet (maxScore 0, e.g. no budgets) is left out
+  // and the others re-weighted, instead of counting as poor.
+  const weights: [ComponentScore, number][] = [
+    [savingsRate, 2.5], [debtToIncome, 2.5], [emergencyFund, 2.0], [budgetAdherence, 2.0], [paymentHistory, 1.0],
+  ];
+  const scored = weights.filter(([c]) => c.maxScore > 0);
   const totalScore = Math.round(
-    savingsRate.score * 2.5 +
-    debtToIncome.score * 2.5 +
-    emergencyFund.score * 2.0 +
-    budgetAdherence.score * 2.0 +
-    paymentHistory.score * 1.0
+    (scored.reduce((s, [c, w]) => s + c.score * w, 0) / scored.reduce((s, [, w]) => s + 100 * w, 0)) * 1000
   );
 
   // Determine grade
@@ -223,9 +225,14 @@ function calculateEmergencyFund(data: FinancialData): ComponentScore {
 }
 
 function calculateBudgetAdherence(data: FinancialData): ComponentScore {
-  const adherence = data.monthlyBudget > 0 
-    ? Math.max(0, (1 - Math.abs(data.actualSpending - data.monthlyBudget) / data.monthlyBudget)) * 100
-    : 0;
+  // No budgets → nothing to adhere to; it's left out of the total rather than scored as poor
+  if (!(data.monthlyBudget > 0)) {
+    return { score: 0, maxScore: 0, percentage: 0, status: 'none',
+             description: 'No budgets set yet. Add budgets in Goals & Budget to score this.' };
+  }
+  // Only overspending counts against you; coming in under budget is 100%
+  const over = Math.max(0, data.actualSpending - data.monthlyBudget);
+  const adherence = Math.max(0, 1 - over / data.monthlyBudget) * 100;
 
   let score = 0;
   let status: ComponentScore['status'] = 'poor';

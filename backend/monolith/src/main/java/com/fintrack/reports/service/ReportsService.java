@@ -132,7 +132,8 @@ public class ReportsService {
             monthData.put("income", income);
             monthData.put("expenses", expenses);
             monthData.put("savings", savings);
-            monthData.put("target", BigDecimal.valueOf(1500));
+            // The month's budget: the total of the user's category budgets for it (0 = none set)
+            monthData.put("target", monthlyBudgetTotal(userId, entry.getKey()));
 
             monthlySummary.add(monthData);
         }
@@ -353,6 +354,12 @@ public class ReportsService {
                 .findFirst()
                 .map(b -> b.getBudget() != null ? BigDecimal.valueOf(b.getBudget()) : BigDecimal.ZERO)
                 .orElse(BigDecimal.ZERO);
+    }
+
+    private BigDecimal monthlyBudgetTotal(String userId, java.time.YearMonth month) {
+        return budgetRepository.findByUserIdAndMonth(userId, month.toString()).stream()
+                .map(b -> b.getBudget() != null ? BigDecimal.valueOf(b.getBudget()) : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     // ========== Helper Methods ==========

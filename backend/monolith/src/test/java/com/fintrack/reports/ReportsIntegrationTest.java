@@ -153,4 +153,21 @@ class ReportsIntegrationTest {
                 .andExpect(jsonPath("$.summary.incomeChange").value(0))
                 .andExpect(jsonPath("$.summary.savingsRateChange").value(0));
     }
+
+    @Test
+    @DisplayName("each month's target is the user's total budget for that month (0 when none)")
+    void monthlyTarget_isRealBudgetTotal() throws Exception {
+        String erin = UUID.randomUUID().toString();
+        YearMonth now = YearMonth.now();
+        tx(erin, "Shop", "Shopping", "EXPENSE", 40, now.minusMonths(1).atDay(5));
+        tx(erin, "Shop", "Shopping", "EXPENSE", 50, now.atDay(1));
+        budgets.save(Budget.builder().userId(erin).category("Shopping").budget(200.0).spent(0.0)
+                .month(now.toString()).isActive(true).build());
+        budgets.save(Budget.builder().userId(erin).category("Food & Dining").budget(150.0).spent(0.0)
+                .month(now.toString()).isActive(true).build());
+
+        mockMvc.perform(get("/api/reports/financial").param("range", "last-year").header("Authorization", token(erin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.monthlyData[*].target", contains(0, 350.0)));
+    }
 }

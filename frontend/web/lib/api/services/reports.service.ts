@@ -92,22 +92,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   other:           "#94a3b8",
 };
 
-const DEFAULT_BUDGETS: Record<string, number> = {
-  "food & dining": 600,
-  food:            600,
-  dining:          600,
-  transportation:  300,
-  transport:       300,
-  shopping:        400,
-  entertainment:   200,
-  "bills & utilities": 500,
-  bills:           500,
-  utilities:       500,
-  healthcare:      200,
-  health:          200,
-  other:           300,
-};
-
 const SHORT_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -176,10 +160,6 @@ const _fmt = (v: number) =>
 
 function getCategoryColor(name: string): string {
   return CATEGORY_COLORS[name.toLowerCase()] ?? "#6366f1";
-}
-
-function getCategoryBudget(name: string): number {
-  return DEFAULT_BUDGETS[name.toLowerCase()] ?? 300;
 }
 
 // ─── Core computation ─────────────────────────────────────────────────────────
@@ -265,7 +245,7 @@ export function computeReportsData(allTxns: Transaction[], range: ReportsRange):
           income:   Math.round(income   * 100) / 100,
           expenses: Math.round(expenses * 100) / 100,
           savings:  Math.round((income - expenses) * 100) / 100,
-          target:   5000,
+          target:   0,
         });
       });
   } else {
@@ -288,7 +268,7 @@ export function computeReportsData(allTxns: Transaction[], range: ReportsRange):
         income:   Math.round(mIncome   * 100) / 100,
         expenses: Math.round(mExpenses * 100) / 100,
         savings:  Math.round((mIncome - mExpenses) * 100) / 100,
-        target:   5000,
+        target:   0,
       });
     }
   }
@@ -313,7 +293,7 @@ export function computeReportsData(allTxns: Transaction[], range: ReportsRange):
     .map(([name, amount]) => ({
       name,
       amount:     Math.round(amount * 100) / 100,
-      budget:     getCategoryBudget(name),
+      budget:     0, // budgets aren't known offline; 0 = "no budget", never an invented one
       percentage: Math.round((amount / totalExp) * 1000) / 10,
       color:      getCategoryColor(name),
     }));

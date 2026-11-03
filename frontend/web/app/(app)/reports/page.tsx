@@ -537,7 +537,8 @@ const EnhancedFinancialReports: React.FC = () => {
         amount: Math.abs(e.amount ?? 0),
         type: "expense",
       }));
-      const budgets = (reportsData.categoryBreakdown ?? []).map((b: CategoryBreakdown) => ({
+      // Only categories with a real budget go into the PDF's budget table
+      const budgets = (reportsData.categoryBreakdown ?? []).filter((b: CategoryBreakdown) => (b.budget ?? 0) > 0).map((b: CategoryBreakdown) => ({
         category: b.name,
         budget: b.budget ?? 0,
         spent: b.amount ?? 0,
@@ -1808,14 +1809,19 @@ const EnhancedFinancialReports: React.FC = () => {
       return <ChartEmptyState message="Not enough data to show budget history." />;
     }
 
-    // Build per-month budget vs actual. `target` in MonthlyReportData is the budget target set by reportsService.
-    const historyData = monthly.slice(-6).map((m: any) => ({
+    // Per-month budget vs actual. `target` is the month's total budget from the
+    // backend (0 when none was set); months without a budget aren't compared.
+    const historyData = monthly.slice(-6).filter((m: any) => (m.target ?? 0) > 0).map((m: any) => ({
       month: m.month,
       actual: Math.round(m.expenses ?? 0),
-      budget: Math.round(m.target > 0 ? m.target : m.expenses * 1.1),   // fallback: 10% over actual
+      budget: Math.round(m.target),
       savings: Math.round(m.savings ?? (m.income - m.expenses)),
       income: Math.round(m.income ?? 0),
     }));
+
+    if (historyData.length === 0) {
+      return <ChartEmptyState message="Set monthly budgets on the Goals & Budgets page to see how each month compared." />;
+    }
 
     const overBudgetMonths = historyData.filter(m => m.actual > m.budget).length;
     const underBudgetMonths = historyData.filter(m => m.actual <= m.budget).length;

@@ -184,9 +184,18 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # Render's free tier sleeps when idle; wake the API first so a cold start
+      # isn't reported as a test failure (Playwright also retries twice on CI).
+      - name: Wake the backend
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf --max-time 10 "$API_URL/actuator/health" && exit 0
+            echo "waiting for $API_URL ($i/30)"; sleep 10
+          done
+          echo "::error::Backend at $API_URL did not respond within 5 minutes"; exit 1
+
       - name: Run smoke tests (desktop + phone Chromium)
         run: npx playwright test --project=chromium --project=mobile-chrome
-        continue-on-error: true   # don't fail CI if live site is slow
 
       # The report contains page snapshots, including the test account's typed
       # credentials, so never publish it from a public repo.

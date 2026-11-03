@@ -157,6 +157,9 @@ jobs:
   e2e:
     name: E2E Smoke Tests (Playwright)
     runs-on: ubuntu-24.04   # Playwright 1.59 has no browsers for ubuntu-26.04 (now ubuntu-latest)
+    # A healthy run takes ~5 min. When the live site is mid-deploy (e.g. new frontend,
+    # old backend) every test fails and retries; stop early instead of running 45 min.
+    timeout-minutes: 20
     needs: [ backend-test, frontend-typecheck, frontend-unit ]   # only run if all pass
     defaults:
       run:

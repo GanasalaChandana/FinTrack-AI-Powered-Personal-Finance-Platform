@@ -18,6 +18,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
+  /* Stop a CI run that is clearly broken (e.g. live site mid-deploy) after 15 min */
+  globalTimeout: process.env.CI ? 15 * 60_000 : undefined,
+  /* After 10 failures the rest won't tell us anything new */
+  maxFailures: process.env.CI ? 10 : undefined,
   /* Limit workers on CI */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter */

@@ -309,11 +309,14 @@ function calculatePaymentHistory(data: FinancialData): ComponentScore {
   };
 }
 
+// Out of 1000. Percentage-style grading: the old 900/800/700/600 scale turned a
+// 650 (65%) into a D.
+//   A ≥ 850 · B ≥ 700 · C ≥ 550 · D ≥ 400 · F below
 function getGrade(score: number): 'A' | 'B' | 'C' | 'D' | 'F' {
-  if (score >= 900) return 'A';
-  if (score >= 800) return 'B';
-  if (score >= 700) return 'C';
-  if (score >= 600) return 'D';
+  if (score >= 850) return 'A';
+  if (score >= 700) return 'B';
+  if (score >= 550) return 'C';
+  if (score >= 400) return 'D';
   return 'F';
 }
 

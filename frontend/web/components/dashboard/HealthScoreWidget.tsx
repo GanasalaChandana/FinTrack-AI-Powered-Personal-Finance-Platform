@@ -137,10 +137,10 @@ export function HealthScoreWidget({ transactions, budgets }: Props) {
               <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full ${barColor}`}
-                  style={{ width: `${comp.percentage}%` }}
+                  style={{ width: `${comp.percentage || 0}%` }}
                 />
               </div>
-              <span className="text-[10px] text-gray-400 w-6 text-right">{comp.percentage.toFixed(0)}%</span>
+              <span className="text-[10px] text-gray-400 w-6 text-right">{comp.status === 'none' ? '—' : `${(comp.percentage || 0).toFixed(0)}%`}</span>
             </div>
           );
         })}

@@ -7,191 +7,15 @@ import {
 } from "lucide-react";
 import { transactionsAPI, budgetsAPI } from "@/lib/api";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// Scoring lives in one place, shared with the dashboard widget (the two copies had
+// drifted: different grade thresholds gave the same score different grades).
+import {
+  calculateFinancialHealthScore,
+  type ComponentScore,
+  type FinancialData,
+  type HealthScoreResult,
+} from "@/lib/utils/healthScore";
 
-interface FinancialData {
-  monthlyIncome: number;
-  monthlyExpenses: number;
-  totalSavings: number;
-  totalDebt: number;
-  emergencyFund: number;
-  monthlyBudget: number;
-  actualSpending: number;
-  onTimePayments: number;
-  totalPayments: number;
-}
-
-interface ComponentScore {
-  score: number;
-  maxScore: number;
-  percentage: number;
-  status: "excellent" | "good" | "fair" | "poor" | "none"; // none = not scored yet
-  description: string;
-}
-
-interface HealthScoreResult {
-  totalScore: number;
-  grade: "A" | "B" | "C" | "D" | "F";
-  components: {
-    savingsRate: ComponentScore;
-    debtToIncome: ComponentScore;
-    emergencyFund: ComponentScore;
-    budgetAdherence: ComponentScore;
-    paymentHistory: ComponentScore;
-  };
-  recommendations: string[];
-  strengths: string[];
-  improvements: string[];
-}
-
-// ── Score calculators ─────────────────────────────────────────────────────────
-
-function calcSavingsRate(data: FinancialData): ComponentScore {
-  const rate =
-    data.monthlyIncome > 0
-      ? ((data.monthlyIncome - data.monthlyExpenses) / data.monthlyIncome) * 100
-      : 0;
-  if (rate >= 20) return { score: 100, maxScore: 100, percentage: rate, status: "excellent", description: "Excellent! You're saving 20%+ of your income." };
-  if (rate >= 15) return { score: 85,  maxScore: 100, percentage: rate, status: "good",      description: "Good savings rate. Aim for 20% for optimal health." };
-  if (rate >= 10) return { score: 70,  maxScore: 100, percentage: rate, status: "fair",      description: "Fair savings rate. Try to increase to 15–20%." };
-  if (rate >= 5)  return { score: 50,  maxScore: 100, percentage: rate, status: "fair",      description: "Low savings rate. Focus on increasing to at least 10%." };
-  return               { score: 25,  maxScore: 100, percentage: rate, status: "poor",      description: "Critical: Very low or negative savings. Review expenses." };
-}
-
-function calcDebtToIncome(data: FinancialData): ComponentScore {
-  const dti =
-    data.monthlyIncome > 0
-      ? (data.totalDebt / (data.monthlyIncome * 12)) * 100
-      : 0;
-  if (dti === 0) return { score: 100, maxScore: 100, percentage: dti, status: "excellent", description: "Debt-free! Excellent financial position." };
-  if (dti <= 36) return { score: 90,  maxScore: 100, percentage: dti, status: "excellent", description: "Excellent debt-to-income ratio below 36%." };
-  if (dti <= 43) return { score: 75,  maxScore: 100, percentage: dti, status: "good",      description: "Manageable debt level. Keep monitoring." };
-  if (dti <= 50) return { score: 50,  maxScore: 100, percentage: dti, status: "fair",      description: "High debt level. Consider debt reduction strategies." };
-  return              { score: 25,  maxScore: 100, percentage: dti, status: "poor",      description: "Critical debt level. Seek a debt reduction plan." };
-}
-
-function calcEmergencyFund(data: FinancialData): ComponentScore {
-  const months =
-    data.monthlyExpenses > 0 ? data.emergencyFund / data.monthlyExpenses : 0;
-  if (months >= 6) return { score: 100, maxScore: 100, percentage: Math.min((months / 6) * 100, 100), status: "excellent", description: "Excellent! You have 6+ months of expenses saved." };
-  if (months >= 3) return { score: 80,  maxScore: 100, percentage: (months / 6) * 100,                status: "good",      description: "Good emergency fund. Aim for 6 months coverage." };
-  if (months >= 1) return { score: 60,  maxScore: 100, percentage: (months / 6) * 100,                status: "fair",      description: "Build your emergency fund to 3–6 months of expenses." };
-  if (months > 0)  return { score: 30,  maxScore: 100, percentage: (months / 6) * 100,                status: "poor",      description: "Critical: Emergency fund too low. Start building it." };
-  return               { score: 0,   maxScore: 100, percentage: 0,                                    status: "poor",      description: "No emergency fund. This should be your top priority." };
-}
-
-function calcBudgetAdherence(data: FinancialData): ComponentScore {
-  // No budgets → nothing to adhere to; it's left out of the total rather than scored as poor
-  if (!(data.monthlyBudget > 0)) {
-    return { score: 0, maxScore: 0, percentage: 0, status: "none",
-             description: "No budgets set yet. Add budgets in Goals & Budget to score this." };
-  }
-  // Only overspending counts against you; coming in under budget is 100%
-  const over = Math.max(0, data.actualSpending - data.monthlyBudget);
-  const adh = Math.max(0, (1 - over / data.monthlyBudget) * 100);
-  if (adh >= 95) return { score: 100, maxScore: 100, percentage: adh, status: "excellent", description: "Excellent budget adherence!" };
-  if (adh >= 85) return { score: 85,  maxScore: 100, percentage: adh, status: "good",      description: "Good budget management. Minor adjustments needed." };
-  if (adh >= 70) return { score: 70,  maxScore: 100, percentage: adh, status: "fair",      description: "Fair budget adherence. Review spending categories." };
-  if (adh >= 50) return { score: 50,  maxScore: 100, percentage: adh, status: "fair",      description: "Budget needs attention. Track spending more closely." };
-  return             { score: 25,  maxScore: 100, percentage: adh, status: "poor",      description: "Poor budget adherence. Revise budget or spending habits." };
-}
-
-function calcPaymentHistory(data: FinancialData): ComponentScore {
-  const rate =
-    data.totalPayments > 0
-      ? (data.onTimePayments / data.totalPayments) * 100
-      : 100; // no recorded payments → assume perfect
-  if (rate === 100) return { score: 100, maxScore: 100, percentage: rate, status: "excellent", description: "Perfect payment history!" };
-  if (rate >= 95)   return { score: 90,  maxScore: 100, percentage: rate, status: "excellent", description: "Excellent payment history." };
-  if (rate >= 85)   return { score: 75,  maxScore: 100, percentage: rate, status: "good",      description: "Good payment history. Stay consistent." };
-  if (rate >= 70)   return { score: 50,  maxScore: 100, percentage: rate, status: "fair",      description: "Fair payment history. Avoid late payments." };
-  return                { score: 25,  maxScore: 100, percentage: rate, status: "poor",      description: "Poor payment history. Set up auto-pay." };
-}
-
-// ── Grade thresholds ──────────────────────────────────────────────────────────
-//
-// Max possible score = (100×2.5) + (100×2.5) + (100×2.0) + (100×2.0) + (100×1.0) = 1000
-//
-// FIX: Old thresholds (900/800/700/600) mapped 650 → D even though 650 = 65%.
-// New thresholds align with intuitive percentage grading:
-//
-//   A  ≥ 850  (85%+)  — Excellent financial health
-//   B  ≥ 700  (70%+)  — Good financial health
-//   C  ≥ 550  (55%+)  — Fair financial health       ← 650 now correctly → C
-//   D  ≥ 400  (40%+)  — Needs improvement
-//   F  < 400           — Critical
-//
-const getGrade = (score: number): "A" | "B" | "C" | "D" | "F" => {
-  if (score >= 850) return "A";
-  if (score >= 700) return "B";
-  if (score >= 550) return "C";
-  if (score >= 400) return "D";
-  return "F";
-};
-
-// ── Main calculator ───────────────────────────────────────────────────────────
-
-function calculateFinancialHealthScore(data: FinancialData): HealthScoreResult {
-  const components = {
-    savingsRate:     calcSavingsRate(data),
-    debtToIncome:    calcDebtToIncome(data),
-    emergencyFund:   calcEmergencyFund(data),
-    budgetAdherence: calcBudgetAdherence(data),
-    paymentHistory:  calcPaymentHistory(data),
-  };
-
-  // Weighted out of 1000. A component that can't be scored yet (maxScore 0, e.g. no
-  // budgets set) is left out and the others are re-weighted, instead of counting as poor.
-  const weights: [ComponentScore, number][] = [
-    [components.savingsRate, 2.5], [components.debtToIncome, 2.5], [components.emergencyFund, 2.0],
-    [components.budgetAdherence, 2.0], [components.paymentHistory, 1.0],
-  ];
-  const scored = weights.filter(([c]) => c.maxScore > 0);
-  const totalScore = Math.round(
-    (scored.reduce((s, [c, w]) => s + c.score * w, 0) / scored.reduce((s, [, w]) => s + 100 * w, 0)) * 1000
-  );
-
-  // ✅ FIX: use getGrade() instead of inline ternary with wrong thresholds
-  const grade = getGrade(totalScore);
-
-  const LABELS: Record<string, { strength: string; improvement: string }> = {
-    savingsRate:     { strength: "Strong savings habits",         improvement: "Increase savings rate" },
-    debtToIncome:    { strength: "Manageable debt levels",        improvement: "Reduce debt burden" },
-    emergencyFund:   { strength: "Well-funded emergency savings", improvement: "Build emergency fund" },
-    budgetAdherence: { strength: "Excellent budget discipline",   improvement: "Improve budget adherence" },
-    paymentHistory:  { strength: "Consistent payment history",    improvement: "Maintain on-time payments" },
-  };
-
-  const strengths: string[] = [];
-  const improvements: string[] = [];
-  const recommendations: string[] = [];
-
-  Object.entries(components).forEach(([key, c]) => {
-    if (c.status === "none") return;
-    if (c.status === "excellent" || c.status === "good") strengths.push(LABELS[key].strength);
-    else improvements.push(LABELS[key].improvement);
-  });
-
-  if (["poor", "fair"].includes(components.savingsRate.status))
-    recommendations.push("Increase your savings rate to at least 15% of income", "Set up automatic transfers to savings on payday");
-  if (["poor", "fair"].includes(components.debtToIncome.status))
-    recommendations.push("Focus on paying down high-interest debt first");
-  if (["poor", "fair"].includes(components.emergencyFund.status))
-    recommendations.push("Build your emergency fund to cover 3–6 months of expenses");
-  if (["poor", "fair"].includes(components.budgetAdherence.status))
-    recommendations.push("Review and adjust your budget to match spending patterns");
-  if (["poor", "fair"].includes(components.paymentHistory.status))
-    recommendations.push("Set up automatic payments to avoid late fees");
-
-  return {
-    totalScore,
-    grade,
-    components,
-    recommendations: recommendations.slice(0, 5),
-    strengths,
-    improvements,
-  };
-}
 
 // ── Grade label helper ────────────────────────────────────────────────────────
 
@@ -405,7 +229,8 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
             {Object.entries(score.components).map(([key, component]) => {
               const st = STATUS_STYLES[component.status];
               const Icon = COMPONENT_ICONS[key] ?? CheckCircle;
-              const pct = (component.score / component.maxScore) * 100;
+              const scored = component.maxScore > 0;
+              const pct = scored ? (component.score / component.maxScore) * 100 : 0;
               return (
                 <div key={key} className="space-y-2">
                   <div className="flex items-center justify-between gap-4">
@@ -426,9 +251,9 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <span className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
-                        {component.score}
+                        {scored ? component.score : "—"}
                       </span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500 ml-0.5">/{component.maxScore}</span>
+                      {scored && <span className="text-xs text-gray-400 dark:text-gray-500 ml-0.5">/{component.maxScore}</span>}
                     </div>
                   </div>
                   <div className="h-2 rounded-full bg-slate-100 dark:bg-gray-700 overflow-hidden">
@@ -443,7 +268,7 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
                     >
                       {st.label}
                     </span>
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500">{Math.round(pct)}%</span>
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500">{scored ? `${Math.round(pct)}%` : ""}</span>
                   </div>
                 </div>
               );

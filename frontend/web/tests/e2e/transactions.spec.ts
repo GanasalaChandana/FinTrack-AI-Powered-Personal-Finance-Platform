@@ -12,6 +12,7 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
+import { TEST_MERCHANT, deleteTestTransactions } from './testData';
 
 async function goToTransactions(page: Page) {
   await page.goto('/transactions');
@@ -50,7 +51,7 @@ test.describe('Transaction Flows', () => {
 
     // Fill the form fields
     const merchantField = dialog.locator('input[name="merchant"], input[placeholder*="merchant" i], input[placeholder*="Merchant" i]').first();
-    if (await merchantField.isVisible()) await merchantField.fill('Test Coffee Shop');
+    if (await merchantField.isVisible()) await merchantField.fill(TEST_MERCHANT);
 
     const amountField = dialog.locator('input[name="amount"], input[placeholder*="amount" i], input[placeholder*="0.00" i]').first();
     if (await amountField.isVisible()) await amountField.fill('12.50');
@@ -68,6 +69,9 @@ test.describe('Transaction Flows', () => {
       // Modal should close on success
       await expect(dialog).not.toBeVisible({ timeout: 8_000 });
     }
+
+    // Don't leave the test transaction in the account
+    await deleteTestTransactions(page);
   });
 
   /* 4 — keyword search */

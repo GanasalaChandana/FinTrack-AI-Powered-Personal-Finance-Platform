@@ -9,6 +9,7 @@
 
 import { test as setup, expect } from '@playwright/test';
 import path from 'path';
+import { deleteTestTransactions } from './testData';
 
 const AUTH_FILE = path.join(__dirname, '.auth/user.json');
 
@@ -43,6 +44,9 @@ setup('authenticate', async ({ page }) => {
 
   // Mark onboarding as done so the first-visit wizard doesn't cover every page
   await page.evaluate(() => localStorage.setItem('fintrack-onboarding-done', 'true'));
+
+  // Clear transactions left by earlier runs' add-transaction test
+  await deleteTestTransactions(page);
 
   // The budget tests need at least one budget; a fresh test account has none
   const token = await page.evaluate(() => localStorage.getItem('authToken'));

@@ -5,7 +5,7 @@ import {
   Loader2, RefreshCw, AlertCircle, Sparkles, X, CheckCircle,
   Trash2, Plus, Calendar, TrendingDown, TrendingUp, Clock,
 } from "lucide-react";
-import { transactionsAPI, type Transaction as ApiTransaction } from "@/lib/api";
+import { authAPI, removeToken, transactionsAPI, type Transaction as ApiTransaction } from "@/lib/api";
 import { RecurringTransactionsDashboard } from "@/components/RecurringTransactionsDashboard";
 
 // ── API helpers ────────────────────────────────────────────────────────────────
@@ -17,7 +17,7 @@ const getToken  = () => typeof window !== "undefined"
 const getUserId = () => typeof window !== "undefined"
   ? localStorage.getItem("userId") : null;
 
-async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function apiRequest<T>(endpoint: string, options: RequestInit = {}, isRetry = false): Promise<T> {
   const token  = getToken();
   const userId = getUserId();
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -32,8 +32,10 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   });
   if (!res.ok) {
     if (res.status === 401 && typeof window !== "undefined") {
-      localStorage.clear();
-      window.location.href = "/register?mode=signin";
+      // Expired access token: renew it and retry once before signing out
+      if (!isRetry && (await authAPI.refreshToken())) return apiRequest<T>(endpoint, options, true);
+      removeToken();
+      window.location.href = "/login?mode=signin";
     }
     throw new Error(`HTTP ${res.status}`);
   }

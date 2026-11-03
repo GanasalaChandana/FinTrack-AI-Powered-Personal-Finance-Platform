@@ -1,5 +1,5 @@
 // services/alert.service.ts
-import { getToken } from '@/lib/api';
+import { authAPI, getToken, removeToken } from '@/lib/api';
 
 export interface BudgetAlert {
   id: string;
@@ -35,7 +35,7 @@ function getAlertsApiUrl(endpoint: string): string {
 }
 
 // Helper for alerts API requests
-async function alertsApiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function alertsApiRequest<T>(endpoint: string, options: RequestInit = {}, isRetry = false): Promise<T> {
   // 🛡️ CRITICAL: Block requests on public routes
   if (isPublicRoute()) {
     console.log('🚫 Blocked API request on public route:', window.location.pathname);
@@ -73,17 +73,11 @@ async function alertsApiRequest<T>(endpoint: string, options: RequestInit = {}):
 
     if (!response.ok) {
       if (response.status === 401) {
-        console.error('❌ 401 Unauthorized - clearing auth data');
-        
-        // Clear invalid tokens
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('ft_token');
-          localStorage.removeItem('user');
-          localStorage.removeItem('userId');
-          console.log('🔄 Auth tokens cleared');
+        // Expired access token: renew it and retry once before clearing the session
+        if (!isRetry && (await authAPI.refreshToken())) {
+          return alertsApiRequest<T>(endpoint, options, true);
         }
-        
+        removeToken();
         throw new Error('Unauthorized - please log in again');
       }
       

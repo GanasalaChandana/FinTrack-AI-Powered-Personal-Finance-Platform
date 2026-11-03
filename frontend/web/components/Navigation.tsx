@@ -328,6 +328,14 @@ export default function Navigation() {
   }, [collapsed, sidebarW]);
 
   // ── data ─────────────────────────────────────────────────────────────────
+  // A 401 here usually means the access token expired: renew it like every other
+  // request does (next poll uses the new one) and only sign out if that fails.
+  const renewOrSignOut = async (failedToken: string) => {
+    if (getToken() !== failedToken) return; // another request already renewed it
+    if (await authAPI.refreshToken()) return;
+    removeToken(); setHasToken(false);
+  };
+
   const loadAlerts = async () => {
     try {
       if (isPublic(window.location.pathname)) return;
@@ -342,7 +350,7 @@ export default function Navigation() {
         const d = await res.json();
         setAlerts(d.slice(0, 5));
         setAlertsUnread(d.filter((a: Alert) => !a.read).length);
-      } else if (res.status === 401) { removeToken(); setHasToken(false); }
+      } else if (res.status === 401) { await renewOrSignOut(token); }
       else pollFailures.current++;
     } catch { pollFailures.current++; }
   };
@@ -361,7 +369,7 @@ export default function Navigation() {
         const d = await res.json();
         setNotifs(d.slice(0, 5));
         setNotifsUnread(d.filter((n: Notification) => !n.read).length);
-      } else if (res.status === 401) { removeToken(); setHasToken(false); }
+      } else if (res.status === 401) { await renewOrSignOut(token); }
       else pollFailures.current++;
     } catch { pollFailures.current++; }
   };

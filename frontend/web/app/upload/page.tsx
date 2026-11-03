@@ -1,5 +1,6 @@
 "use client";
 
+import { authAPI, removeToken } from "@/lib/api";
 import React, { useState, useCallback } from "react";
 import Papa from "papaparse";
 import {
@@ -126,7 +127,7 @@ const CSVUploadSystem: React.FC = () => {
 
   /* ---------- Import ---------- */
 
-  const handleImport = async () => {
+  const handleImport = async (isRetry = false) => {
     if (!file) return;
     setProcessing(true);
     setError("");
@@ -150,10 +151,10 @@ const CSVUploadSystem: React.FC = () => {
       });
 
       if (response.status === 401) {
-        localStorage.removeItem("ft_token");
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("userId");
-        window.location.href = "/register?mode=signin";
+        // Expired access token: renew it and retry the upload once before signing out
+        if (!isRetry && (await authAPI.refreshToken())) return handleImport(true);
+        removeToken();
+        window.location.href = "/login?mode=signin";
         return;
       }
 
@@ -381,7 +382,7 @@ const CSVUploadSystem: React.FC = () => {
           Cancel
         </button>
         <button
-          onClick={handleImport}
+          onClick={() => handleImport()}
           disabled={processing}
           className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-400 transition-all shadow-lg"
         >

@@ -230,7 +230,9 @@ function detectAnomalies(transactions: Transaction[]): AnomalyDetection[] {
     );
 
     txns.forEach(txn => {
-      const deviation = Math.abs(txn.amount - avg) / (stdDev || 1);
+      // Only spikes: an unusually *small* purchase isn't a spending problem
+      // (it used to be flagged too, as "-53% above your average")
+      const deviation = (txn.amount - avg) / (stdDev || 1);
       
       if (deviation > 2) { // 2 standard deviations
         anomalies.push({

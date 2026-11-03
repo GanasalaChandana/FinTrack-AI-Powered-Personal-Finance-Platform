@@ -97,3 +97,11 @@ describe("income is not treated as spending", () => {
     expect(top?.message).toContain("across 1 transaction.");
   });
 });
+
+describe("anomalies only flag unusually high spending", () => {
+  it("does not flag an unusually cheap purchase", () => {
+    const steady = [50, 52, 49, 51, 50, 53, 48].map((a, i) => expense(day(i + 1), a, "Transportation"));
+    const found = anomalies([...steady, expense(day(10), 5, "Transportation", "Short ride")]);
+    expect(found).toHaveLength(0);
+  });
+});

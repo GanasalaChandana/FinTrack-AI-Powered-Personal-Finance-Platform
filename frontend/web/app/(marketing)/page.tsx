@@ -50,7 +50,7 @@ export default function LandingPage() {
 
   const features = [
     { icon: BarChart3,  title: "Real-Time Dashboard",     desc: "Income, expenses, savings, and net worth — live charts that update the moment you add a transaction.",                                           color: "#6366f1" },
-    { icon: Upload,     title: "Smart CSV Import",         desc: "Import transactions from any bank in seconds. ML auto-tagging categorises every row — no manual work needed.",                              color: "#10b981" },
+    { icon: Upload,     title: "Smart CSV Import",         desc: "Import transactions from any bank in seconds. Rows are categorised automatically, and FinTrack learns from every category you correct.",                              color: "#10b981" },
     { icon: FileText,   title: "6-Tab Report Suite",       desc: "Spending trends, budget comparison, category breakdown, 6-month forecast, budget history, and custom date ranges.",                         color: "#f59e0b" },
     { icon: Shield,     title: "Bank-Level Security",      desc: "JWT HS256 + BCrypt + refresh token rotation with replay detection + IP rate limiting. No Redis required.",                                  color: "#3b82f6" },
     { icon: Bell,       title: "Smart Alerts",             desc: "8 rule types: large transactions, spending spikes, category concentration, budget thresholds, income tracking — each with severity badges.", color: "#ec4899" },
@@ -411,7 +411,7 @@ export default function LandingPage() {
           <div className="grid-3" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:32}}>
             {[
               {n:"1",icon:Lock,   title:"Create your account",      desc:"Sign up in 30 seconds. Email + password. No credit card required.",                                                                      color:"#6366f1"},
-              {n:"2",icon:Upload, title:"Import your transactions",  desc:"Export a CSV from your bank and upload it. ML auto-categorisation handles the rest — no manual tagging.",                               color:"#10b981"},
+              {n:"2",icon:Upload, title:"Import your transactions",  desc:"Export a CSV from your bank and upload it. Categories are filled in automatically and learn from your corrections.",                               color:"#10b981"},
               {n:"3",icon:Brain,  title:"Let AI surface patterns",   desc:"View spending by category, get anomaly alerts, see month-end forecasts, and next-month predictions — all updating live.",               color:"#f59e0b"},
             ].map((step)=>(
               <div key={step.n} className="feature-card card-hover" style={{display:"flex",flexDirection:"column",gap:20}}>
@@ -544,54 +544,22 @@ export default function LandingPage() {
       <section id="pricing" style={{padding:"100px 24px",background:"rgba(255,255,255,0.01)",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
         <div style={{maxWidth:1200,margin:"0 auto"}}>
           <div style={{textAlign:"center",marginBottom:16}}>
-            <div className="badge" style={{marginBottom:16,display:"inline-flex"}}>Simple pricing</div>
-            <h2 style={{fontFamily:"Fraunces,serif",fontSize:44,fontWeight:900,color:"#f1f5f9",letterSpacing:"-0.02em",marginBottom:12}}>Start free, upgrade when ready</h2>
-            <p style={{fontSize:17,color:"#64748b"}}>Pro and Business plans are <span style={{color:"#a5b4fc",fontWeight:600}}>coming soon</span>. Everything is free while we're in beta.</p>
+            <div className="badge" style={{marginBottom:16,display:"inline-flex"}}>Pricing</div>
+            <h2 style={{fontFamily:"Fraunces,serif",fontSize:44,fontWeight:900,color:"#f1f5f9",letterSpacing:"-0.02em",marginBottom:12}}>Free while in beta</h2>
+            <p style={{fontSize:17,color:"#64748b"}}>Every feature, no card required. If paid plans ever arrive, beta accounts will be told well in advance.</p>
           </div>
 
-          <div className="grid-3" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:24,marginTop:48}}>
-            <div className="pricing-card">
-              <p style={{fontSize:13,color:"#64748b",fontWeight:600,marginBottom:8,letterSpacing:"0.05em"}}>FREE</p>
+          <div style={{maxWidth:460,margin:"48px auto 0"}}>
+            <div className="pricing-card featured">
+              <p style={{fontSize:13,color:"#a5b4fc",fontWeight:600,marginBottom:8,letterSpacing:"0.05em"}}>BETA</p>
               <div style={{display:"flex",alignItems:"baseline",gap:4,marginBottom:8}}>
                 <span style={{fontSize:48,fontWeight:800,color:"#f1f5f9",fontFamily:"Fraunces,serif"}}>$0</span>
                 <span style={{color:"#64748b"}}>/month</span>
               </div>
-              <p style={{fontSize:14,color:"#64748b",marginBottom:28,lineHeight:1.5}}>Everything you need to get started.</p>
+              <p style={{fontSize:14,color:"#64748b",marginBottom:28,lineHeight:1.5}}>Everything FinTrack does today.</p>
               <button className="btn-primary" style={{width:"100%",justifyContent:"center",marginBottom:28}} onClick={()=>router.push("/login?mode=signup")}>Get started free</button>
               <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                {["Up to 500 transactions/month","Dashboard & all 4 AI models","CSV import from any bank","Budget tracking & alerts","Email support"].map(item=>(
-                  <div key={item} style={{display:"flex",gap:10,alignItems:"center"}}><Check size={15} color="#10b981"/><span style={{fontSize:14,color:"#94a3b8"}}>{item}</span></div>
-                ))}
-              </div>
-            </div>
-
-            <div className="pricing-card featured" style={{position:"relative"}}>
-              <div style={{position:"absolute",top:-12,left:"50%",transform:"translateX(-50%)",background:"linear-gradient(135deg,#6366f1,#4f46e5)",color:"white",padding:"4px 16px",borderRadius:100,fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>Coming Soon</div>
-              <p style={{fontSize:13,color:"#a5b4fc",fontWeight:600,marginBottom:8,letterSpacing:"0.05em"}}>PRO</p>
-              <div style={{display:"flex",alignItems:"baseline",gap:4,marginBottom:8}}>
-                <span style={{fontSize:48,fontWeight:800,color:"#f1f5f9",fontFamily:"Fraunces,serif"}}>$9</span>
-                <span style={{color:"#64748b"}}>/month</span>
-              </div>
-              <p style={{fontSize:14,color:"#64748b",marginBottom:28,lineHeight:1.5}}>Advanced features for serious financial planning.</p>
-              <button className="btn-ghost" style={{width:"100%",textAlign:"center",marginBottom:28,opacity:0.6,cursor:"not-allowed"}} disabled>Notify me when available</button>
-              <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                {["Everything in Free","Unlimited transactions","Advanced reports & PDF export","Multiple accounts","Priority support"].map(item=>(
-                  <div key={item} style={{display:"flex",gap:10,alignItems:"center"}}><Check size={15} color="#6366f1"/><span style={{fontSize:14,color:"#94a3b8"}}>{item}</span></div>
-                ))}
-              </div>
-            </div>
-
-            <div className="pricing-card">
-              <div style={{display:"inline-block",background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.2)",color:"#a5b4fc",padding:"3px 10px",borderRadius:100,fontSize:11,fontWeight:700,marginBottom:8}}>Coming Soon</div>
-              <p style={{fontSize:13,color:"#64748b",fontWeight:600,marginBottom:8,letterSpacing:"0.05em"}}>BUSINESS</p>
-              <div style={{display:"flex",alignItems:"baseline",gap:4,marginBottom:8}}>
-                <span style={{fontSize:48,fontWeight:800,color:"#f1f5f9",fontFamily:"Fraunces,serif"}}>$29</span>
-                <span style={{color:"#64748b"}}>/month</span>
-              </div>
-              <p style={{fontSize:14,color:"#64748b",marginBottom:28,lineHeight:1.5}}>Team features for small businesses and advisors.</p>
-              <button className="btn-ghost" style={{width:"100%",textAlign:"center",marginBottom:28,opacity:0.6,cursor:"not-allowed"}} disabled>Contact us</button>
-              <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                {["Everything in Pro","Up to 5 team members","API access","Custom integrations","Dedicated support"].map(item=>(
+                {["Dashboard, insights, forecasts & health score","CSV import from any bank","Categories that learn from your corrections","Budgets, goals & alerts","Reports with PDF, Excel & CSV export","Email/password or Google sign-in"].map(item=>(
                   <div key={item} style={{display:"flex",gap:10,alignItems:"center"}}><Check size={15} color="#10b981"/><span style={{fontSize:14,color:"#94a3b8"}}>{item}</span></div>
                 ))}
               </div>

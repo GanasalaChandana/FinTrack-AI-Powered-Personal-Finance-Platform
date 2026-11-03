@@ -215,7 +215,7 @@ function AuthPageContent() {
       const data = await res.json();
 
       if (data.token) {
-        setToken(data.token);
+        setToken(data.token, data.refreshToken);
         if (data.user?.id) localStorage.setItem('userId', data.user.id.toString());
         if (data.user) setUser(data.user);
         setSuccess(true);
@@ -367,7 +367,7 @@ function AuthPageContent() {
       const data = await response.json();
 
       if (data.token) {
-        setToken(data.token);
+        setToken(data.token, data.refreshToken);
         if (data.user?.id) localStorage.setItem('userId', data.user.id.toString());
         if (data.user) setUser(data.user);
         setSuccess(true);

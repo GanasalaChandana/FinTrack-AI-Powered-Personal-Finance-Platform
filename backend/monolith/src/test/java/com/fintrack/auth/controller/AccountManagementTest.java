@@ -148,4 +148,32 @@ class AccountManagementTest {
 
         mockMvc.perform(get("/api/transactions").header("Authorization", b)).andExpect(status().isOk());
     }
+
+    private org.springframework.test.web.servlet.ResultActions refresh(String refreshToken) throws Exception {
+        return mockMvc.perform(post("/api/auth/refresh")
+                .header("X-Forwarded-For", "198.51.100." + ip.getAndIncrement())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"refreshToken\":\"" + refreshToken + "\"}"));
+    }
+
+    @Test
+    @DisplayName("a refresh token renews the session once; after sign-out it no longer works")
+    void refreshToken_renewsOnce_andDiesOnLogout() throws Exception {
+        JsonNode auth = signup("refresh-" + UUID.randomUUID() + "@test.dev");
+        String firstRefresh = auth.get("refreshToken").asText();
+
+        JsonNode renewed = json.readTree(refresh(firstRefresh).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        String bearer = "Bearer " + renewed.get("token").asText();
+        mockMvc.perform(get("/api/transactions").header("Authorization", bearer)).andExpect(status().isOk());
+
+        // Single-use: replaying the old one fails
+        refresh(firstRefresh).andExpect(status().isUnauthorized());
+
+        // After a fresh pair and sign-out, the newest refresh token is dead too
+        JsonNode again = signup("refresh2-" + UUID.randomUUID() + "@test.dev");
+        mockMvc.perform(post("/api/auth/logout").header("Authorization", "Bearer " + again.get("token").asText()))
+                .andExpect(status().isNoContent());
+        refresh(again.get("refreshToken").asText()).andExpect(status().isUnauthorized());
+    }
 }

@@ -16,6 +16,7 @@ export interface User {
 
 export interface AuthResponse {
   token: string;
+  refreshToken?: string;
   user: User;
   message?: string;
 }
@@ -130,6 +131,13 @@ function buildApiUrl(endpoint: string, useTransactionsService: boolean = false):
 
 const PRIMARY_TOKEN_KEY = "authToken";
 const LEGACY_TOKEN_KEY = "ft_token";
+// Long-lived (30 days), single-use: exchanged at /api/auth/refresh for a new pair
+const REFRESH_TOKEN_KEY = "refreshToken";
+
+export function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -148,8 +156,9 @@ function getCookieToken(): string | null {
   return tokenCookie ? tokenCookie.split("=")[1] : null;
 }
 
-export function setToken(token: string): void {
+export function setToken(token: string, refreshToken?: string | null): void {
   if (typeof window === "undefined") return;
+  if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   localStorage.setItem(PRIMARY_TOKEN_KEY, token);
   localStorage.setItem(LEGACY_TOKEN_KEY, token);
   sessionStorage.setItem(PRIMARY_TOKEN_KEY, token);
@@ -162,6 +171,7 @@ export function removeToken(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(PRIMARY_TOKEN_KEY);
   localStorage.removeItem(LEGACY_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem("user");
   localStorage.removeItem("userId");
   localStorage.removeItem("isDemo");
@@ -202,22 +212,32 @@ const pendingRequests = new Map<string, Promise<any>>();
 let isRefreshingToken = false;
 let tokenRefreshPromise: Promise<boolean> | null = null;
 
-/** Tries to silently refresh the JWT. Returns true on success, false on failure. */
-async function tryRefreshToken(): Promise<boolean> {
+/**
+ * Tries to silently renew the session with the stored refresh token.
+ * Returns true when there is a new access token to retry with.
+ */
+async function tryRefreshToken(failedToken: string | null): Promise<boolean> {
+  // Another tab may already have renewed the session (refresh tokens are single-use,
+  // so it must not be spent twice): if the stored token changed, just retry with it.
+  const current = getToken();
+  if (failedToken !== null && current && current !== failedToken) return true;
+
   if (isRefreshingToken && tokenRefreshPromise) return tokenRefreshPromise;
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return false;
 
   isRefreshingToken = true;
   tokenRefreshPromise = (async () => {
     try {
       const res = await fetch(`${getBaseUrl()}/api/auth/refresh`, {
         method: "POST",
-        credentials: "include",
-        headers: { Authorization: `Bearer ${getToken()}` },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
       });
       if (res.ok) {
         const data = await res.json();
         if (data?.token) {
-          setToken(data.token);
+          setToken(data.token, data.refreshToken);
           return true;
         }
       }
@@ -236,7 +256,8 @@ async function tryRefreshToken(): Promise<boolean> {
 export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestInit = {},
-  useTransactionsService: boolean = false
+  useTransactionsService: boolean = false,
+  isRetry: boolean = false
 ): Promise<T> {
   const url = buildApiUrl(endpoint, useTransactionsService);
   const token = getToken();
@@ -303,12 +324,12 @@ export async function apiRequest<T = any>(
 
       if (!response.ok) {
         if (response.status === 401) {
-          // Attempt a silent token refresh before giving up
-          const refreshed = await tryRefreshToken();
+          // Attempt a silent token refresh before giving up (once per request)
+          const refreshed = !isRetry && (await tryRefreshToken(token));
           if (refreshed) {
             // Token renewed — retry the original request once with the new token
             pendingRequests.delete(requestKey);
-            return apiRequest<T>(endpoint, options, useTransactionsService);
+            return apiRequest<T>(endpoint, options, useTransactionsService, true);
           }
           // Refresh failed or backend has no /refresh endpoint → log out
           removeToken();
@@ -461,7 +482,7 @@ export const authAPI = {
       method: "POST",
       body: JSON.stringify(payload),
     }, false);
-    if (response.token) setToken(response.token);
+    if (response.token) setToken(response.token, response.refreshToken);
     if (response.user) setUser(response.user);
     return response;
   },
@@ -471,7 +492,7 @@ export const authAPI = {
       method: "POST",
       body: JSON.stringify(credentials),
     }, false);
-    if (response.token) setToken(response.token);
+    if (response.token) setToken(response.token, response.refreshToken);
     if (response.user) setUser(response.user);
     return response;
   },
@@ -489,11 +510,8 @@ export const authAPI = {
   getCurrentUser: (): Promise<User> =>
     apiRequest<User>("/api/auth/me", { method: "GET" }, false),
 
-  refreshToken: async (): Promise<AuthResponse> => {
-    const response = await apiRequest<AuthResponse>("/api/auth/refresh", { method: "POST" }, false);
-    if (response.token) setToken(response.token);
-    return response;
-  },
+  /** Renews the session with the stored refresh token; true on success. */
+  refreshToken: (): Promise<boolean> => tryRefreshToken(null),
 
   updateProfile: async (userData: Partial<User>): Promise<User> => {
     const response = await apiRequest<User>("/api/auth/profile", {
@@ -521,7 +539,7 @@ export const authAPI = {
     const response = await apiRequest<AuthResponse>("/api/auth/demo", {
       method: "POST",
     }, false);
-    if (response.token) setToken(response.token);
+    if (response.token) setToken(response.token, response.refreshToken);
     if (response.user) setUser(response.user);
     // Mark this session as a demo so the banner shows
     if (typeof window !== "undefined") {

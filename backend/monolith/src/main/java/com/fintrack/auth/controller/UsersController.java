@@ -168,8 +168,9 @@ public class UsersController {
         tokenRevocationService.revokeAll(user.getId());
         // ...but keep this one signed in with a fresh token
         User refreshed = userService.findByEmail(user.getEmail()).orElse(user);
-        String token = authService.issueTokens(refreshed).getToken();
-        return ResponseEntity.ok(Map.of("message", "Password changed successfully", "token", token));
+        var tokens = authService.issueTokens(refreshed);
+        return ResponseEntity.ok(Map.of("message", "Password changed successfully",
+                "token", tokens.getToken(), "refreshToken", tokens.getRefreshToken()));
     }
 
     // DTO for profile updates

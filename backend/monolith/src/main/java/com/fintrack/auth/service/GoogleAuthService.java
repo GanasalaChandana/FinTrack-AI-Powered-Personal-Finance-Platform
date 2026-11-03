@@ -4,7 +4,6 @@ import com.fintrack.auth.dto.AuthResponse;
 import com.fintrack.auth.entity.User;
 import com.fintrack.auth.enums.Role;
 import com.fintrack.auth.repository.UserRepository;
-import com.fintrack.auth.security.JwtUtil;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -26,7 +25,7 @@ import java.util.Optional;
 public class GoogleAuthService {
 
     private final UserRepository userRepository;
-    private final JwtUtil jwtUtil;
+    private final AuthService authService;
 
     @Value("${google.oauth.client-id}")
     private String googleClientId;
@@ -104,34 +103,10 @@ public class GoogleAuthService {
 
             log.info("✅ User found/created: {}", user.getEmail());
 
-            // Generate JWT token
-            log.info("🔑 Generating JWT token...");
-            String jwtToken;
-            try {
-                jwtToken = jwtUtil.generateToken(user);
-            } catch (Exception e) {
-                log.error("❌ Failed to generate JWT token: {}", e.getMessage(), e);
-                throw new RuntimeException("Failed to generate authentication token: " + e.getMessage());
-            }
-
-            log.info("✅ JWT token generated successfully");
-
-            // Build response
-            AuthResponse.UserDto userDto = AuthResponse.UserDto.builder()
-                    .id(user.getId())
-                    .email(user.getEmail())
-                    .username(user.getUsername())
-                    .firstName(user.getFirstName())
-                    .lastName(user.getLastName())
-                    .role(user.getRole().toString())
-                    .build();
-
+            // Same token pair as an email login: access token + refresh token
+            AuthResponse response = authService.issueTokens(user);
             log.info("🎉 Google authentication successful for: {}", email);
-
-            return AuthResponse.builder()
-                    .token(jwtToken)
-                    .user(userDto)
-                    .build();
+            return response;
 
         } catch (IllegalArgumentException e) {
             log.error("❌ Validation error: {}", e.getMessage());

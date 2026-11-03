@@ -116,4 +116,27 @@ class ReportsIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Secret Clinic")));
     }
+
+    @Test
+    @DisplayName("monthly data is in calendar order, one entry per month")
+    void monthlyData_inCalendarOrder() throws Exception {
+        String carol = UUID.randomUUID().toString();
+        YearMonth now = YearMonth.now();
+        // Inserted out of order on purpose
+        tx(carol, "Shop", "Shopping", "EXPENSE", 30, now.minusMonths(1).atDay(5));
+        tx(carol, "Shop", "Shopping", "EXPENSE", 10, now.minusMonths(3).atDay(5));
+        tx(carol, "Shop", "Shopping", "EXPENSE", 20, now.minusMonths(2).atDay(5));
+
+        boolean spansYears = now.minusMonths(3).getYear() != now.minusMonths(1).getYear();
+        java.util.function.Function<YearMonth, String> label = ym -> {
+            String n = ym.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH);
+            return spansYears ? n + " " + String.valueOf(ym.getYear()).substring(2) : n;
+        };
+
+        mockMvc.perform(get("/api/reports/financial").param("range", "last-year").header("Authorization", token(carol)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.monthlyData[*].month", contains(
+                        label.apply(now.minusMonths(3)), label.apply(now.minusMonths(2)), label.apply(now.minusMonths(1)))))
+                .andExpect(jsonPath("$.monthlyData[*].expenses", contains(10.0, 20.0, 30.0)));
+    }
 }

@@ -659,7 +659,9 @@ const EnhancedFinancialReports: React.FC = () => {
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <span className="text-gray-500 dark:text-gray-400 text-xs">{fmt(cat.amount)}</span>
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                          cat.amount > cat.budget
+                          cat.budget <= 0
+                            ? "bg-slate-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                            : cat.amount > cat.budget
                             ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
                             : "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
                         }`}>{cat.percentage}%</span>
@@ -668,13 +670,14 @@ const EnhancedFinancialReports: React.FC = () => {
                     <div className="h-1.5 rounded-full bg-slate-100 dark:bg-gray-700 overflow-hidden">
                       <div className="h-full rounded-full transition-all duration-500"
                         style={{
-                          width: `${Math.min((cat.amount / cat.budget) * 100, 100)}%`,
-                          backgroundColor: cat.amount > cat.budget ? "#ef4444" : cat.color,
+                          // No budget: the bar shows the category's share of spending instead
+                          width: `${cat.budget > 0 ? Math.min((cat.amount / cat.budget) * 100, 100) : Math.min(cat.percentage, 100)}%`,
+                          backgroundColor: cat.budget > 0 && cat.amount > cat.budget ? "#ef4444" : cat.color,
                         }} />
                     </div>
                     <div className="flex justify-between text-[10px] text-gray-400">
-                      <span>Budget: {fmt(cat.budget)}</span>
-                      {cat.amount > cat.budget && (
+                      <span>{cat.budget > 0 ? `Budget: ${fmt(cat.budget)}` : "No budget set"}</span>
+                      {cat.budget > 0 && cat.amount > cat.budget && (
                         <span className="text-red-500 font-semibold">Over by {fmt(cat.amount - cat.budget)}</span>
                       )}
                     </div>

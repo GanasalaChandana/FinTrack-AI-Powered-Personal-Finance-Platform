@@ -103,18 +103,21 @@ public class ReportsService {
             return new ArrayList<>();
         }
 
-        Map<String, List<Map<String, Object>>> monthlyGroups = transactions.stream()
-                .collect(Collectors.groupingBy(t -> {
-                    String dateStr = (String) t.get("date");
-                    LocalDate date = LocalDate.parse(dateStr);
-                    return date.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
-                }));
+        // Group by year *and* month, oldest first. Grouping by the month name alone
+        // came out in hash order (Oct, Aug, Sep) and merged Oct 2025 with Oct 2026.
+        java.util.TreeMap<java.time.YearMonth, List<Map<String, Object>>> monthlyGroups = transactions.stream()
+                .collect(Collectors.groupingBy(
+                        t -> java.time.YearMonth.from(LocalDate.parse((String) t.get("date"))),
+                        java.util.TreeMap::new,
+                        Collectors.toList()));
+        boolean spansYears = monthlyGroups.firstKey().getYear() != monthlyGroups.lastKey().getYear();
 
         List<Map<String, Object>> monthlySummary = new ArrayList<>();
 
-        for (Map.Entry<String, List<Map<String, Object>>> entry : monthlyGroups.entrySet()) {
+        for (Map.Entry<java.time.YearMonth, List<Map<String, Object>>> entry : monthlyGroups.entrySet()) {
             Map<String, Object> monthData = new HashMap<>();
-            monthData.put("month", entry.getKey());
+            String name = entry.getKey().getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+            monthData.put("month", spansYears ? name + " " + String.valueOf(entry.getKey().getYear()).substring(2) : name);
 
             BigDecimal income = calculateTotalByType(entry.getValue(), "INCOME");
             BigDecimal expenses = calculateTotalByType(entry.getValue(), "EXPENSE");

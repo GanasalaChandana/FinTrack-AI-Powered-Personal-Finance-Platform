@@ -184,7 +184,7 @@ function getCategoryBudget(name: string): number {
 
 // ─── Core computation ─────────────────────────────────────────────────────────
 
-function computeReportsData(allTxns: Transaction[], range: ReportsRange): ReportsData {
+export function computeReportsData(allTxns: Transaction[], range: ReportsRange): ReportsData {
   const now = new Date();
 
 
@@ -295,9 +295,13 @@ function computeReportsData(allTxns: Transaction[], range: ReportsRange): Report
 
   // ── Category breakdown ─────────────────────────────────────────────────────
   const expensesByCat: Record<string, number> = {};
+  const catNames: Record<string, string> = {};
   current.filter((t) => txType(t) === "expense").forEach((t) => {
     const raw = t.category || "Other";
-    const cat = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    // Group case-insensitively but keep the category's own spelling
+    // ("Bills & Utilities", not "Bills & utilities")
+    const key = raw.trim().toLowerCase();
+    const cat = catNames[key] ?? (catNames[key] = raw.trim());
     expensesByCat[cat] = (expensesByCat[cat] || 0) + Math.abs(t.amount);
   });
 

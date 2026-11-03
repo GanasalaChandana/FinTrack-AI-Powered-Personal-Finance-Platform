@@ -22,10 +22,10 @@ test.describe('Budget & Goals Flows', () => {
   /* 1 — page loads with tab UI */
   test('Goals & Budgets page loads with tabs', async ({ page }) => {
     await goToGoalsBudgets(page);
-    await expect(page.locator('text=/Budget|Goal/i').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=/Budget|Goal/i').filter({ visible: true }).first()).toBeVisible({ timeout: 10_000 });
     // Both tab buttons should be visible
-    await expect(page.locator('button:has-text("Budgets"), [role="tab"]:has-text("Budgets")').first()).toBeVisible({ timeout: 8_000 });
-    await expect(page.locator('button:has-text("Goals"), [role="tab"]:has-text("Goals")').first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('button:has-text("Budgets"), [role="tab"]:has-text("Budgets")').filter({ visible: true }).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('button:has-text("Goals"), [role="tab"]:has-text("Goals")').filter({ visible: true }).first()).toBeVisible({ timeout: 8_000 });
   });
 
   /* 2 — budgets tab shows content */
@@ -33,17 +33,17 @@ test.describe('Budget & Goals Flows', () => {
     await goToGoalsBudgets(page, 'budgets');
     // Budget category names from demo seed
     await expect(
-      page.locator('text=/Food|Housing|Entertainment|Transportation|Shopping/i').first()
+      page.locator('text=/Food|Housing|Entertainment|Transportation|Shopping/i').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 10_000 });
   });
 
   /* 3 — add budget modal */
   test('Add Budget modal opens', async ({ page }) => {
     await goToGoalsBudgets(page, 'budgets');
-    const addBtn = page.locator('button:has-text("Add Budget"), button:has-text("Add"), button:has-text("New Budget")').first();
+    const addBtn = page.locator('button:has-text("Add Budget"), button:has-text("Add"), button:has-text("New Budget")').filter({ visible: true }).first();
     if (await addBtn.isVisible({ timeout: 8_000 })) {
       await addBtn.click();
-      const dialog = page.locator('[role="dialog"]').first();
+      const dialog = page.locator('[role="dialog"]').filter({ visible: true }).first();
       await expect(dialog).toBeVisible({ timeout: 5_000 });
       await page.keyboard.press('Escape');
     }
@@ -54,7 +54,7 @@ test.describe('Budget & Goals Flows', () => {
     await goToGoalsBudgets(page, 'goals');
     // Demo seeds: Emergency Fund, Vacation to Japan, New Laptop, Down Payment
     await expect(
-      page.locator('text=/Emergency Fund|Vacation|Laptop|Down Payment/i').first()
+      page.locator('text=/Emergency Fund|Vacation|Laptop|Down Payment/i').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -73,7 +73,7 @@ test.describe('Budget & Goals Flows', () => {
     await goToGoalsBudgets(page, 'budgets');
     // Should show dollar amounts
     await expect(
-      page.locator('text=/\\$[0-9]/').first()
+      page.locator('text=/\\$[0-9]/').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 10_000 });
   });
 

@@ -36,12 +36,18 @@ const SUBSCRIPTION_KEYWORDS = [
   "gym", "planet fitness", "la fitness", "equinox",
   "insurance", "geico", "state farm", "progressive",
   "electricity", "water", "gas bill", "internet", "att", "verizon",
-  "comcast", "xfinity", "tmobile", "t-mobile", "sprint",
+  "comcast", "xfinity", "tmobile", "t-mobile", "sprint", "at&t",
 ];
 
+// Whole-word matches only: a plain substring check made "Seattle Coffee" (att),
+// "Maxwell Deli" (max) and "Waterstones" (water) look like subscriptions.
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const SUBSCRIPTION_RE = new RegExp(
+  `(^|[^a-z0-9])(${SUBSCRIPTION_KEYWORDS.map(escapeRe).join("|")})(?=$|[^a-z0-9])`
+);
+
 function isSubscription(merchant: string, description: string): boolean {
-  const text = `${merchant} ${description}`.toLowerCase();
-  return SUBSCRIPTION_KEYWORDS.some((kw) => text.includes(kw));
+  return SUBSCRIPTION_RE.test(`${merchant} ${description}`.toLowerCase());
 }
 
 function normalizeMerchant(merchant: string, description: string): string {

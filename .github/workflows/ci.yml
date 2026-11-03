@@ -184,8 +184,8 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run smoke tests (Chromium only)
-        run: npx playwright test --project=chromium
+      - name: Run smoke tests (desktop + phone Chromium)
+        run: npx playwright test --project=chromium --project=mobile-chrome
         continue-on-error: true   # don't fail CI if live site is slow
 
       # The report contains page snapshots, including the test account's typed

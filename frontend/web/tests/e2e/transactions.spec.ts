@@ -26,27 +26,27 @@ test.describe('Transaction Flows', () => {
   test('transactions page renders', async ({ page }) => {
     await goToTransactions(page);
     await expect(
-      page.locator('text=/Transactions|No transactions/i').first()
+      page.locator('text=/Transactions|No transactions/i').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 10_000 });
   });
 
   /* 2 — add modal opens */
   test('Add Transaction modal opens', async ({ page }) => {
     await goToTransactions(page);
-    const addBtn = page.locator('button:has-text("Add"), button:has-text("New Transaction")').first();
+    const addBtn = page.locator('button:has-text("Add"), button:has-text("New Transaction")').filter({ visible: true }).first();
     await expect(addBtn).toBeVisible({ timeout: 8_000 });
     await addBtn.click();
-    const dialog = page.locator('[role="dialog"]').first();
+    const dialog = page.locator('[role="dialog"]').filter({ visible: true }).first();
     await expect(dialog).toBeVisible({ timeout: 5_000 });
   });
 
   /* 3 — fill and submit a transaction */
   test('can add a new expense transaction', async ({ page }) => {
     await goToTransactions(page);
-    const addBtn = page.locator('button:has-text("Add"), button:has-text("New Transaction")').first();
+    const addBtn = page.locator('button:has-text("Add"), button:has-text("New Transaction")').filter({ visible: true }).first();
     await addBtn.click();
 
-    const dialog = page.locator('[role="dialog"]').first();
+    const dialog = page.locator('[role="dialog"]').filter({ visible: true }).first();
     await expect(dialog).toBeVisible({ timeout: 5_000 });
 
     // Fill the form fields
@@ -77,7 +77,7 @@ test.describe('Transaction Flows', () => {
   /* 4 — keyword search */
   test('search filters transactions', async ({ page }) => {
     await goToTransactions(page);
-    const searchInput = page.locator('input[placeholder*="Search" i], input[type="search"]').first();
+    const searchInput = page.locator('input[placeholder*="Search" i], input[type="search"]').filter({ visible: true }).first();
     if (await searchInput.isVisible({ timeout: 5_000 })) {
       await searchInput.fill('Grocery');
       await page.waitForTimeout(600); // debounce
@@ -89,7 +89,7 @@ test.describe('Transaction Flows', () => {
   /* 5 — type filter */
   test('expense/income filter buttons work', async ({ page }) => {
     await goToTransactions(page);
-    const expenseFilter = page.locator('button:has-text("Expense"), button:has-text("expense")').first();
+    const expenseFilter = page.locator('button:has-text("Expense"), button:has-text("expense")').filter({ visible: true }).first();
     if (await expenseFilter.isVisible({ timeout: 5_000 })) {
       await expenseFilter.click();
       await page.waitForTimeout(400);
@@ -100,11 +100,11 @@ test.describe('Transaction Flows', () => {
   /* 6 — export menu */
   test('export menu is accessible', async ({ page }) => {
     await goToTransactions(page);
-    const exportBtn = page.locator('button:has-text("Export"), button[aria-label*="export" i]').first();
+    const exportBtn = page.locator('button:has-text("Export"), button[aria-label*="export" i]').filter({ visible: true }).first();
     if (await exportBtn.isVisible({ timeout: 5_000 })) {
       await exportBtn.click();
       // Dropdown / menu should appear with CSV/PDF options
-      const csvOption = page.locator('text=/CSV|Excel|PDF/i').first();
+      const csvOption = page.locator('text=/CSV|Excel|PDF/i').filter({ visible: true }).first();
       await expect(csvOption).toBeVisible({ timeout: 3_000 });
     }
   });
@@ -112,10 +112,10 @@ test.describe('Transaction Flows', () => {
   /* 7 — close modal with Escape */
   test('Escape closes Add Transaction modal', async ({ page }) => {
     await goToTransactions(page);
-    const addBtn = page.locator('button:has-text("Add"), button:has-text("New Transaction")').first();
+    const addBtn = page.locator('button:has-text("Add"), button:has-text("New Transaction")').filter({ visible: true }).first();
     if (await addBtn.isVisible()) {
       await addBtn.click();
-      const dialog = page.locator('[role="dialog"]').first();
+      const dialog = page.locator('[role="dialog"]').filter({ visible: true }).first();
       await expect(dialog).toBeVisible({ timeout: 5_000 });
       await page.keyboard.press('Escape');
       await expect(dialog).not.toBeVisible({ timeout: 3_000 });

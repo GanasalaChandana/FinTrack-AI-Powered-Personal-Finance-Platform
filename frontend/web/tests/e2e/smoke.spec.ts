@@ -23,7 +23,10 @@ import { test, expect, Page } from '@playwright/test';
 
 /** Navigate via sidebar link and assert URL matches */
 async function navTo(page: Page, href: string, urlPattern: RegExp) {
-  const link = page.locator(`a[href="${href}"]`).first();
+  // On phones the sidebar is a drawer behind the menu button
+  const menu = page.getByRole('button', { name: 'Open menu' });
+  if (await menu.isVisible()) await menu.click();
+  const link = page.locator(`a[href="${href}"]`).filter({ visible: true }).first();
   await link.click();
   await page.waitForURL(urlPattern, { timeout: 10_000 });
   await expect(page).toHaveURL(urlPattern);
@@ -47,52 +50,52 @@ test.describe('FinTrack Smoke Tests', () => {
     const statCards = page.locator('[class*="StatCard"], [data-testid="stat-card"]');
     // Alternatively match by text content visible on the page
     await expect(
-      page.locator('text=/Total Income|Total Expenses|Net Savings|Net Worth/i').first()
+      page.locator('text=/Total Income|Total Expenses|Net Savings|Net Worth/i').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 10_000 });
   });
 
   /* 2 ─ Sidebar navigation: Transactions */
   test('navigate to Transactions', async ({ page }) => {
     await navTo(page, '/transactions', /transactions/);
-    await expect(page.locator('h1, [class*="heading"]').first()).toBeVisible();
+    await expect(page.locator('h1, [class*="heading"]').filter({ visible: true }).first()).toBeVisible();
   });
 
   /* 3 ─ Sidebar navigation: Goals & Budget */
   test('navigate to Goals & Budgets', async ({ page }) => {
     await navTo(page, '/goals-budgets', /goals-budgets/);
-    await expect(page.locator('text=/Goals|Budget/i').first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('text=/Goals|Budget/i').filter({ visible: true }).first()).toBeVisible({ timeout: 8_000 });
   });
 
   /* 4 ─ Sidebar navigation: Reports */
   test('navigate to Reports', async ({ page }) => {
     await navTo(page, '/reports', /reports/);
-    await expect(page.locator('text=/Reports|Overview|Spending/i').first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('text=/Reports|Overview|Spending/i').filter({ visible: true }).first()).toBeVisible({ timeout: 8_000 });
   });
 
   /* 5 ─ Sidebar navigation: Calendar */
   test('navigate to Calendar', async ({ page }) => {
     await navTo(page, '/calendar', /calendar/);
     // Calendar should show month/year
-    const monthYear = page.locator('text=/January|February|March|April|May|June|July|August|September|October|November|December/i').first();
+    const monthYear = page.locator('text=/January|February|March|April|May|June|July|August|September|October|November|December/i').filter({ visible: true }).first();
     await expect(monthYear).toBeVisible({ timeout: 8_000 });
   });
 
   /* 6 ─ AI Insights page loads (previously outside (app)) */
   test('navigate to AI Insights', async ({ page }) => {
     await navTo(page, '/insights', /insights/);
-    await expect(page.locator('text=/Insights|Analysis|Transactions/i').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=/Insights|Analysis|Transactions/i').filter({ visible: true }).first()).toBeVisible({ timeout: 10_000 });
   });
 
   /* 7 ─ Health Score page loads (previously outside (app)) */
   test('navigate to Financial Health Score', async ({ page }) => {
     await navTo(page, '/health', /health/);
-    await expect(page.locator('text=/Health|Score|Financial/i').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=/Health|Score|Financial/i').filter({ visible: true }).first()).toBeVisible({ timeout: 10_000 });
   });
 
   /* 8 ─ Recurring page loads (previously outside (app)) */
   test('navigate to Recurring Transactions', async ({ page }) => {
     await navTo(page, '/recurring', /recurring/);
-    await expect(page.locator('text=/Recurring/i').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=/Recurring/i').filter({ visible: true }).first()).toBeVisible({ timeout: 10_000 });
   });
 
   /* 9 ─ Settings page loads (previously outside (app)) */
@@ -101,7 +104,7 @@ test.describe('FinTrack Smoke Tests', () => {
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/settings/);
-    await expect(page.locator('text=/Settings/i').first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('text=/Settings/i').filter({ visible: true }).first()).toBeVisible({ timeout: 8_000 });
     // All 5 tabs should be present
     await expect(page.locator('main').getByRole('button', { name: 'Profile', exact: true })).toBeVisible();
     await expect(page.locator('main').getByRole('button', { name: 'Security', exact: true })).toBeVisible();
@@ -123,17 +126,17 @@ test.describe('FinTrack Smoke Tests', () => {
   /* 11 ─ Sidebar collapse */
   test('sidebar collapses and expands', async ({ page }) => {
     // Find the collapse/chevron button (ChevronLeft icon)
-    const collapseBtn = page.locator('button[title*="collapse" i], button[aria-label*="collapse" i]').first();
+    const collapseBtn = page.locator('button[title*="collapse" i], button[aria-label*="collapse" i]').filter({ visible: true }).first();
     if (await collapseBtn.isVisible()) {
       await collapseBtn.click();
       // After collapse, sidebar should be narrow (~64px)
       await page.waitForTimeout(400); // CSS transition
-      const sidebar = page.locator('aside').first();
+      const sidebar = page.locator('aside').filter({ visible: true }).first();
       const box = await sidebar.boundingBox();
       if (box) expect(box.width).toBeLessThan(100);
 
       // Expand again (the button's title changes to "Expand")
-      await page.locator('button[title*="expand" i], button[aria-label*="expand" i]').first().click();
+      await page.locator('button[title*="expand" i], button[aria-label*="expand" i]').filter({ visible: true }).first().click();
       await page.waitForTimeout(400);
     }
   });
@@ -146,11 +149,11 @@ test.describe('FinTrack Smoke Tests', () => {
 
     const addBtn = page.locator(
       'button:has-text("Add"), button:has-text("New Transaction"), button[aria-label*="add" i]'
-    ).first();
+    ).filter({ visible: true }).first();
     if (await addBtn.isVisible()) {
       await addBtn.click();
       // Modal should open
-      const modal = page.locator('[role="dialog"], [class*="modal" i], [class*="Modal" i]').first();
+      const modal = page.locator('[role="dialog"], [class*="modal" i], [class*="Modal" i]').filter({ visible: true }).first();
       await expect(modal).toBeVisible({ timeout: 5_000 });
       // Close via Escape key
       await page.keyboard.press('Escape');

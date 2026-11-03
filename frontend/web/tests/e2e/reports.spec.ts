@@ -25,7 +25,7 @@ async function goToReports(page: Page) {
 async function clickTab(page: Page, tabLabel: string) {
   const tab = page.locator(
     `button:has-text("${tabLabel}"), [role="tab"]:has-text("${tabLabel}")`
-  ).first();
+  ).filter({ visible: true }).first();
   if (await tab.isVisible({ timeout: 5_000 })) {
     await tab.click();
     await page.waitForTimeout(600);
@@ -38,7 +38,7 @@ test.describe('Reports Page — All Tabs', () => {
   test('Overview tab loads with summary stats', async ({ page }) => {
     await goToReports(page);
     await expect(
-      page.locator('text=/Income|Expenses|Spending|Overview/i').first()
+      page.locator('text=/Income|Expenses|Spending|Overview/i').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -47,7 +47,7 @@ test.describe('Reports Page — All Tabs', () => {
     await goToReports(page);
     await clickTab(page, 'Trends');
     await expect(
-      page.locator('text=/Trend|Category|Spending/i').first()
+      page.locator('text=/Trend|Category|Spending/i').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 8_000 });
   });
 
@@ -56,7 +56,7 @@ test.describe('Reports Page — All Tabs', () => {
     await goToReports(page);
     await clickTab(page, 'Comparison');
     await expect(
-      page.locator('text=/Comparison|vs|Period/i').first()
+      page.locator('text=/Comparison|vs|Period/i').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 8_000 });
   });
 
@@ -65,7 +65,7 @@ test.describe('Reports Page — All Tabs', () => {
     await goToReports(page);
     await clickTab(page, 'Forecast');
     await expect(
-      page.locator('text=/Forecast|Project|Month/i').locator('visible=true').first()
+      page.locator('text=/Forecast|Project|Month/i').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -74,7 +74,7 @@ test.describe('Reports Page — All Tabs', () => {
     await goToReports(page);
     await clickTab(page, 'Budget History');
     await expect(
-      page.locator('text=/Budget|History|Actual/i').first()
+      page.locator('text=/Budget|History|Actual/i').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 8_000 });
   });
 
@@ -83,7 +83,7 @@ test.describe('Reports Page — All Tabs', () => {
     await goToReports(page);
     await clickTab(page, 'Tax');
     await expect(
-      page.locator('text=/Tax|Deduct/i').first()
+      page.locator('text=/Tax|Deduct/i').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 8_000 });
   });
 
@@ -92,7 +92,7 @@ test.describe('Reports Page — All Tabs', () => {
     await goToReports(page);
     await clickTab(page, 'Income');
     await expect(
-      page.locator('text=/Income|Salary|Earn/i').first()
+      page.locator('text=/Income|Salary|Earn/i').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 8_000 });
   });
 
@@ -101,7 +101,7 @@ test.describe('Reports Page — All Tabs', () => {
     await goToReports(page);
     await clickTab(page, 'Savings');
     await expect(
-      page.locator('text=/Saving|Rate/i').first()
+      page.locator('text=/Saving|Rate/i').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 8_000 });
   });
 
@@ -110,7 +110,7 @@ test.describe('Reports Page — All Tabs', () => {
     await goToReports(page);
     await clickTab(page, 'Custom');
     await expect(
-      page.locator('text=/Custom|Report|Generate|Builder/i').first()
+      page.locator('text=/Custom|Report|Generate|Builder/i').filter({ visible: true }).first()
     ).toBeVisible({ timeout: 8_000 });
   });
 
@@ -119,7 +119,7 @@ test.describe('Reports Page — All Tabs', () => {
     await goToReports(page);
     const downloadBtn = page.locator(
       'button:has-text("Download"), button:has-text("Export"), button[aria-label*="download" i]'
-    ).first();
+    ).filter({ visible: true }).first();
     await expect(downloadBtn).toBeVisible({ timeout: 8_000 });
   });
 

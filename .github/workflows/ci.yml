@@ -104,7 +104,7 @@ jobs:
 
   # ── 2. Frontend: type-check ──────────────────────────────────────────────────
   frontend-typecheck:
-    name: Frontend Type Check (Next.js 14)
+    name: Frontend Type Check (Next.js 16)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -113,7 +113,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Node 18
+      - name: Set up Node 22
         uses: actions/setup-node@v5
         with:
           node-version: '22'
@@ -140,7 +140,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Node 18
+      - name: Set up Node 22
         uses: actions/setup-node@v5
         with:
           node-version: '22'
@@ -171,7 +171,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Node 18
+      - name: Set up Node 22
         uses: actions/setup-node@v5
         with:
           node-version: '22'

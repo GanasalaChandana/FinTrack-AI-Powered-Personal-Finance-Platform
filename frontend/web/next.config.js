@@ -1,6 +1,7 @@
 ﻿/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  agentRules: false,
 
   // Self-contained server bundle for the Docker image (Vercel doesn't need it)
   ...(process.env.BUILD_STANDALONE === '1' && { output: 'standalone' }),
@@ -37,10 +38,8 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
+          // No Cache-Control here: a year-long "immutable" on every path made browsers
+          // keep old pages after a deploy. Next sets long caching on /_next/static itself.
         ],
       },
       {

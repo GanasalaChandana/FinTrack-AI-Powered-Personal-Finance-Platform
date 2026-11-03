@@ -14,6 +14,8 @@ export default [
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/immutability": "warn",
       "react-hooks/purity": "warn",
+      // Only matters with the React Compiler, which this app does not use
+      "react-hooks/preserve-manual-memoization": "warn",
     },
   },
   {

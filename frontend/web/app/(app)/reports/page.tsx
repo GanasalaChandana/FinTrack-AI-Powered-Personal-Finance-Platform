@@ -1517,7 +1517,7 @@ const EnhancedFinancialReports: React.FC = () => {
 
   // ── Category Deep Dive Modal ───────────────────────────────────────────────
 
-  const CategoryModal = () => {
+  const renderCategoryModal = () => {
     if (!selectedCategory || !categoryDetail) return null;
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -2397,7 +2397,7 @@ const EnhancedFinancialReports: React.FC = () => {
         </PageContent>
       </div>
 
-      <CategoryModal />
+      {renderCategoryModal()}
     </>
   );
 };

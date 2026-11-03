@@ -2,7 +2,7 @@
 # Build context: frontend/web  (docker build -t fintrack-web frontend/web)
 
 ########## BUILD ##########
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -17,7 +17,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
 RUN npm run build
 
 ########## RUNTIME ##########
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production \

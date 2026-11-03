@@ -241,8 +241,8 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const daysLeft    = useMemo(getDaysLeftInMonth, []);
-  const daysInMonth = useMemo(getDaysInMonth, []);
+  const daysLeft    = useMemo(() => getDaysLeftInMonth(), []);
+  const daysInMonth = useMemo(() => getDaysInMonth(), []);
 
   useEffect(() => () => { toastTimers.current.forEach(clearTimeout); }, []);
 

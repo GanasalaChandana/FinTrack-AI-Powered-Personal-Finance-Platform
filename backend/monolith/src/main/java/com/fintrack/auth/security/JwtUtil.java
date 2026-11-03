@@ -78,6 +78,7 @@ public class JwtUtil {
         claims.put("userId", user.getId().toString());
         claims.put("email", user.getEmail());
         claims.put("role", user.getRole() != null ? user.getRole().toString() : "USER");
+        claims.put("tv", user.getTokenVersion());
 
         log.debug("🔐 Generating token for user: {} (ID: {})", user.getEmail(), user.getId());
         return createToken(claims, user.getEmail());
@@ -175,6 +176,12 @@ public class JwtUtil {
     }
 
     // Helper method to extract user ID from token
+    /** Token version the token was issued with; tokens from before versioning count as 0. */
+    public int extractTokenVersion(String token) {
+        Integer tv = extractAllClaims(token).get("tv", Integer.class);
+        return tv == null ? 0 : tv;
+    }
+
     public String extractUserId(String token) {
         Claims claims = extractAllClaims(token);
         return claims.get("userId", String.class);

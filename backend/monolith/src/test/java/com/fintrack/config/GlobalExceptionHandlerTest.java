@@ -39,8 +39,14 @@ class GlobalExceptionHandlerTest {
 
     private String bearer;
 
+    // These tests sign tokens for users that aren't in the database; the
+    // revocation check itself is covered by TokenRevocationTest.
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.fintrack.auth.security.TokenRevocationService tokenRevocationService;
+
     @BeforeEach
     void login() {
+        org.mockito.Mockito.when(tokenRevocationService.isCurrent(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyInt())).thenReturn(true);
         User user = User.builder().id(UUID.randomUUID()).email("errors@test.dev").build();
         bearer = "Bearer " + jwtUtil.generateToken(user);
     }

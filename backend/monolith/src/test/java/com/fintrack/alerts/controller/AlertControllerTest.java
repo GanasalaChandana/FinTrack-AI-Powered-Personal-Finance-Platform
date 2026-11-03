@@ -43,6 +43,10 @@ class AlertControllerTest {
     @SuppressWarnings("unused")
     private JwtUtil jwtUtil;
 
+    // The JWT filter also checks for revoked tokens
+    @MockBean
+    private com.fintrack.auth.security.TokenRevocationService tokenRevocationService;
+
     private static final String OWNER    = "user-owner";
     private static final String STRANGER = "user-stranger";
 

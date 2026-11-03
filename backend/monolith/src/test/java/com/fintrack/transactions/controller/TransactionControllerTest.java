@@ -51,6 +51,10 @@ class TransactionControllerTest {
     @SuppressWarnings("unused")
     private JwtUtil jwtUtil;
 
+    // The JWT filter also checks for revoked tokens
+    @MockBean
+    private com.fintrack.auth.security.TokenRevocationService tokenRevocationService;
+
     // Required because TransactionController now injects TransactionRepository
     // for the DELETE /all endpoint — @WebMvcTest doesn't load JPA beans
     @MockBean

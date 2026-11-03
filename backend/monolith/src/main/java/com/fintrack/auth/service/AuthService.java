@@ -142,6 +142,12 @@ public class AuthService {
 
     // ── private helpers ───────────────────────────────────────────────────────
 
+    /** A fresh access + refresh token pair for the user (e.g. after a password change). */
+    @Transactional
+    public AuthResponse issueTokens(User user) {
+        return buildAuthResponse(user);
+    }
+
     private AuthResponse buildAuthResponse(User user) {
         String accessToken   = jwtUtil.generateToken(user);
         String rawRefresh    = generateRawRefreshToken();

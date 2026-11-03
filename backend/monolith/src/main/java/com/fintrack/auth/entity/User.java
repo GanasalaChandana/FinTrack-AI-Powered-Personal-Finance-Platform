@@ -61,6 +61,11 @@ public class User {
     @Builder.Default
     private Role role = Role.USER;
 
+    // Bumped to revoke every token issued before (sign-out, password change)
+    @Column(name = "token_version", nullable = false)
+    @Builder.Default
+    private int tokenVersion = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

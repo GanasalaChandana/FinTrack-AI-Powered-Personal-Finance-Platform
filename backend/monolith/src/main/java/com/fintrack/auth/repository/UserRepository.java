@@ -2,6 +2,9 @@ package com.fintrack.auth.repository;
 
 import com.fintrack.auth.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -10,6 +13,14 @@ import java.util.UUID;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
+
+    /** Current token version, or empty if the user no longer exists. */
+    @Query("SELECT u.tokenVersion FROM User u WHERE u.id = :id")
+    Optional<Integer> findTokenVersionById(@Param("id") UUID id);
+
+    @Modifying(clearAutomatically = true) // so a re-read sees the new version
+    @Query("UPDATE User u SET u.tokenVersion = u.tokenVersion + 1 WHERE u.id = :id")
+    int incrementTokenVersion(@Param("id") UUID id);
 
     boolean existsByEmail(String email);
 

@@ -2,7 +2,8 @@ package com.fintrack.auth.controller;
 
 import com.fintrack.auth.entity.User;
 import com.fintrack.auth.security.JwtUtil;
-import com.fintrack.auth.repository.RefreshTokenRepository;
+import com.fintrack.auth.security.TokenRevocationService;
+import com.fintrack.auth.service.AuthService;
 import com.fintrack.auth.service.AccountDeletionService;
 import com.fintrack.auth.service.DemoService;
 import com.fintrack.auth.service.UserService;
@@ -27,7 +28,8 @@ public class UsersController {
     private final DemoService demoService;
     private final JwtUtil jwtUtil;
     private final AccountDeletionService accountDeletionService;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenRevocationService tokenRevocationService;
+    private final AuthService authService;
 
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final int MAX_PASSWORD_LENGTH = 128;
@@ -120,6 +122,7 @@ public class UsersController {
         }
         // Removes all of the user's data and sessions, then the account
         accountDeletionService.deleteAccount(userOpt.get().getId());
+        tokenRevocationService.forget(userOpt.get().getId()); // old tokens: user gone -> refused
         return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
     }
 
@@ -161,9 +164,12 @@ public class UsersController {
                     .body(Map.of("error", "New password must be at least " + MIN_PASSWORD_LENGTH + " characters"));
         }
         userService.updatePassword(user, newPassword);
-        // Sign out other sessions: their refresh tokens stop working
-        refreshTokenRepository.deleteAllByUserId(user.getId());
-        return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
+        // Sign out every session (other devices, and anyone holding an old token)...
+        tokenRevocationService.revokeAll(user.getId());
+        // ...but keep this one signed in with a fresh token
+        User refreshed = userService.findByEmail(user.getEmail()).orElse(user);
+        String token = authService.issueTokens(refreshed).getToken();
+        return ResponseEntity.ok(Map.of("message", "Password changed successfully", "token", token));
     }
 
     // DTO for profile updates

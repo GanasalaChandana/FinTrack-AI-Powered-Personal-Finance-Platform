@@ -38,8 +38,14 @@ class ReportsIntegrationTest {
 
     private String alice, bob, aliceToken, bobToken;
 
+    // These tests sign tokens for users that aren't in the database; the
+    // revocation check itself is covered by TokenRevocationTest.
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.fintrack.auth.security.TokenRevocationService tokenRevocationService;
+
     @BeforeEach
     void seed() {
+        org.mockito.Mockito.when(tokenRevocationService.isCurrent(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyInt())).thenReturn(true);
         alice = UUID.randomUUID().toString();
         bob = UUID.randomUUID().toString();
         aliceToken = token(alice);

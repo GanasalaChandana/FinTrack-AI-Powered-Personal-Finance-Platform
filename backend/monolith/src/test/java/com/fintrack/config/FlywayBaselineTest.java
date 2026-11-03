@@ -40,12 +40,12 @@ class FlywayBaselineTest {
     private Flyway flyway;
 
     @Test
-    @DisplayName("fresh database: V1 + V2 create a schema that matches the entities")
+    @DisplayName("fresh database: the migrations create a schema that matches the entities")
     void freshDatabase_baselineMatchesEntities() {
         // If V1 disagreed with the entities, this Spring context would not have started
         // (ddl-auto=validate), so reaching here already proves the match.
         MigrationInfo current = flyway.info().current();
-        assertEquals("2", current.getVersion().getVersion()); // V1 baseline + V2 indexes/locks
+        assertEquals("3", current.getVersion().getVersion()); // V1 baseline, V2 indexes/locks, V3 token version
         assertTrue(current.getState().isApplied());
         assertEquals("SQL", current.getType().name());
     }

@@ -4,7 +4,9 @@ import com.fintrack.auth.dto.GoogleAuthRequest;
 import com.fintrack.auth.dto.LoginRequest;
 import com.fintrack.auth.dto.RegisterRequest;
 import com.fintrack.auth.dto.AuthResponse;
+import com.fintrack.auth.security.JwtUtil;
 import com.fintrack.auth.security.LoginRateLimiter;
+import com.fintrack.auth.security.TokenRevocationService;
 import com.fintrack.auth.service.AuthService;
 import com.fintrack.auth.service.DemoService;
 import com.fintrack.auth.service.GoogleAuthService;
@@ -28,6 +30,8 @@ public class AuthController {
     private final GoogleAuthService googleAuthService;
     private final DemoService demoService;
     private final LoginRateLimiter rateLimiter;
+    private final JwtUtil jwtUtil;
+    private final TokenRevocationService tokenRevocationService;
 
     // Separate per-account limiter: the IP can be faked via X-Forwarded-For, the
     // target email can't. Kept apart from the IP table so flooding it with fake
@@ -149,6 +153,28 @@ public class AuthController {
                     .status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Invalid token", "message", "Refresh token is invalid or expired."));
         }
+    }
+
+    // ── POST /api/auth/logout ─────────────────────────────────────────────────
+
+    /**
+     * Signs the caller out everywhere: their access tokens and refresh tokens stop
+     * working immediately. Always 204, so it is safe to call with an expired token.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String jwt = authHeader.substring(7);
+            try {
+                String userId = jwtUtil.isTokenValid(jwt) ? jwtUtil.extractUserId(jwt) : null;
+                // The demo account is shared: one visitor signing out mustn't sign out everyone else
+                boolean demo = DemoService.DEMO_EMAIL.equalsIgnoreCase(jwtUtil.extractUsername(jwt));
+                if (userId != null && !demo) tokenRevocationService.revokeAll(java.util.UUID.fromString(userId));
+            } catch (Exception e) {
+                log.debug("Logout with an unusable token: {}", e.getMessage());
+            }
+        }
+        return ResponseEntity.noContent().build();
     }
 
     // ── POST /api/auth/google ─────────────────────────────────────────────────

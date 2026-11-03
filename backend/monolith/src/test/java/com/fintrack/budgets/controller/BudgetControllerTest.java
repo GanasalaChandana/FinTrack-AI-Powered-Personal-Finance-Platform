@@ -52,6 +52,10 @@ class BudgetControllerTest {
     @SuppressWarnings("unused")
     private JwtUtil jwtUtil;
 
+    // The JWT filter also checks for revoked tokens
+    @MockBean
+    private com.fintrack.auth.security.TokenRevocationService tokenRevocationService;
+
     private static final String USER_ID = "user-42";
     private static final String MONTH   = YearMonth.now().toString();
 

@@ -26,6 +26,7 @@ import java.util.Enumeration;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final TokenRevocationService tokenRevocationService;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
@@ -71,8 +72,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             final String jwt = authHeader.substring(7);
             log.debug("🔑 Validating JWT token for endpoint: {}", requestPath);
 
-            // Validate token by signature + expiry only — NO database call
-            if (jwtUtil.isTokenValid(jwt) && SecurityContextHolder.getContext().getAuthentication() == null) {
+            // Signature + expiry, then the (cached) revocation check
+            if (jwtUtil.isTokenValid(jwt) && SecurityContextHolder.getContext().getAuthentication() == null
+                    && notRevoked(jwt)) {
 
                 final String userEmail = jwtUtil.extractUsername(jwt);
                 final String userId    = jwtUtil.extractUserId(jwt);
@@ -148,6 +150,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     /**
      * Check if the endpoint is public (doesn't require authentication)
      */
+    /**
+     * Signature and expiry aren't enough: the user may have signed out, changed their
+     * password or deleted the account since this token was issued.
+     */
+    private boolean notRevoked(String jwt) {
+        String userId = jwtUtil.extractUserId(jwt);
+        if (userId == null) return false;
+        try {
+            boolean current = tokenRevocationService.isCurrent(
+                    java.util.UUID.fromString(userId), jwtUtil.extractTokenVersion(jwt));
+            if (!current) log.warn("❌ Revoked token (signed out / password changed / account deleted)");
+            return current;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
     private boolean isPublicEndpoint(String path) {
         return path.startsWith("/api/auth/") ||
                 path.startsWith("/oauth2/") ||

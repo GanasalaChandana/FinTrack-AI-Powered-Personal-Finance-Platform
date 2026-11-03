@@ -47,6 +47,10 @@ class AuthControllerRateLimitTest {
     @SuppressWarnings("unused")
     private JwtUtil jwtUtil;
 
+    // The JWT filter also checks for revoked tokens
+    @MockBean
+    private com.fintrack.auth.security.TokenRevocationService tokenRevocationService;
+
     private static String body(String email) {
         return "{\"email\":\"" + email + "\",\"password\":\"wrong-password\"}";
     }

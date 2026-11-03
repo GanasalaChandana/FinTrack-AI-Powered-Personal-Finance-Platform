@@ -12,7 +12,7 @@ import {
   PiggyBank, DollarSign, Settings, Download, Store, Receipt,
 } from "lucide-react";
 import { usePWA } from "@/components/providers/PWAProvider";
-import { getToken, removeToken } from "@/lib/api";
+import { authAPI, getToken, removeToken } from "@/lib/api";
 import { useThemePreference } from "@/lib/hooks/useThemePreference";
 import { CommandPalette } from "@/components/CommandPalette";
 
@@ -413,7 +413,10 @@ export default function Navigation() {
   };
 
   const logout = () => {
-    removeToken(); setHasToken(false); setAlerts([]); setNotifs([]);
+    // Revokes the session on the server too (the token stops working everywhere),
+    // then clears it locally; don't wait for the server before leaving the page.
+    void authAPI.logout();
+    setHasToken(false); setAlerts([]); setNotifs([]);
     setAlertsUnread(0); setNotifsUnread(0);
     router.push('/login?mode=signin');
   };

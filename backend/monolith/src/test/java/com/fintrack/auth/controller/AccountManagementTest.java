@@ -94,4 +94,58 @@ class AccountManagementTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("New password must be at least 8 characters"));
     }
+
+    // ── revocation: a token stops working the moment the session should end ──
+
+    @Test
+    @DisplayName("logout revokes the token immediately")
+    void logout_revokesToken() throws Exception {
+        String bearer = "Bearer " + signup("logout-" + UUID.randomUUID() + "@test.dev").get("token").asText();
+        mockMvc.perform(get("/api/transactions").header("Authorization", bearer)).andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/logout").header("Authorization", bearer)).andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/transactions").header("Authorization", bearer))
+                .andExpect(status().is(org.hamcrest.Matchers.anyOf(org.hamcrest.Matchers.is(401), org.hamcrest.Matchers.is(403))));
+    }
+
+    @Test
+    @DisplayName("changing the password revokes old tokens but keeps this session with a new one")
+    void changePassword_revokesOldTokens() throws Exception {
+        String email = "pw-" + UUID.randomUUID() + "@test.dev";
+        String oldBearer = "Bearer " + signup(email).get("token").asText();
+
+        String body = mockMvc.perform(post("/api/users/change-password").header("Authorization", oldBearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"Secret123!\",\"newPassword\":\"Another456!\"}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String newBearer = "Bearer " + json.readTree(body).get("token").asText();
+
+        mockMvc.perform(get("/api/transactions").header("Authorization", oldBearer))
+                .andExpect(status().is(org.hamcrest.Matchers.anyOf(org.hamcrest.Matchers.is(401), org.hamcrest.Matchers.is(403))));
+        mockMvc.perform(get("/api/transactions").header("Authorization", newBearer)).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("a deleted account's token is refused")
+    void deletedAccount_tokenRefused() throws Exception {
+        String bearer = "Bearer " + signup("gone-" + UUID.randomUUID() + "@test.dev").get("token").asText();
+        mockMvc.perform(delete("/api/users/me").header("Authorization", bearer)).andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/transactions").header("Authorization", bearer))
+                .andExpect(status().is(org.hamcrest.Matchers.anyOf(org.hamcrest.Matchers.is(401), org.hamcrest.Matchers.is(403))));
+    }
+
+    @Test
+    @DisplayName("signing out of the shared demo account doesn't sign out other demo visitors")
+    void demoLogout_keepsOtherVisitors() throws Exception {
+        String a = "Bearer " + json.readTree(mockMvc.perform(post("/api/auth/demo")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString()).get("token").asText();
+        String b = "Bearer " + json.readTree(mockMvc.perform(post("/api/auth/demo")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString()).get("token").asText();
+
+        mockMvc.perform(post("/api/auth/logout").header("Authorization", a)).andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/transactions").header("Authorization", b)).andExpect(status().isOk());
+    }
 }

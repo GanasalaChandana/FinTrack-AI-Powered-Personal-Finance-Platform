@@ -70,6 +70,12 @@ function saveNotifState(read: Set<string>, dismissed: Set<string>) {
   } catch { }
 }
 
+/** When a transaction-based notification happened: the transaction's own date (noon local). */
+function txDate(t: { date?: string }, fallback: Date): Date {
+  const d = t.date ? new Date(`${t.date.slice(0, 10)}T12:00:00`) : fallback;
+  return isNaN(d.getTime()) ? fallback : d;
+}
+
 function generateNotifications(transactions: Transaction[]): SmartNotification[] {
   if (!transactions.length) return [];
 
@@ -90,7 +96,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
     title: "Account Summary Ready",
     message: `You have ${transactions.length} transactions recorded. Income: ${fmt(totalIncome)} · Expenses: ${fmt(totalExpenses)}.`,
     icon: Sparkles, tag: "Summary",
-    createdAt: new Date(now.getTime() - 0),
+    createdAt: now,
   });
 
   // ── 2. Net savings / deficit ──────────────────────────────────────────────
@@ -101,7 +107,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
       title: "Positive Net Balance",
       message: `Great news! You have a net surplus of ${fmt(net)} this period. Keep it up!`,
       icon: TrendingUp, tag: "Savings", amount: net,
-      createdAt: new Date(now.getTime() - 10 * 60000),
+      createdAt: now,
     });
   } else if (net < 0) {
     notifs.push({
@@ -109,7 +115,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
       title: "Spending Exceeds Income",
       message: `Your expenses exceed income by ${fmt(Math.abs(net))}. Review your spending to get back on track.`,
       icon: TrendingDown, tag: "Budget", amount: Math.abs(net),
-      createdAt: new Date(now.getTime() - 10 * 60000),
+      createdAt: now,
     });
   }
 
@@ -121,7 +127,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
       message: `${fmt(t.amount)} credited from ${t.merchant || t.description}${t.category ? ` (${t.category})` : ""}.`,
       icon: DollarSign, tag: "Income", amount: t.amount,
       category: t.category,
-      createdAt: new Date(now.getTime() - (20 + i * 15) * 60000),
+      createdAt: txDate(t, now),
     });
   });
 
@@ -137,7 +143,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
         message: `${fmt(t.amount)} charged at ${t.merchant || t.description}${t.category ? ` in ${t.category}` : ""}.`,
         icon: CreditCard, tag: "Expenses", amount: t.amount,
         category: t.category,
-        createdAt: new Date(now.getTime() - (45 + i * 20) * 60000),
+        createdAt: txDate(t, now),
       });
     });
 
@@ -157,7 +163,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
       message: `${cat} is your highest expense category at ${fmt(amt)} (${pct}% of total spending).`,
       icon: ShoppingBag, tag: "Categories", amount: amt,
       category: cat,
-      createdAt: new Date(now.getTime() - 2 * 3600000),
+      createdAt: now,
     });
   }
 
@@ -168,7 +174,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
       title: "Spending Milestone",
       message: `Your total expenses have reached ${fmt(totalExpenses)}. You've made ${expenses.length} expense transactions.`,
       icon: Target, tag: "Milestones", amount: totalExpenses,
-      createdAt: new Date(now.getTime() - 2.5 * 3600000),
+      createdAt: now,
     });
   }
 
@@ -187,7 +193,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
         title: "Recurring Transaction Detected",
         message: `You've transacted ${count}× at ${merchant}. This looks like a subscription or regular habit.`,
         icon: Repeat, tag: "Recurring",
-        createdAt: new Date(now.getTime() - (3 + i * 0.5) * 3600000),
+        createdAt: now,
       });
     });
 
@@ -199,7 +205,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
       title: "Spending Diversified Across Categories",
       message: `Your expenses are spread across ${uniqueCats} categories. Top 3: ${topCats.slice(0, 3).map(([c]) => c).join(", ")}.`,
       icon: Filter, tag: "Summary",
-      createdAt: new Date(now.getTime() - 4 * 3600000),
+      createdAt: now,
     });
   }
 
@@ -211,7 +217,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
       title: rate >= 20 ? "Excellent Savings Rate! 🎉" : "Good Savings Progress",
       message: `You're saving ${rate}% of income (${fmt(net)}). ${rate >= 20 ? "You're well above the recommended 20% savings benchmark!" : "Aim for 20% to build a strong financial cushion."}`,
       icon: Gift, tag: "Savings", amount: net,
-      createdAt: new Date(now.getTime() - 5 * 3600000),
+      createdAt: now,
     });
   }
 

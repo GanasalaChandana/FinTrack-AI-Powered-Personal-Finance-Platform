@@ -220,7 +220,7 @@ function generateAlertsFromTransactions(transactions: Transaction[]): SmartAlert
           amount,
           category: cat,
           read: false,
-          createdAt: new Date(now.getTime() - 1 * 3600000),
+          createdAt: now,
           icon: ShoppingBag,
           actionLabel: "See Breakdown",
         });
@@ -252,7 +252,7 @@ function generateAlertsFromTransactions(transactions: Transaction[]): SmartAlert
         category: v.last.category,
         merchant,
         read: false,
-        createdAt: new Date(now.getTime() - 2 * 3600000),
+        createdAt: now,
         icon: RefreshCw,
         actionLabel: "Review Pattern",
       });
@@ -291,7 +291,7 @@ function generateAlertsFromTransactions(transactions: Transaction[]): SmartAlert
       message: `You're saving ${rate}% of income (${fmt(surplus)} surplus). Consider moving excess to a savings goal.`,
       amount: surplus,
       read: false,
-      createdAt: new Date(now.getTime() - 3 * 3600000),
+      createdAt: now,
       icon: Target,
       actionLabel: "Set Savings Goal",
     });
@@ -304,7 +304,7 @@ function generateAlertsFromTransactions(transactions: Transaction[]): SmartAlert
       message: `Your expenses (${fmt(totalExpenses)}) exceed your recorded income (${fmt(totalIncome)}) by ${fmt(Math.abs(surplus))}.`,
       amount: Math.abs(surplus),
       read: false,
-      createdAt: new Date(now.getTime() - 30 * 60000),
+      createdAt: now,
       icon: AlertTriangle,
       actionLabel: "Review Budget",
     });
@@ -323,7 +323,7 @@ function generateAlertsFromTransactions(transactions: Transaction[]): SmartAlert
       amount: topMerchant[1].total,
       merchant: topMerchant[0],
       read: false,
-      createdAt: new Date(now.getTime() - 4 * 3600000),
+      createdAt: now,
       icon: Zap,
       actionLabel: "View Merchant",
     });
@@ -355,11 +355,7 @@ function generateAlertsFromTransactions(transactions: Transaction[]): SmartAlert
       severityOrder[a.severity] !== severityOrder[b.severity]
         ? severityOrder[a.severity] - severityOrder[b.severity]
         : b.createdAt.getTime() - a.createdAt.getTime()
-    )
-    .map((a, i) => ({
-      ...a,
-      createdAt: new Date(now.getTime() - i * 25 * 60000), // stagger timestamps for realism
-    }));
+    );
 }
 
 // ── Severity Config ───────────────────────────────────────────────────────────

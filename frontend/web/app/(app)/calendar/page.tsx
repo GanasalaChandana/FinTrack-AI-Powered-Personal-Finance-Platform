@@ -131,18 +131,22 @@ export default function CalendarPage() {
   while (cells.length % 7 !== 0) cells.push(null);
 
   // Monthly summary
+  // dayMap holds every date with transactions; the summary and heatmap are for the
+  // month on screen only (they used to add up all transactions ever)
+  const monthPrefix = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-`;
+
   const monthlySummary = useMemo(() => {
     let income = 0; let expenses = 0;
-    dayMap.forEach(d => { income += d.income; expenses += d.expenses; });
+    dayMap.forEach((d, date) => { if (date.startsWith(monthPrefix)) { income += d.income; expenses += d.expenses; } });
     return { income, expenses, net: income - expenses };
-  }, [dayMap]);
+  }, [dayMap, monthPrefix]);
 
   // Heatmap: max daily expense this month (for intensity scaling)
   const maxDailyExpense = useMemo(() => {
     let max = 0;
-    dayMap.forEach(d => { if (d.expenses > max) max = d.expenses; });
+    dayMap.forEach((d, date) => { if (date.startsWith(monthPrefix) && d.expenses > max) max = d.expenses; });
     return max;
-  }, [dayMap]);
+  }, [dayMap, monthPrefix]);
 
   // Year view: daily expense map for the selected year (52×7 grid)
   const yearHeatmap = useMemo(() => {

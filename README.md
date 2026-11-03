@@ -121,7 +121,7 @@ flowchart TD
     end
 
     subgraph DB["🗄️ PostgreSQL — Render managed"]
-        migrations["Flyway migrations (V1 baseline, V2 indexes + locks)\nHibernate ddl-auto=update until the Flyway-only switch"]
+        migrations["Flyway migrations (V1 baseline, V2 indexes + locks)\nHibernate ddl-auto=validate"]
     end
 
     subgraph ML["🤖 ML Classifier — Python · FastAPI (optional)"]
@@ -234,7 +234,7 @@ Output: "📊 Projected $3,855 vs $3,150 budget — $705 over.
 |---|---|
 | **Frontend** | Next.js 14, TypeScript, Tailwind CSS, Recharts, React Hook Form + Zod, Tesseract.js |
 | **Backend** | Spring Boot 3.2, Java 17, Spring Security, Spring Data JPA, Maven |
-| **Database** | PostgreSQL with Flyway migrations (`V1__baseline_schema.sql`); Hibernate `ddl-auto=update` stays on until the Flyway-only switch (see Database Migrations below) |
+| **Database** | PostgreSQL with Flyway migrations (V1 baseline, V2 indexes + job locks); Hibernate only validates the schema (`ddl-auto=validate`) |
 | **Auth** | JWT HS256, Google sign-in, BCrypt, Refresh Token Rotation, per-IP + per-account Rate Limiting |
 | **Testing** | Backend: JUnit 5, Mockito, @WebMvcTest, MockMvc, @SpringBootTest + in-memory H2 (100+ tests). Frontend: Vitest unit tests (20+), Playwright smoke tests |
 | **ML** | Python, FastAPI, scikit-learn — optional transaction category classifier (off by default) |
@@ -393,7 +393,7 @@ Schema changes are versioned with [Flyway](https://flywaydb.org). Migrations liv
 - **`V1__baseline_schema.sql`** describes the current schema. A brand-new database runs it. An existing database (like production, which Hibernate created) is *baselined* at version 1 — Flyway records it and does **not** run the script against it.
 - **`V2__indexes_job_locks_and_idempotency.sql`** adds the per-user query indexes, the `shedlock` table for scheduled-job locks, and the unique keys that stop duplicate recurring transactions and budget alerts.
 - **To change the schema**, add a new file such as `V3__add_something.sql`. Never edit a migration that has already been applied; Flyway checks file checksums and will refuse to start if one changed.
-- **Rollout:** Flyway is enabled with Hibernate's `ddl-auto=update` still on (step 1). After one clean deploy, switch `spring.jpa.hibernate.ddl-auto` to `validate` (step 2) so migrations are the only thing that change the schema.
+- **Flyway only:** Hibernate runs with `ddl-auto=validate`, so migrations are the only thing that change the schema; if a table doesn't match the entities the app refuses to start instead of silently altering production. Set `JPA_DDL_AUTO=update` in the host's environment to fall back without a code change.
 - **Emergency switch:** set `FLYWAY_ENABLED=false` in the host's environment to turn Flyway off without a code change.
 
 ---

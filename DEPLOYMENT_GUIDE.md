@@ -66,7 +66,7 @@ To use a custom domain, add it under the project's **Settings → Domains** and 
 On startup Flyway runs any new migrations in `backend/monolith/src/main/resources/db/migration`.
 
 - **First deploy with Flyway:** the existing database has no Flyway history, so Flyway *baselines* it at version 1 and leaves your data and tables untouched. You'll see "Successfully baselined schema with version: 1" in the logs.
-- **Rollout step 2:** after one clean deploy, change `spring.jpa.hibernate.ddl-auto` from `update` to `validate` in `application.properties`. From then on, only migrations change the schema.
+- **Schema changes come only from migrations:** Hibernate runs with `ddl-auto=validate` and won't start if the tables don't match the entities. To fall back temporarily, set `JPA_DDL_AUTO=update` in the service's environment.
 - **Adding a change:** add `V2__short_description.sql` (and so on). Never edit a migration that has already been applied.
 
 ## 5. Verify a deployment

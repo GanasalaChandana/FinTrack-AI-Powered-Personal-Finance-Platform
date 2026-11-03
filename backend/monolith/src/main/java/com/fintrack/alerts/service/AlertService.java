@@ -10,7 +10,6 @@ import com.fintrack.alerts.repository.AlertRepository;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -55,60 +54,6 @@ public class AlertService {
         Alert alert = getAlertById(id);
         alert.setStatus(status);
         return alertRepository.save(alert);
-    }
-
-    // ─── Kafka helpers (UUID → String) ───────────────────────────────────────
-
-    public void createBudgetExceededAlert(UUID userId, String category, double spent, double budget) {
-        Alert alert = new Alert();
-        alert.setUserId(userId.toString());
-        alert.setType("BUDGET_EXCEEDED");
-        alert.setMessage(String.format("Budget exceeded for %s: $%.2f spent (Budget: $%.2f)", category, spent, budget));
-        alert.setStatus("UNREAD");
-        alert.setPriority("HIGH");
-        alertRepository.save(alert);
-    }
-
-    public void createBudgetWarningAlert(UUID userId, String category, double spent, double budget, double percentage) {
-        Alert alert = new Alert();
-        alert.setUserId(userId.toString());
-        alert.setType("BUDGET_WARNING");
-        alert.setMessage(String.format("Budget warning for %s: $%.2f spent (%.0f%% of $%.2f budget)", category, spent,
-                percentage, budget));
-        alert.setStatus("UNREAD");
-        alert.setPriority("MEDIUM");
-        alertRepository.save(alert);
-    }
-
-    public void createGoalMilestoneAlert(UUID userId, UUID goalId, String goalName, double progress) {
-        Alert alert = new Alert();
-        alert.setUserId(userId.toString());
-        alert.setType("GOAL_MILESTONE");
-        alert.setMessage(String.format("Goal milestone reached for '%s': %.0f%% complete", goalName, progress));
-        alert.setStatus("UNREAD");
-        alert.setPriority("MEDIUM");
-        alertRepository.save(alert);
-    }
-
-    public void createGoalAchievedAlert(UUID userId, UUID goalId, String goalName) {
-        Alert alert = new Alert();
-        alert.setUserId(userId.toString());
-        alert.setType("GOAL_ACHIEVED");
-        alert.setMessage(String.format("Congratulations! Goal '%s' has been achieved!", goalName));
-        alert.setStatus("UNREAD");
-        alert.setPriority("HIGH");
-        alertRepository.save(alert);
-    }
-
-    public void createUnusualSpendingAlert(UUID userId, String category, double amount, double average) {
-        Alert alert = new Alert();
-        alert.setUserId(userId.toString());
-        alert.setType("UNUSUAL_SPENDING");
-        alert.setMessage(
-                String.format("Unusual spending detected in %s: $%.2f (Average: $%.2f)", category, amount, average));
-        alert.setStatus("UNREAD");
-        alert.setPriority("MEDIUM");
-        alertRepository.save(alert);
     }
 
     // ─── Acknowledge ──────────────────────────────────────────────────────────

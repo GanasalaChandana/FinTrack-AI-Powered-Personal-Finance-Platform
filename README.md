@@ -412,7 +412,7 @@ cd frontend/web && npm test
 cd frontend/web && npm run test:e2e
 ```
 
-**Backend:** 100+ tests across 18 test classes. Integration tests use an in-memory H2 database — no PostgreSQL, Kafka, or Redis required locally.
+**Backend:** 110+ tests. Integration tests use an in-memory H2 database — no PostgreSQL required locally.
 
 | Area | Test classes | Coverage |
 |---|---|---|

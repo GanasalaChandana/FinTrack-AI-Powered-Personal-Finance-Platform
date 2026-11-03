@@ -34,7 +34,7 @@ class TransactionImportIntegrationTest {
     @Autowired private TransactionRepository transactions;
 
     // Tokens are signed for users that aren't in the database; revocation is covered elsewhere.
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private com.fintrack.auth.security.TokenRevocationService tokenRevocationService;
 
     private String userId;

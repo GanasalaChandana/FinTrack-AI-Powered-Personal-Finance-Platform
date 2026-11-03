@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,13 +35,13 @@ class GlobalExceptionHandlerTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private JwtUtil jwtUtil;
-    @SpyBean   private TransactionRepository transactionRepository;
+    @MockitoSpyBean   private TransactionRepository transactionRepository;
 
     private String bearer;
 
     // These tests sign tokens for users that aren't in the database; the
     // revocation check itself is covered by TokenRevocationTest.
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private com.fintrack.auth.security.TokenRevocationService tokenRevocationService;
 
     @BeforeEach

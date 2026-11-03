@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -44,16 +44,16 @@ class BudgetControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private BudgetsService budgetsService;
 
     // Required so @WebMvcTest can wire the JwtAuthenticationFilter in SecurityConfig
-    @MockBean
+    @MockitoBean
     @SuppressWarnings("unused")
     private JwtUtil jwtUtil;
 
     // The JWT filter also checks for revoked tokens
-    @MockBean
+    @MockitoBean
     private com.fintrack.auth.security.TokenRevocationService tokenRevocationService;
 
     private static final String USER_ID = "user-42";

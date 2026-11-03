@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
@@ -38,17 +38,17 @@ class AuthControllerRateLimitTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean private AuthService authService;
-    @MockBean private GoogleAuthService googleAuthService;
-    @MockBean private DemoService demoService;
+    @MockitoBean private AuthService authService;
+    @MockitoBean private GoogleAuthService googleAuthService;
+    @MockitoBean private DemoService demoService;
 
     // Required so @WebMvcTest can wire the JwtAuthenticationFilter in SecurityConfig
-    @MockBean
+    @MockitoBean
     @SuppressWarnings("unused")
     private JwtUtil jwtUtil;
 
     // The JWT filter also checks for revoked tokens
-    @MockBean
+    @MockitoBean
     private com.fintrack.auth.security.TokenRevocationService tokenRevocationService;
 
     private static String body(String email) {

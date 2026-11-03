@@ -35,7 +35,7 @@ class PaymentMethodIntegrationTest {
 
     // These tests sign tokens for users that aren't in the database; the
     // revocation check itself is covered by TokenRevocationTest.
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private com.fintrack.auth.security.TokenRevocationService tokenRevocationService;
 
     @BeforeEach

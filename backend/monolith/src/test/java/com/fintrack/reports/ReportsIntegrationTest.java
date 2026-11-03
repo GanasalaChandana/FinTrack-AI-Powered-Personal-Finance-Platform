@@ -139,4 +139,18 @@ class ReportsIntegrationTest {
                         label.apply(now.minusMonths(3)), label.apply(now.minusMonths(2)), label.apply(now.minusMonths(1)))))
                 .andExpect(jsonPath("$.monthlyData[*].expenses", contains(10.0, 20.0, 30.0)));
     }
+
+    @Test
+    @DisplayName("no period-over-period change when history doesn't cover the previous period")
+    void noChange_withoutEnoughHistory() throws Exception {
+        String dave = UUID.randomUUID().toString();
+        tx(dave, "Employer", "Salary", "INCOME", 3000, LocalDate.now().minusDays(3));
+        tx(dave, "Shop", "Shopping", "EXPENSE", 500, LocalDate.now().minusDays(2));
+
+        mockMvc.perform(get("/api/reports/financial").param("range", "last-year").header("Authorization", token(dave)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary.savingsRate").value(greaterThan(0.0)))
+                .andExpect(jsonPath("$.summary.incomeChange").value(0))
+                .andExpect(jsonPath("$.summary.savingsRateChange").value(0));
+    }
 }

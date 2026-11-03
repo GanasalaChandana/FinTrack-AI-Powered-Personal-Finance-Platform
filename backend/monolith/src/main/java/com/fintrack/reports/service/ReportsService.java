@@ -77,13 +77,19 @@ public class ReportsService {
         summary.put("totalExpenses", currentExpenses);
         summary.put("netSavings", currentSavings);
         summary.put("savingsRate", calculateSavingsRate(currentSavings, currentIncome));
-        summary.put("incomeChange", calculatePercentageChange(previousIncome, currentIncome));
-        summary.put("expensesChange", calculatePercentageChange(previousExpenses, currentExpenses));
-        summary.put("savingsChange", calculatePercentageChange(previousSavings, currentSavings));
+        // Only compare when the user's history covers the whole previous period;
+        // otherwise it's measured against a mostly empty period ("+50% savings rate").
+        // 0 means "no comparison" (the UI hides the chip).
+        LocalDate earliest = transactionRepository.findEarliestDate(userId);
+        boolean comparable = earliest != null && !earliest.isAfter(previousRange[0]);
+
+        summary.put("incomeChange", comparable ? calculatePercentageChange(previousIncome, currentIncome) : BigDecimal.ZERO);
+        summary.put("expensesChange", comparable ? calculatePercentageChange(previousExpenses, currentExpenses) : BigDecimal.ZERO);
+        summary.put("savingsChange", comparable ? calculatePercentageChange(previousSavings, currentSavings) : BigDecimal.ZERO);
 
         BigDecimal prevSavingsRate = calculateSavingsRate(previousSavings, previousIncome);
         BigDecimal currSavingsRate = calculateSavingsRate(currentSavings, currentIncome);
-        summary.put("savingsRateChange", currSavingsRate.subtract(prevSavingsRate));
+        summary.put("savingsRateChange", comparable ? currSavingsRate.subtract(prevSavingsRate) : BigDecimal.ZERO);
 
         return summary;
     }

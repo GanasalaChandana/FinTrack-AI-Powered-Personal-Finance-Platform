@@ -217,8 +217,13 @@ const calculateStats = (transactions: Transaction[], days: number, goalsList: Go
     .filter((t) => t.type === "expense" || t.type === "EXPENSE")
     .reduce((s, t) => s + Math.abs(t.amount ?? 0), 0);
 
-  const incomeChange   = safePercentChange(totalIncome, prevIncome);
-  const expensesChange = safePercentChange(totalExpenses, prevExpenses);
+  // Only compare when the history reaches back to the start of the previous
+  // period; otherwise it's compared with a mostly empty period (e.g. "+426%"
+  // for someone whose data starts a few days before it).
+  const earliest = transactions.reduce((m, t) => (t.date && t.date < m ? t.date : m), "9999-12-31");
+  const comparable = earliest <= prevCutoffStr;
+  const incomeChange   = comparable ? safePercentChange(totalIncome, prevIncome) : null;
+  const expensesChange = comparable ? safePercentChange(totalExpenses, prevExpenses) : null;
 
   const goalsSavings = goalsList.reduce(
     (s, g) => s + (g.currentAmount ?? (g as any).current ?? 0), 0

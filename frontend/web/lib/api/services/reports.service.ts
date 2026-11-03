@@ -226,15 +226,23 @@ function computeReportsData(allTxns: Transaction[], range: ReportsRange): Report
 
   console.log(`📊 Income: $${curIncome.toFixed(2)} | Expenses: $${curExpenses.toFixed(2)} | Savings: $${curSavings.toFixed(2)}`);
 
+  // Compare only when the history covers the whole previous period; otherwise
+  // the "change" is against a mostly empty period. 0 hides the change chip.
+  const earliestTxn = allTxns.reduce<Date | null>((m, t) => {
+    const d = parseDate(t.date);
+    return d && (!m || d < m) ? d : m;
+  }, null);
+  const comparable = !usingAllData && earliestTxn !== null && earliestTxn <= prevStart;
+
   const summary: FinancialSummary = {
     netIncome:         Math.round(curIncome   * 100) / 100,
     totalExpenses:     Math.round(curExpenses * 100) / 100,
     netSavings:        Math.round(curSavings  * 100) / 100,
     savingsRate:       Math.round(curRate * 10) / 10,
-    incomeChange:      pct(curIncome,   prevIncome),
-    expensesChange:    pct(curExpenses, prevExpenses),
-    savingsChange:     pct(curSavings,  prevSavings),
-    savingsRateChange: Math.round((curRate - prevRate) * 10) / 10,
+    incomeChange:      comparable ? pct(curIncome,   prevIncome)   : 0,
+    expensesChange:    comparable ? pct(curExpenses, prevExpenses) : 0,
+    savingsChange:     comparable ? pct(curSavings,  prevSavings)  : 0,
+    savingsRateChange: comparable ? Math.round((curRate - prevRate) * 10) / 10 : 0,
   };
 
   // ── Monthly data ───────────────────────────────────────────────────────────

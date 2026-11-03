@@ -93,6 +93,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      * Find all transactions for a user (without pagination)
      * Used for comprehensive reports
      */
+    /** Date of the user's oldest transaction (null if none). */
+    @Query("SELECT MIN(t.date) FROM Transaction t WHERE t.userId = :userId")
+    LocalDate findEarliestDate(@Param("userId") String userId);
+
     /** True if a recurring rule already created its transaction for this date. */
     boolean existsByRecurringIdAndDate(Long recurringId, LocalDate date);
 

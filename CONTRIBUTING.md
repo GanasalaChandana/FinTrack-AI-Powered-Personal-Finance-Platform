@@ -19,22 +19,20 @@ Thank you for your interest in contributing! This document covers everything you
 
 ```
 fintrack/
-├── frontend/web/          # Next.js 14 frontend (TypeScript)
+├── frontend/web/          # Next.js 16 frontend (TypeScript)
 │   ├── app/(app)/         # Protected app routes (dashboard, reports, …)
 │   ├── components/        # Shared React components
 │   ├── lib/               # API client, utilities, AI logic
 │   └── tests/e2e/         # Playwright end-to-end tests
 │
-├── backend/monolith/      # Spring Boot 3.2 backend (Java 17)
-│   ├── src/main/java/com/fintrack/
-│   │   ├── auth/          # JWT auth, demo mode, rate limiting
-│   │   ├── transactions/  # Transaction CRUD + ML tagging
-│   │   ├── budgets/       # Budgets & savings goals
-│   │   ├── alerts/        # Smart alert engine
-│   │   └── reports/       # Analytics & forecasting
-│   └── src/test/          # JUnit 5 + Mockito unit tests
-│
-└── ml-classifier/         # Optional Python FastAPI category tagger
+└── backend/monolith/      # Spring Boot 3.4 backend (Java 17)
+    ├── src/main/java/com/fintrack/
+    │   ├── auth/          # JWT auth, demo mode, rate limiting
+    │   ├── transactions/  # Transaction CRUD + category tagging
+    │   ├── budgets/       # Budgets & savings goals
+    │   ├── alerts/        # Smart alert engine
+    │   └── reports/       # Analytics & forecasting
+    └── src/test/          # JUnit 5 + Mockito unit tests
 ```
 
 ---
@@ -86,14 +84,6 @@ cd frontend/web
 npm install
 npm run dev
 # App available at http://localhost:3003
-```
-
-### 4 — (Optional) Start the ML classifier
-
-```bash
-cd ml-classifier
-pip install -r requirements.txt
-uvicorn main:app --port 8000
 ```
 
 ### Docker (alternative)

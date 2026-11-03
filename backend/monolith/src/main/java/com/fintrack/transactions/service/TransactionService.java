@@ -1,7 +1,6 @@
 package com.fintrack.transactions.service;
 
 import com.fintrack.budgets.exception.ResourceNotFoundException;
-import com.fintrack.transactions.client.MLClassifierClient;
 import com.fintrack.transactions.dto.*;
 import com.fintrack.transactions.entity.Transaction;
 import com.fintrack.transactions.repository.TransactionRepository;
@@ -26,7 +25,7 @@ import java.util.stream.Collectors;
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
-    private final MLClassifierClient mlClassifierClient;
+    private final CategoryClassifier categoryClassifier;
 
     @Transactional
     public TransactionResponse createTransaction(CreateTransactionRequest request, String userId) {
@@ -42,10 +41,7 @@ public class TransactionService {
 
         // Auto-categorize if category not provided
         if (request.getCategory() == null || request.getCategory().isEmpty()) {
-            String category = mlClassifierClient.classifyTransaction(
-                    request.getDescription(),
-                    request.getAmount(),
-                    request.getMerchant());
+            String category = categoryClassifier.classify(request.getDescription(), request.getMerchant());
             transaction.setCategory(category);
             log.info("Auto-categorized as: {}", category);
         } else {
@@ -81,10 +77,7 @@ public class TransactionService {
 
         // Auto-categorize if category not provided
         if (request.getCategory() == null || request.getCategory().isEmpty()) {
-            String category = mlClassifierClient.classifyTransaction(
-                    request.getDescription(),
-                    request.getAmount(),
-                    request.getMerchant());
+            String category = categoryClassifier.classify(request.getDescription(), request.getMerchant());
             transaction.setCategory(category);
         } else {
             transaction.setCategory(request.getCategory());
@@ -228,7 +221,7 @@ public class TransactionService {
 
     public String classifyTransaction(String description) {
         log.info("Classifying transaction: {}", description);
-        return mlClassifierClient.classifyTransaction(description, null, null);
+        return categoryClassifier.classify(description, null);
     }
 
     public Map<String, Object> getSummary(String userId, String startDate, String endDate) {

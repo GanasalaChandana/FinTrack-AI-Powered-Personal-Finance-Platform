@@ -4,10 +4,9 @@ FinTrack deploys as three pieces:
 
 | Piece | Where | Source |
 |---|---|---|
-| Frontend (Next.js 14) | Vercel | `frontend/web` |
+| Frontend (Next.js 16) | Vercel | `frontend/web` |
 | Backend (Spring Boot monolith) | Render web service (Docker) | `backend/monolith` |
-| Database | Render managed PostgreSQL | — |
-| ML classifier (optional, off by default) | Any Python host | `ml-classifier` |
+| Database | PostgreSQL (Supabase) | — |
 
 > The project used to be split into microservices. They were removed; the old code is still in git history (commit `5ae1150` is the last one that contains it).
 
@@ -45,7 +44,6 @@ Environment variables:
 | `GOOGLE_CLIENT_ID` | No | Enables Google sign-in |
 | `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_HOST` | No | Outbound email (`MAIL_HOST` defaults to `smtp.gmail.com`) |
 | `FLYWAY_ENABLED` | No | Defaults to `true`. Set to `false` to switch Flyway off without a code change |
-| `ML_CLASSIFIER_ENABLED`, `ML_CLASSIFIER_URL` | No | Optional category classifier; off by default |
 
 ### CORS
 

@@ -80,7 +80,7 @@
 | 🧾 | **Receipt Scanner** | Camera/file upload → Tesseract.js OCR extracts merchant, amount, date |
 | 📊 | **Interactive Reports** | Nine report views: overview, custom, trends, comparison, 6-month forecast, budget history, tax, income, savings. Safe CSV / Excel / PDF exports (no third-party CDN scripts) |
 | 💳 | **Payment Methods** | Transactions carry a payment method, read from CSV imports and editable per transaction |
-| 🎯 | **Category Auto-Tagging** | Optional Python FastAPI classifier (scikit-learn) that tags by merchant + amount. It is **off by default** (`ML_CLASSIFIER_ENABLED`); without it, categories are assigned manually |
+| 🎯 | **Category Auto-Tagging** | Transactions saved or imported without a category get one from keyword rules on the description and merchant (e.g. "Uber" → Transportation); you can always change it |
 | 🔐 | **Secure Auth** | Email/password and Google sign-in, JWT HS256, refresh token rotation, per-IP and per-account rate limiting, BCrypt hashing, case-insensitive unique emails |
 | 👤 | **Account Controls** | Change password (8+ characters), reset data, or delete your account and all of its data |
 
@@ -90,7 +90,7 @@
 
 ```mermaid
 flowchart TD
-    subgraph FE["🌐 Frontend — Vercel (Next.js 14 · TypeScript · Tailwind)"]
+    subgraph FE["🌐 Frontend — Vercel (Next.js 16 · TypeScript · Tailwind)"]
         direction TB
         dash["Dashboard\nAI Insights · Forecast · Prediction"]
         txn["Transactions\nCRUD · CSV Import · OCR"]
@@ -104,12 +104,12 @@ flowchart TD
         end
     end
 
-    subgraph BE["☁️ Backend — Render (Spring Boot 3.2 · Java 17)"]
+    subgraph BE["☁️ Backend — Render (Spring Boot 3.4 · Java 17)"]
         direction TB
         rl["LoginRateLimiter\nPer-IP + per-account sliding window"]
         jwt["JwtAuthFilter\nHS256 verify · expiry check"]
         ctrl["Controllers\n@Valid · ownership enforced"]
-        svc["Services\nBusiness logic · ML tagging"]
+        svc["Services\nBusiness logic · category rules"]
 
         subgraph API["REST Endpoints"]
             a1["/api/auth"]
@@ -121,18 +121,13 @@ flowchart TD
         end
     end
 
-    subgraph DB["🗄️ PostgreSQL — Render managed"]
+    subgraph DB["🗄️ PostgreSQL — Supabase"]
         migrations["Flyway migrations (V1 baseline, V2 indexes + locks)\nHibernate ddl-auto=validate"]
-    end
-
-    subgraph ML["🤖 ML Classifier — Python · FastAPI (optional)"]
-        classify["POST /classify\nmerchant → category"]
     end
 
     FE -- "HTTPS · Bearer JWT" --> BE
     rl --> jwt --> ctrl --> svc --> API
     svc -- "JPA" --> DB
-    svc -. "HTTP · optional" .-> ML
 ```
 
 ---
@@ -194,7 +189,7 @@ Successful logins reset the IP and account counters. Successful sign-ups do **no
 
 ## 🧠 Analytics Engine (client-side, rule-based, zero API cost)
 
-The "AI" features are classic statistics and heuristics that run in the browser — averages, standard deviations, burn-rate projections and similarity matching. **They are not machine-learning models.** The only ML component in the project is the optional `ml-classifier` service, which is off by default.
+The "AI" features are classic statistics and heuristics that run in the browser — averages, standard deviations, burn-rate projections and similarity matching. **They are not machine-learning models.** Transaction categories come from keyword rules in the backend.
 
 ### Anomaly Detection — `lib/utils/aiInsights.ts`
 ```
@@ -233,12 +228,11 @@ Output: "📊 Projected $3,855 vs $3,150 budget — $705 over.
 
 | Layer | Technologies |
 |---|---|
-| **Frontend** | Next.js 14, TypeScript, Tailwind CSS, Recharts, React Hook Form + Zod, Tesseract.js |
-| **Backend** | Spring Boot 3.2, Java 17, Spring Security, Spring Data JPA, Maven |
+| **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS, Recharts, React Hook Form, Tesseract.js |
+| **Backend** | Spring Boot 3.4, Java 17, Spring Security, Spring Data JPA, Maven |
 | **Database** | PostgreSQL with Flyway migrations (V1 baseline, V2 indexes + job locks); Hibernate only validates the schema (`ddl-auto=validate`) |
 | **Auth** | JWT HS256, Google sign-in, BCrypt, Refresh Token Rotation, per-IP + per-account Rate Limiting |
 | **Testing** | Backend: JUnit 5, Mockito, @WebMvcTest, MockMvc, @SpringBootTest + in-memory H2 (100+ tests). Frontend: Vitest unit tests (20+), Playwright smoke tests |
-| **ML** | Python, FastAPI, scikit-learn — optional transaction category classifier (off by default) |
 | **DevOps** | GitHub Actions CI (4 jobs: backend tests, TypeScript, Vitest, Playwright), Docker Compose, Vercel (frontend), Render (backend + DB) |
 
 ---
@@ -269,7 +263,7 @@ DELETE /api/users/me               Delete account and all data (demo account is 
 **Transactions**
 ```
 GET    /api/transactions            List (paginated, filter by date/category/type)
-POST   /api/transactions            Create + ML auto-tag category
+POST   /api/transactions            Create (category auto-tagged if missing)
 GET    /api/transactions/{id}       Get one (ownership enforced)
 PUT    /api/transactions/{id}       Update (ownership enforced)
 DELETE /api/transactions/{id}       Delete (ownership enforced)
@@ -370,13 +364,6 @@ npm install && npm run dev
 # → http://localhost:3000
 ```
 
-**ML Classifier (optional)**
-```bash
-cd ml-classifier
-pip install -r requirements.txt
-uvicorn main:app --port 8000
-```
-
 **Docker (full stack)** — PostgreSQL + backend + frontend, same as production
 ```bash
 JWT_SECRET=$(openssl rand -base64 48) docker compose up --build
@@ -416,7 +403,7 @@ cd frontend/web && npm run test:e2e
 
 | Area | Test classes | Coverage |
 |---|---|---|
-| Transactions | `TransactionServiceTest`, `TransactionControllerTest`, `PaymentMethodIntegrationTest`, `RecurringTransactionServiceTest` | CRUD, ML tagging, date defaults, userId scoping, HTTP status codes, payment methods (create/update/CSV import), recurring catch-up and end dates |
+| Transactions | `TransactionServiceTest`, `TransactionControllerTest`, `PaymentMethodIntegrationTest`, `RecurringTransactionServiceTest` | CRUD, category auto-tagging, date defaults, userId scoping, HTTP status codes, payment methods (create/update/CSV import), recurring catch-up and end dates |
 | Budgets & alerts | `BudgetsServiceTest`, `BudgetControllerTest`, `AlertControllerTest`, `BudgetAlertSchedulerTest` | syncSpent accuracy, budget CRUD, ownership (owner / stranger / missing user), budget alerts created from synced spend |
 | Reports | `ReportsIntegrationTest` | Reports built from real data, over-budget insights, other users' reports forbidden |
 | Auth & accounts | `RegistrationFlowTest`, `AccountManagementTest`, `DemoServiceTest` | Sign-up validation, case-insensitive email, password rules, full account deletion, demo account protection and re-seeding |
@@ -437,7 +424,7 @@ FinTrack-AI-Powered-Personal-Finance-Platform/
 │
 ├── backend/monolith/src/main/java/com/fintrack/
 │   ├── auth/                        JWT, Google sign-in, BCrypt, rate limiter, refresh tokens, accounts
-│   ├── transactions/                CRUD, CSV import, recurring, ML category tagging, summary
+│   ├── transactions/                CRUD, CSV import, recurring, category tagging, summary
 │   ├── budgets/                     Budget management, auto-sync spent
 │   ├── reports/                     Analytics, 6-month forecast
 │   ├── alerts/                      Smart alert engine, budget alert scheduler
@@ -445,24 +432,22 @@ FinTrack-AI-Powered-Personal-Finance-Platform/
 │   └── config/                      Security, CORS, global exception handler
 │   (plus src/main/resources/db/migration/  Flyway migrations)
 │
-├── frontend/web/
-│   ├── app/(app)/                   Auth-gated pages (AuthGate layout)
-│   │   ├── dashboard/               Stats + AI insights + forecast cards
-│   │   ├── transactions/            CRUD with bulk ops + CSV import
-│   │   ├── reports/                 Nine report views incl. custom reports (Recharts)
-│   │   ├── alerts/                  Smart alert feed with severity filters
-│   │   ├── notifications/           Transaction-driven notification center
-│   │   └── …                        goals-budgets, recurring, subscriptions, receipts, net-worth, settings and more
-│   ├── components/dashboard/
-│   │   ├── AnomalyInsightsCard.tsx      AI anomaly detection UI
-│   │   ├── BudgetForecastCard.tsx       Month-end projection UI
-│   │   ├── MonthEndForecastCard.tsx     Daily burn rate card
-│   │   └── NextMonthPredictionCard.tsx  3-month weighted prediction UI
-│   └── lib/utils/
-│       ├── aiInsights.ts                mean + 2σ statistical engine
-│       └── budgetForecast.ts            burn rate projection engine
-│
-└── ml-classifier/                   Python FastAPI — merchant → category
+└── frontend/web/
+    ├── app/(app)/                   Auth-gated pages (AuthGate layout)
+    │   ├── dashboard/               Stats + AI insights + forecast cards
+    │   ├── transactions/            CRUD with bulk ops + CSV import
+    │   ├── reports/                 Nine report views incl. custom reports (Recharts)
+    │   ├── alerts/                  Smart alert feed with severity filters
+    │   ├── notifications/           Transaction-driven notification center
+    │   └── …                        goals-budgets, recurring, subscriptions, receipts, net-worth, settings and more
+    ├── components/dashboard/
+    │   ├── AnomalyInsightsCard.tsx      AI anomaly detection UI
+    │   ├── BudgetForecastCard.tsx       Month-end projection UI
+    │   ├── MonthEndForecastCard.tsx     Daily burn rate card
+    │   └── NextMonthPredictionCard.tsx  3-month weighted prediction UI
+    └── lib/utils/
+        ├── aiInsights.ts                mean + 2σ statistical engine
+        └── budgetForecast.ts            burn rate projection engine
 ```
 
 ---
@@ -536,26 +521,6 @@ taskkill /PID <pid> /F
 <summary><strong>Backend fails at startup after a Flyway change — checksum mismatch or "validate" errors</strong></summary>
 
 Flyway refuses to start if an already-applied migration file was edited. Restore the original file and put the change in a new `V<next>__...sql` migration instead. To get the app running while you sort it out, set `FLYWAY_ENABLED=false`.
-
-</details>
-
-<details>
-<summary><strong>ML classifier not tagging transactions</strong></summary>
-
-The ML service is **optional**. If it isn't running, transactions are saved without auto-categorisation — you can still assign categories manually. To start it:
-
-```bash
-cd ml-classifier
-pip install -r requirements.txt
-uvicorn main:app --port 8000
-```
-
-Then enable it in your backend environment (it's off by default, and the default URL points at port 5000):
-
-```bash
-export ML_CLASSIFIER_ENABLED=true
-export ML_CLASSIFIER_URL=http://localhost:8000
-```
 
 </details>
 

@@ -1,6 +1,5 @@
 package com.fintrack.transactions.service;
 
-import com.fintrack.transactions.client.MLClassifierClient;
 import com.fintrack.transactions.dto.CreateTransactionRequest;
 import com.fintrack.transactions.dto.TransactionResponse;
 import com.fintrack.transactions.entity.Transaction;
@@ -40,7 +39,7 @@ class TransactionServiceTest {
     private TransactionRepository transactionRepository;
 
     @Mock
-    private MLClassifierClient mlClassifierClient;
+    private CategoryClassifier categoryClassifier;
 
     @InjectMocks
     private TransactionService transactionService;
@@ -88,7 +87,7 @@ class TransactionServiceTest {
             assertThat(result).isNotNull();
             assertThat(result.getCategory()).isEqualTo("Food & Dining");
             // ML classifier should NOT be called when category is provided
-            verify(mlClassifierClient, never()).classifyTransaction(anyString(), any(), anyString());
+            verify(categoryClassifier, never()).classify(anyString(), anyString());
         }
 
         @Test
@@ -102,14 +101,14 @@ class TransactionServiceTest {
             // no category set
             req.setDate(LocalDate.now());
 
-            when(mlClassifierClient.classifyTransaction(anyString(), any(), anyString()))
+            when(categoryClassifier.classify(anyString(), anyString()))
                     .thenReturn("Shopping");
             Transaction saved = buildTxn(2L, "EXPENSE", 59.99, "Shopping");
             when(transactionRepository.save(any())).thenReturn(saved);
 
             TransactionResponse result = transactionService.createTransaction(req, USER_ID);
 
-            verify(mlClassifierClient).classifyTransaction(anyString(), any(), anyString());
+            verify(categoryClassifier).classify(anyString(), anyString());
             assertThat(result.getCategory()).isEqualTo("Shopping");
         }
 

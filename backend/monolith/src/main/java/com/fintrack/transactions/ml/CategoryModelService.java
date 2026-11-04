@@ -30,7 +30,7 @@ public class CategoryModelService {
 
     private final TransactionRepository transactions;
 
-    private record Cached(NaiveBayesCategoryModel model, Instant trainedAt) {}
+    private record Cached(NaiveBayesCategoryModel model, Instant trainedAt, long transactionCount) {}
     private final Map<String, Cached> cache = new ConcurrentHashMap<>();
 
     /** How the model does on the user's own data (5-fold cross-validation). */
@@ -84,12 +84,16 @@ public class CategoryModelService {
     }
 
     private NaiveBayesCategoryModel model(String userId) {
+        // Reuse the cached model unless it is old or the user's transactions changed
+        // (an import must not keep answering with the model from before it)
+        long count = transactions.countByUserId(userId);
         Cached c = cache.get(userId);
-        if (c != null && c.trainedAt().plus(CACHE_TTL).isAfter(Instant.now())) return c.model();
+        if (c != null && c.transactionCount() == count
+                && c.trainedAt().plus(CACHE_TTL).isAfter(Instant.now())) return c.model();
         List<NaiveBayesCategoryModel.Example> data = examples(userId);
         NaiveBayesCategoryModel m = NaiveBayesCategoryModel.train(data);
         boolean usable = data.size() >= MIN_EXAMPLES && m.categoryCount() >= 2;
-        cache.put(userId, new Cached(usable ? m : null, Instant.now()));
+        cache.put(userId, new Cached(usable ? m : null, Instant.now(), count));
         return usable ? m : null;
     }
 

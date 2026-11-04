@@ -137,4 +137,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("userId") String userId,
             @Param("category") String category,
             @Param("month") String month);
+
+    long countByUserId(String userId);
 }

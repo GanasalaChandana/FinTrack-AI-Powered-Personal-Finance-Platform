@@ -150,4 +150,23 @@ class LearnedCategoryTest {
         mockMvc.perform(get("/api/transactions/category-model").header("Authorization", bearer))
                 .andExpect(jsonPath("$.trained").value(false));
     }
+
+    @Test
+    @DisplayName("importing more transactions starts the model straight away (no stale 'not enough data')")
+    void modelStartsAfterImport() throws Exception {
+        create("Night Owl Cinema", "Fun Money");
+        String body = "{\"merchant\":\"Night Owl Cinema Downtown\",\"type\":\"EXPENSE\"}";
+        mockMvc.perform(post("/api/transactions/classify").header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(jsonPath("$.source").value("keywords")); // too little history: cached as untrained
+        for (int i = 0; i < 6; i++) {
+            create("Night Owl Cinema " + i, "Fun Money");
+            create("Green Leaf Market " + i, "Groceries");
+            create("Metro Water Works " + i, "Home Bills");
+        }
+        mockMvc.perform(post("/api/transactions/classify").header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(jsonPath("$.source").value("model"))
+                .andExpect(jsonPath("$.category").value("Fun Money"));
+    }
 }

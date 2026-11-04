@@ -29,10 +29,10 @@ const formatDate = (dateStr: string | undefined): string => {
   }
 };
 
-const getDaysRemaining = (targetDate: string | undefined): number | null => {
-  if (!targetDate) return null;
+const getDaysRemaining = (deadline: string | undefined): number | null => {
+  if (!deadline) return null;
   try {
-    const target = new Date(targetDate);
+    const target = new Date(deadline);
     const today = new Date();
     const diff = target.getTime() - today.getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
@@ -62,7 +62,7 @@ export function GoalProgressCard({
   const currentAmount = goal.currentAmount || (goal as any).current || 0;
   const percentage = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0;
   const remaining = Math.max(0, targetAmount - currentAmount);
-  const daysRemaining = getDaysRemaining(goal.targetDate);
+  const daysRemaining = getDaysRemaining(goal.deadline);
   const isCompleted = percentage >= 100;
 
   const getProgressColor = () => {
@@ -141,12 +141,12 @@ export function GoalProgressCard({
         </div>
 
         {/* Timeline Info */}
-        {goal.targetDate && (
+        {goal.deadline && (
           <div className="flex items-center gap-2 p-2 bg-primary-50 dark:bg-primary-900 dark:bg-opacity-20 rounded-sm border border-primary-200 dark:border-primary-800">
             <Calendar className="w-4 h-4 text-primary-600 dark:text-primary-400 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-primary-700 dark:text-primary-300">
-                Target: {formatDate(goal.targetDate)}
+                Target: {formatDate(goal.deadline)}
               </p>
               {daysRemaining !== null && (
                 <p className="text-xs text-primary-600 dark:text-primary-400">

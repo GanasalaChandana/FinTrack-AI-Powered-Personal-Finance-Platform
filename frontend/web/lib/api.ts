@@ -11,7 +11,6 @@ export interface User {
   lastName?: string;
   username?: string;
   email: string;
-  [key: string]: any;
 }
 
 /** The tokens themselves arrive as HttpOnly cookies, not in the body. */
@@ -44,7 +43,10 @@ export interface Transaction {
   updatedAt?: string;
   notes?: string;
   tags?: string; // comma-separated string from backend e.g. "business,vacation"
-  [key: string]: any;
+  status?: string; // "completed" | "pending"
+  paymentMethod?: string | null;
+  /** The server's category name when the UI maps it to a display bucket */
+  categoryName?: string;
 }
 
 export interface Budget {
@@ -58,7 +60,6 @@ export interface Budget {
   userId?: string;
   createdAt?: string;
   updatedAt?: string;
-  [key: string]: any;
 }
 
 export interface BudgetSummary {
@@ -77,10 +78,14 @@ export interface Goal {
   currentAmount: number;
   deadline?: string;
   category?: string;
+  icon?: string;
+  color?: string;
+  monthlyContribution?: number;
+  progress?: number;
+  achieved?: boolean;
   userId?: string;
   createdAt?: string;
   updatedAt?: string;
-  [key: string]: any;
 }
 
 export interface Alert {
@@ -97,7 +102,6 @@ export interface Alert {
     transactionId?: string;
     amount?: number;
     category?: string;
-    [key: string]: any;
   };
   userId?: string;
   createdAt?: string;
@@ -196,7 +200,10 @@ export function isAuthenticated(): boolean {
 // Generic API helper
 // =====================
 
-const pendingRequests = new Map<string, Promise<any>>();
+const pendingRequests = new Map<string, Promise<unknown>>();
+
+/** List endpoints return an array, or (older responses) an object wrapping one. */
+type ListResponse<T> = T[] | { [key: string]: T[] | undefined };
 
 // Prevents multiple simultaneous refresh attempts
 let isRefreshingToken = false;
@@ -233,7 +240,7 @@ async function tryRefreshToken(): Promise<boolean> {
   return tokenRefreshPromise;
 }
 
-export async function apiRequest<T = any>(
+export async function apiRequest<T = unknown>(
   endpoint: string,
   options: RequestInit = {},
   useTransactionsService: boolean = false,
@@ -244,7 +251,7 @@ export async function apiRequest<T = any>(
   const requestKey = `${options.method || "GET"}-${endpoint}-${JSON.stringify(options.body || "")}`;
 
   if (pendingRequests.has(requestKey)) {
-    return pendingRequests.get(requestKey)!;
+    return pendingRequests.get(requestKey)! as Promise<T>; // same request already in flight
   }
 
   const isFormData = options.body instanceof FormData;
@@ -272,7 +279,7 @@ export async function apiRequest<T = any>(
       const response = await fetch(url, config);
 
       const contentType = response.headers.get("content-type") || "";
-      let data: any = undefined;
+      let data: unknown = undefined;
 
       if (response.status === 204 || response.headers.get("content-length") === "0") {
         return {} as T;
@@ -306,12 +313,14 @@ export async function apiRequest<T = any>(
           // Refresh failed or backend has no /refresh endpoint → log out
           removeToken();
           if (typeof window !== "undefined") {
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload on purpose: drops in-memory state
             setTimeout(() => { window.location.assign("/login"); }, 100); // full reload: the session was cleared
           }
         }
 
-        const errorMessage =
-          (data && typeof data === "object" && (data.message || data.error)) ||
+        const body = data && typeof data === "object" ? (data as { message?: string; error?: string }) : null;
+        const errorMessage: string =
+          body?.message || body?.error ||
           (typeof data === "string" && data) ||
           `HTTP error! status: ${response.status}`;
 
@@ -319,8 +328,8 @@ export async function apiRequest<T = any>(
       }
 
       return data as T;
-    } catch (error: any) {
-      console.error(`API ERROR [${endpoint}]:`, error.message);
+    } catch (error) {
+      console.error(`API ERROR [${endpoint}]:`, error instanceof Error ? error.message : error);
       throw error;
     } finally {
       pendingRequests.delete(requestKey);
@@ -349,7 +358,7 @@ export const transactionsAPI = {
     const endpoint = params.toString() ? `/api/transactions?${params}` : "/api/transactions";
 
     try {
-      const data = await apiRequest<Transaction[] | any>(endpoint, { method: "GET" }, true);
+      const data = await apiRequest<ListResponse<Transaction>>(endpoint, { method: "GET" }, true);
 
       let transactions: Transaction[];
 
@@ -376,7 +385,7 @@ export const transactionsAPI = {
       }));
 
       return transactions;
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error fetching transactions:", error);
       return [];
     }
@@ -553,7 +562,7 @@ export const budgetsAPI = {
   getAll: async (month?: string): Promise<Budget[]> => {
     const params = month ? `?month=${month}` : "";
     try {
-      const data = await apiRequest<Budget[] | any>(`/api/budgets${params}`, { method: "GET" }, false);
+      const data = await apiRequest<ListResponse<Budget>>(`/api/budgets${params}`, { method: "GET" }, false);
 
       let budgets: Budget[] = [];
 
@@ -582,7 +591,7 @@ export const budgetsAPI = {
         budget: typeof b.budget === "string" ? parseFloat(b.budget) || 0 : (b.budget ?? 0),
         spent:  typeof b.spent  === "string" ? parseFloat(b.spent)  || 0 : (b.spent  ?? 0),
       }));
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error fetching budgets:", error);
       return [];
     }
@@ -623,7 +632,7 @@ export const budgetsAPI = {
 export const goalsAPI = {
   getAll: async (): Promise<Goal[]> => {
     try {
-      const data = await apiRequest<Goal[] | any>("/api/goals", { method: "GET" }, false);
+      const data = await apiRequest<ListResponse<Goal>>("/api/goals", { method: "GET" }, false);
       if (Array.isArray(data)) return data;
       if (data && typeof data === "object") {
         if (Array.isArray(data.goals))   return data.goals;
@@ -662,7 +671,7 @@ export const goalsAPI = {
 export const alertsAPI = {
   getAll: async (): Promise<Alert[]> => {
     try {
-      const data = await apiRequest<Alert[] | any>("/api/alerts", { method: "GET" }, false);
+      const data = await apiRequest<ListResponse<Alert>>("/api/alerts", { method: "GET" }, false);
       if (Array.isArray(data)) return data;
       if (data && typeof data === "object") {
         if (Array.isArray(data.alerts))  return data.alerts;
@@ -670,7 +679,7 @@ export const alertsAPI = {
         if (Array.isArray(data.content)) return data.content;
       }
       return [];
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error fetching alerts:", error);
       return [];
     }
@@ -678,7 +687,7 @@ export const alertsAPI = {
 
   // The backend has no /unread endpoint — filter the user's alerts instead
   getUnread: async (): Promise<Alert[]> =>
-    (await alertsAPI.getAll()).filter((a: any) => !a.read),
+    (await alertsAPI.getAll()).filter((a) => !a.read),
 
   getById: (id: string): Promise<Alert> =>
     apiRequest<Alert>(`/api/alerts/${id}`, { method: "GET" }, false),
@@ -703,7 +712,7 @@ export const alertsAPI = {
 export const notificationsAPI = {
   getAllForUser: async (userId: string): Promise<Notification[]> => {
     try {
-      const data = await apiRequest<Notification[] | any>(
+      const data = await apiRequest<ListResponse<Notification>>(
         `/api/notifications/user/${userId}`,
         { method: "GET" },
         false
@@ -711,7 +720,7 @@ export const notificationsAPI = {
       if (Array.isArray(data)) return data;
       if (data && typeof data === "object" && Array.isArray(data.notifications)) return data.notifications;
       return [];
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error fetching notifications:", error);
       return [];
     }
@@ -732,7 +741,7 @@ export const notificationsAPI = {
 // =====================
 
 export const reportsAPI = {
-  getOverview: (startDate?: string, endDate?: string): Promise<any> => {
+  getOverview: (startDate?: string, endDate?: string): Promise<unknown> => {
     const params = new URLSearchParams();
     if (startDate) params.append("startDate", startDate);
     if (endDate) params.append("endDate", endDate);
@@ -740,7 +749,7 @@ export const reportsAPI = {
     return apiRequest(endpoint, { method: "GET" }, false);
   },
 
-  getByCategory: (startDate?: string, endDate?: string): Promise<any> => {
+  getByCategory: (startDate?: string, endDate?: string): Promise<unknown> => {
     const params = new URLSearchParams();
     if (startDate) params.append("startDate", startDate);
     if (endDate) params.append("endDate", endDate);
@@ -748,7 +757,7 @@ export const reportsAPI = {
     return apiRequest(endpoint, { method: "GET" }, false);
   },
 
-  getTrends: (period: "daily" | "weekly" | "monthly" | "yearly" = "monthly"): Promise<any> =>
+  getTrends: (period: "daily" | "weekly" | "monthly" | "yearly" = "monthly"): Promise<unknown> =>
     apiRequest(`/api/reports/trends?period=${period}`, { method: "GET" }, false),
 };
 
@@ -769,27 +778,27 @@ export const healthAPI = {
 // =====================
 
 const api = {
-  get: <T = any>(endpoint: string, options?: RequestInit, useTransactionsService?: boolean): Promise<T> =>
+  get: <T = unknown>(endpoint: string, options?: RequestInit, useTransactionsService?: boolean): Promise<T> =>
     apiRequest<T>(endpoint, { ...options, method: "GET" }, useTransactionsService),
 
-  post: <T = any>(endpoint: string, body?: any, options?: RequestInit, useTransactionsService?: boolean): Promise<T> =>
+  post: <T = unknown>(endpoint: string, body?: unknown, options?: RequestInit, useTransactionsService?: boolean): Promise<T> =>
     apiRequest<T>(endpoint, {
       ...options,
       method: "POST",
       body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
     }, useTransactionsService),
 
-  put: <T = any>(endpoint: string, body?: any, options?: RequestInit, useTransactionsService?: boolean): Promise<T> =>
+  put: <T = unknown>(endpoint: string, body?: unknown, options?: RequestInit, useTransactionsService?: boolean): Promise<T> =>
     apiRequest<T>(endpoint, {
       ...options,
       method: "PUT",
       body: body ? JSON.stringify(body) : undefined,
     }, useTransactionsService),
 
-  delete: <T = any>(endpoint: string, options?: RequestInit, useTransactionsService?: boolean): Promise<T> =>
+  delete: <T = unknown>(endpoint: string, options?: RequestInit, useTransactionsService?: boolean): Promise<T> =>
     apiRequest<T>(endpoint, { ...options, method: "DELETE" }, useTransactionsService),
 
-  patch: <T = any>(endpoint: string, body?: any, options?: RequestInit, useTransactionsService?: boolean): Promise<T> =>
+  patch: <T = unknown>(endpoint: string, body?: unknown, options?: RequestInit, useTransactionsService?: boolean): Promise<T> =>
     apiRequest<T>(endpoint, {
       ...options,
       method: "PATCH",

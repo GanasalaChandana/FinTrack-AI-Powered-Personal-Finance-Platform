@@ -29,6 +29,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}, isRetr
       // Expired access token: renew it and retry once before signing out
       if (!isRetry && (await authAPI.refreshToken())) return apiRequest<T>(endpoint, options, true);
       removeToken();
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload on purpose: drops in-memory state
       window.location.assign("/login?mode=signin"); // full reload: the session was cleared
     }
     throw new Error(`HTTP ${res.status}`);

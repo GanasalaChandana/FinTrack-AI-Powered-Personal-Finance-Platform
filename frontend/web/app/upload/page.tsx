@@ -138,6 +138,7 @@ const CSVUploadSystem: React.FC = () => {
         // Expired access token: renew it and retry the upload once before signing out
         if (!isRetry && (await authAPI.refreshToken())) return handleImport(true);
         removeToken();
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload on purpose: drops in-memory state
         window.location.assign("/login?mode=signin"); // full reload: the session was cleared
         return;
       }
@@ -457,6 +458,7 @@ const CSVUploadSystem: React.FC = () => {
             Upload Another File
           </button>
           <button
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload on purpose: drops in-memory state
             onClick={() => window.location.assign("/transactions")}
             className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
           >

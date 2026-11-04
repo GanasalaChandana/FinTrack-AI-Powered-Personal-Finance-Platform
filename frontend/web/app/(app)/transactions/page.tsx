@@ -47,7 +47,7 @@ interface Category {
   badgeText: string;
 }
 
-interface Transaction extends Omit<ApiTransaction, "category" | "type"> {
+interface Transaction extends Omit<ApiTransaction, "category" | "type" | "tags" | "status" | "paymentMethod"> {
   category: Exclude<CategoryId, "all">;
   // The real category from the server ("Housing", "Salary", …); `category` is only
   // the display bucket, and saving the bucket would overwrite the real name.

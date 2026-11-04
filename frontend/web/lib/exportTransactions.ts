@@ -64,36 +64,27 @@ export function exportCsv(rows: ExportRow[], filename: string) {
 
 export async function exportXlsx(rows: ExportRow[], filename: string) {
   // Loaded on demand — only people who export pay for the library
-  const ExcelJS = (await import("exceljs")).default;
-  const wb = new ExcelJS.Workbook();
-  wb.creator = "FinTrack";
-  const ws = wb.addWorksheet("Transactions", { views: [{ state: "frozen", ySplit: 1 }] });
+  const writeExcelFile = (await import("write-excel-file/browser")).default;
 
-  ws.columns = [
-    { header: "Date", key: "date", width: 12 },
-    { header: "Merchant", key: "merchant", width: 24 },
-    { header: "Description", key: "description", width: 36 },
-    { header: "Category", key: "category", width: 18 },
-    { header: "Amount", key: "amount", width: 14, style: { numFmt: "#,##0.00;[Red]-#,##0.00" } },
-    { header: "Type", key: "type", width: 10 },
-    { header: "Payment Method", key: "paymentMethod", width: 18 },
-    { header: "Status", key: "status", width: 12 },
-    { header: "Recurring", key: "recurring", width: 10 },
-    { header: "Tags", key: "tags", width: 20 },
-    { header: "Notes", key: "notes", width: 30 },
+  const head = (value: string) =>
+    ({ value, fontWeight: "bold" as const, textColor: "#FFFFFF", backgroundColor: "#1E40AF" });
+  // Strings are always written as text cells (formulas need an explicit type), so a
+  // merchant like "=HYPERLINK(...)" from an imported file can't run in Excel
+  const text = (v: unknown) => ({ value: v == null ? "" : String(v), type: String });
+
+  const sheetData = [
+    ["Date", "Merchant", "Description", "Category", "Amount", "Type", "Payment Method", "Status", "Recurring", "Tags", "Notes"].map(head),
+    ...rows.map((r) => [
+      text(r.date), text(r.merchant), text(r.description), text(r.category),
+      { value: signedAmount(r), type: Number, format: "#,##0.00;[Red]-#,##0.00" },
+      text(r.type), text(r.paymentMethod), text(r.status), text(r.recurring ? "Yes" : "No"),
+      text(r.tags), text(r.notes),
+    ]),
   ];
-  const header = ws.getRow(1);
-  header.font = { bold: true, color: { argb: "FFFFFFFF" } };
-  header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E40AF" } };
+  const columns = [12, 24, 36, 18, 14, 10, 18, 12, 10, 20, 30].map((width) => ({ width }));
 
-  for (const r of rows) {
-    // Plain values only: exceljs writes strings as text cells, never formulas
-    ws.addRow({ ...r, amount: signedAmount(r), recurring: r.recurring ? "Yes" : "No" });
-  }
-  ws.autoFilter = { from: "A1", to: "K1" };
-
-  const buf = await wb.xlsx.writeBuffer();
-  download(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), filename);
+  const blob = await writeExcelFile(sheetData as any, { columns, stickyRowsCount: 1, sheet: "Transactions" } as any).toBlob();
+  download(blob, filename);
 }
 
 // ── PDF (print view) ───────────────────────────────────────────────────────

@@ -6,9 +6,10 @@ import {
   Camera, Loader2, Sparkles, X, CheckCircle2,
   ArrowRight, ReceiptText, RefreshCw,
 } from "lucide-react";
-import { ReceiptScanner } from "@/components/ReceiptScanner";
+import { ReceiptScanner, type ScannedTransaction } from "@/components/ReceiptScanner";
 import { transactionsAPI, isAuthenticated as checkAuth } from "@/lib/api";
 import type { ParsedReceipt } from "@/lib/utils/ocrParser";
+import { errorMessage } from "@/lib/utils/errors";
 
 // ── Saved transaction info shown after a successful save ──────────────────────
 interface SavedTx {
@@ -44,16 +45,16 @@ export default function ReceiptsPage() {
   };
 
   // Called when user clicks "Save Transaction" inside the scanner
-  const handleSaveTransaction = async (transaction: any) => {
+  const handleSaveTransaction = async (transaction: ScannedTransaction) => {
     setIsSaving(true);
     setSaveError(null);
     try {
-      const rawAmount = parseFloat(transaction.amount) || 0;
+      const rawAmount = parseFloat(String(transaction.amount)) || 0;
       // Negative amount = refund/return → treat as INCOME, use absolute value
       const amount    = Math.abs(rawAmount);
-      const type      = rawAmount < 0
+      const type: "INCOME" | "EXPENSE" = rawAmount < 0 || transaction.type?.toUpperCase() === "INCOME"
         ? "INCOME"
-        : ((transaction.type || "EXPENSE").toUpperCase());
+        : "EXPENSE";
 
       await transactionsAPI.create({
         date:        transaction.date || new Date().toISOString().split("T")[0],
@@ -71,8 +72,8 @@ export default function ReceiptsPage() {
         category: transaction.category || "Other",
         date:     transaction.date     || new Date().toISOString().split("T")[0],
       });
-    } catch (err: any) {
-      setSaveError(err?.message ?? "Failed to save transaction. Please try again.");
+    } catch (err) {
+      setSaveError(errorMessage(err) ?? "Failed to save transaction. Please try again.");
     } finally {
       setIsSaving(false);
     }

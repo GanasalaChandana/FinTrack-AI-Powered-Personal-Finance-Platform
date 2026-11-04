@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { User, Lock, Globe, Tag, Download, Trash2, Save, Eye, EyeOff, Shield, Loader2, CheckCircle, Bell, Sun, Moon, Monitor, FileJson, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { apiRequest, getUser, removeToken } from '@/lib/api';
+import { errorMessage } from "@/lib/utils/errors";
 
 /* ===================== Types ===================== */
 type TabKey = 'profile' | 'security' | 'preferences' | 'categories' | 'notifications';
@@ -123,8 +124,8 @@ export default function SettingsContent() {
         lastName:  updated.lastName  ?? p.lastName,
       }));
       showToast('Profile saved!');
-    } catch (e: any) {
-      showToast(e?.message ?? 'Failed to save profile', 'error');
+    } catch (e) {
+      showToast(errorMessage(e) ?? 'Failed to save profile', 'error');
     } finally { setProfileSaving(false); }
   };
 
@@ -148,8 +149,8 @@ export default function SettingsContent() {
       });
       setPwData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       showToast('Password changed successfully!');
-    } catch (e: any) {
-      showToast(e?.message ?? 'Failed to change password', 'error');
+    } catch (e) {
+      showToast(errorMessage(e) ?? 'Failed to change password', 'error');
     } finally { setPwSaving(false); }
   };
 
@@ -262,8 +263,8 @@ export default function SettingsContent() {
       }
 
       showToast(`Export downloaded as ${exportType.toUpperCase()}!`);
-    } catch (e: any) {
-      showToast(e?.message ?? 'Export failed', 'error');
+    } catch (e) {
+      showToast(errorMessage(e) ?? 'Export failed', 'error');
     } finally { setExporting(false); }
   };
 
@@ -277,7 +278,7 @@ export default function SettingsContent() {
       await apiRequest('/api/users/me', { method: 'DELETE' });
       removeToken();
       router.replace('/register');
-    } catch (e: any) { showToast(e?.message ?? 'Failed to delete account', 'error'); setDeleting(false); }
+    } catch (e) { showToast(errorMessage(e) ?? 'Failed to delete account', 'error'); setDeleting(false); }
   };
 
   /* ── Hydration guard ────────────────────────────────────────── */

@@ -8,6 +8,7 @@ import {
 import {
   detectRecurringTransactions,
   createRecurringRule,
+  type RecurringRuleDraft,
   type Transaction,
   type RecurringTransaction,
 } from "@/lib/utils/recurringDetector";
@@ -16,7 +17,7 @@ import {
 
 interface RecurringTransactionsDashboardProps {
   transactions: Transaction[];
-  onCreateRule?: (rule: any) => void;
+  onCreateRule?: (rule: RecurringRuleDraft) => void;
   onDeleteRecurring?: (id: string) => void;
 }
 

@@ -29,11 +29,12 @@ import { BillRemindersCard } from "@/components/dashboard/BillRemindersCard";
 import { BudgetAlertsCard } from "@/components/dashboard/BudgetAlertsCard";
 import { SavingsRateCard } from "@/components/dashboard/SavingsRateCard";
 import { NoSpendStreakCard } from "@/components/dashboard/NoSpendStreakCard";
-import { TransactionModal } from "@/components/modals/TransactionModal";
+import { TransactionModal, type ModalTransaction } from "@/components/modals/TransactionModal";
 import { CSVImportModal, type CSVRow } from "@/components/CSVImportModal";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { OnboardingWizard, shouldShowOnboarding } from "@/components/OnboardingWizard";
 import { getUser, isAuthenticated as checkAuth, transactionsAPI, budgetsAPI, goalsAPI, authAPI, type Budget, type Transaction, type Goal } from "@/lib/api";
+import { errorMessage } from "@/lib/utils/errors";
 
 // Note: Toast is now provided by ToastProvider in app layout
 
@@ -212,7 +213,7 @@ const calculateStats = (transactions: Transaction[], days: number, goalsList: Go
   const expensesChange = comparable ? safePercentChange(totalExpenses, prevExpenses) : null;
 
   const goalsSavings = goalsList.reduce(
-    (s, g) => s + (g.currentAmount ?? (g as any).current ?? 0), 0
+    (s, g) => s + (g.currentAmount ?? 0), 0
   );
   const netWorth = goalsSavings + totalSavings;
 
@@ -387,9 +388,9 @@ export default function DashboardPage() {
     if (clearFirst) {
       // Clear each independently so one failure doesn't block the others
       const [txErr, budgetErr, goalErr] = await Promise.all([
-        transactionsAPI.clearAll().then(() => null).catch((e: any) => e),
-        budgetsAPI.clearAll().then(() => null).catch((e: any) => e),
-        goalsAPI.clearAll().then(() => null).catch((e: any) => e),
+        transactionsAPI.clearAll().then(() => null).catch((e) => e),
+        budgetsAPI.clearAll().then(() => null).catch((e) => e),
+        goalsAPI.clearAll().then(() => null).catch((e) => e),
       ]);
       if (txErr)     toast.error("Failed to clear existing transactions");
       if (budgetErr) toast.error("Failed to clear existing budgets");
@@ -405,8 +406,8 @@ export default function DashboardPage() {
       const job = await transactionsAPI.importAll(valid);
       imported = job.imported;
       importError = job.error;
-    } catch (e: any) {
-      importError = e?.message;
+    } catch (e) {
+      importError = errorMessage(e);
     }
 
     await fetchDashboardData();
@@ -425,13 +426,14 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSaveTransaction = async (transaction: any) => {
+  const handleSaveTransaction = async (transaction: ModalTransaction) => {
+    const { id: _id, ...data } = transaction; // the modal's numeric id isn't the API's id
     try {
       if (editingTransaction) {
-        await transactionsAPI.update(editingTransaction.id, transaction);
+        await transactionsAPI.update(editingTransaction.id, data);
         toast.success("Transaction updated!");
       } else {
-        await transactionsAPI.create(transaction);
+        await transactionsAPI.create(data);
         toast.success("Transaction added!");
       }
       await fetchDashboardData();

@@ -40,7 +40,7 @@ export function PWAProvider({ children }: { children: ReactNode }) {
     // Detect already-installed (standalone mode)
     if (
       window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true
+      window.navigator.standalone === true
     ) {
       setIsInstalled(true);
     }

@@ -207,14 +207,14 @@ function getSummaryStats(transactions: Transaction[]) {
 
 // ─── Custom tooltip ───────────────────────────────────────────────────────────
 
-const CurrencyTooltip = ({ active, payload, label }: any) => {
+const CurrencyTooltip = ({ active, payload, label }: ChartTooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg p-3 text-xs">
       <p className="font-bold text-gray-700 dark:text-gray-200 mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i) => (
         <p key={i} style={{ color: p.color }} className="font-medium">
-          {p.name}: {fmt(p.value)}
+          {p.name}: {fmt(p.value ?? 0)}
         </p>
       ))}
     </div>

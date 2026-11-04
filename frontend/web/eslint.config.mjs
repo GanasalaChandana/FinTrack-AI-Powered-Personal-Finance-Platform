@@ -24,6 +24,11 @@ const config = [
     },
   },
   {
+    // Test fixtures build partial objects on purpose
+    files: ["**/*.test.ts", "**/*.test.tsx"],
+    rules: { "@typescript-eslint/no-explicit-any": "off" },
+  },
+  {
     ignores: [
       ".next/**", "node_modules/**", "out/**", "public/**", "e2e/**",
       "playwright-report/**", "test-results/**", "next-env.d.ts", "*.config.js",

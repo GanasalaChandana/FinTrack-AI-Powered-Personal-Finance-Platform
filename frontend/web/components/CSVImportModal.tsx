@@ -4,6 +4,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { X, Upload, FileText, AlertCircle, Download, CheckCircle, ChevronRight, ChevronLeft, Loader2, Sparkles } from "lucide-react";
+import { errorMessage } from "@/lib/utils/errors";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public types (unchanged — dashboard passes these)
@@ -297,8 +298,8 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
       setColMap(detectedMap);
       setFileName(file.name);
       setStep("map");
-    } catch (e: any) {
-      setError(e.message ?? "Could not parse the file.");
+    } catch (e) {
+      setError(errorMessage(e) ?? "Could not parse the file.");
     }
   }, [maxFileSize]);
 
@@ -334,8 +335,8 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
       }));
       await onImport(payload, clearFirst);
       onClose();
-    } catch (e: any) {
-      setError(e.message ?? "Import failed.");
+    } catch (e) {
+      setError(errorMessage(e) ?? "Import failed.");
     } finally {
       setImporting(false);
     }

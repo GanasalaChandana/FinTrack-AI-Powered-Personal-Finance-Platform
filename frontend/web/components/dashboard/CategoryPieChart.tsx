@@ -31,15 +31,16 @@ const COLORS = [
   '#f97316', // orange
 ];
 
-const CustomTooltip = ({ active, payload, total }: any) => {
+const CustomTooltip = ({ active, payload, total }: ChartTooltipProps & { total: number }) => {
   if (active && payload && payload.length) {
     const data = payload[0];
-    const percentage = ((data.value / total) * 100).toFixed(1);
+    const value = data.value ?? 0;
+    const percentage = ((value / total) * 100).toFixed(1);
     return (
       <div className="bg-white p-3 rounded-lg shadow-lg border-2 border-gray-200">
         <p className="font-bold text-gray-900">{data.name}</p>
         <p className="text-sm text-gray-600">
-          {formatCurrency(data.value)} ({percentage}%)
+          {formatCurrency(value)} ({percentage}%)
         </p>
       </div>
     );

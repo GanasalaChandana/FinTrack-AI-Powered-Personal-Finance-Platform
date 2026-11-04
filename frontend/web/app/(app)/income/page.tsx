@@ -39,14 +39,15 @@ function getSourceColor(name: string, idx: number): string {
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
 
-function CurrencyTooltip({ active, payload, label }: any) {
+type TooltipEntry = { dataKey?: string | number; name?: string; color?: string; value?: number };
+function CurrencyTooltip({ active, payload, label }: { active?: boolean; payload?: TooltipEntry[]; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 shadow-lg text-xs">
       <p className="font-bold text-gray-900 dark:text-white mb-2">{label}</p>
-      {payload.map((p: any) => (
+      {payload.map((p) => (
         <p key={p.dataKey} style={{ color: p.color }} className="font-semibold">
-          {p.name}: {fmt(p.value)}
+          {p.name}: {fmt(p.value ?? 0)}
         </p>
       ))}
     </div>

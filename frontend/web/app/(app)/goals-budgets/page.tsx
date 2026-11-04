@@ -1258,18 +1258,18 @@ export default function GoalsBudgetsPage() {
       setAllTransactions(Array.isArray(transactions) ? transactions : []);
 
       const allExpenses  = Array.isArray(transactions)
-        ? transactions.filter((t: any) => t.type === "expense" || t.type === "EXPENSE")
+        ? transactions.filter((t) => t.type === "expense" || t.type === "EXPENSE")
         : [];
       const activeMonth  = getLocalYearMonth();
       const validBudgets = rawBudgets.filter(
-        (b: any) => b.category && typeof b.category === "string" && b.category.trim().length > 0
+        (b) => b.category && typeof b.category === "string" && b.category.trim().length > 0
           && Number(b.budget ?? b.limit ?? b.amount ?? 0) > 0
       );
-      const normalized = validBudgets.map((b: any) => {
+      const normalized = validBudgets.map((b) => {
         const budgetAmount = Number(b.budget ?? b.limit ?? b.amount ?? 0);
         const spent = allExpenses
-          .filter((t: any) => (t.date ?? "").slice(0, 7) === activeMonth && categoryMatches(b.category, t.category ?? ""))
-          .reduce((sum: number, t: any) => sum + Math.abs(Number(t.amount ?? 0)), 0);
+          .filter((t) => (t.date ?? "").slice(0, 7) === activeMonth && categoryMatches(b.category, t.category ?? ""))
+          .reduce((sum: number, t) => sum + Math.abs(Number(t.amount ?? 0)), 0);
         return { id: String(b.id), category: b.category, budget: budgetAmount, spent: Math.round(spent * 100) / 100, icon: b.icon || "💰", color: b.color || "#3b82f6" } as Budget;
       });
       setBudgets(normalized);

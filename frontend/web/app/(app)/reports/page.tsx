@@ -529,9 +529,9 @@ const EnhancedFinancialReports: React.FC = () => {
         "last-year": "Last 12 Months", "custom": "Custom Range",
       };
       const period = periodMap[dateRange] ?? "Financial Report";
-      const txns = (reportsData.topExpenses ?? []).map((e: any) => ({
-        date: e.date ?? new Date().toISOString().split("T")[0],
-        merchant: e.vendor ?? e.description ?? e.name ?? "—",
+      const txns = (reportsData.topExpenses ?? []).map((e) => ({
+        date: new Date().toISOString().split("T")[0],
+        merchant: e.vendor || "—",
         category: e.category ?? "Other",
         amount: Math.abs(e.amount ?? 0),
         type: "expense",
@@ -765,14 +765,14 @@ const EnhancedFinancialReports: React.FC = () => {
           const net = Math.max(0, running);
           bars.push({ name: "Net", base: 0, value: net, colorType: net > 0 ? "savings" : "deficit" });
           const COLOR_MAP: Record<string, string> = { income: "#10b981", expense: "#ef4444", savings: "#6366f1", deficit: "#f97316" };
-          const WaterfallTooltip = ({ active, payload, label }: any) => {
+          const WaterfallTooltip = ({ active, payload, label }: ChartTooltipProps) => {
             if (!active || !payload?.length) return null;
-            const vis = payload.find((p: any) => p.dataKey === "value");
+            const vis = payload.find((p: { dataKey?: unknown }) => p.dataKey === "value");
             if (!vis) return null;
             return (
               <div style={{ ...CHART_TOOLTIP_STYLE, padding: "10px 14px" }}>
                 <p className="font-bold text-gray-800 dark:text-gray-100 text-sm mb-1">{label}</p>
-                <p className="text-xs font-semibold" style={{ color: COLOR_MAP[vis.payload.colorType] }}>{fmt(vis.value)}</p>
+                <p className="text-xs font-semibold" style={{ color: COLOR_MAP[String(vis.payload?.colorType) as keyof typeof COLOR_MAP] }}>{fmt(vis.value ?? 0)}</p>
               </div>
             );
           };
@@ -918,10 +918,10 @@ const EnhancedFinancialReports: React.FC = () => {
         const data = r.rows.map((row) => ({ name: row.label, value: Math.max(0, row[pieMetric.key]) })).filter((d) => d.value > 0);
         return (
           <RePieChart>
-            <Pie data={data} dataKey="value" nameKey="name" outerRadius="80%" label={(e: any) => e.name}>
+            <Pie data={data} dataKey="value" nameKey="name" outerRadius="80%" label={(e) => e.name}>
               {data.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
             </Pie>
-            <Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
+            <Tooltip formatter={(v) => fmt(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
           </RePieChart>
         );
       }
@@ -930,7 +930,7 @@ const EnhancedFinancialReports: React.FC = () => {
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis dataKey="label" {...axisProps} />
           <YAxis {...axisProps} tickFormatter={(v) => `$${Math.round(Number(v)).toLocaleString()}`} width={70} />
-          <Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
+          <Tooltip formatter={(v) => fmt(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
           <Legend />
         </>
       );
@@ -1384,7 +1384,7 @@ const EnhancedFinancialReports: React.FC = () => {
               <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
               <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `$${v}`} />
               <Tooltip contentStyle={CHART_TOOLTIP_STYLE}
-                formatter={(v: any) => (v != null && v !== undefined) ? fmt(Number(v)) : "—"} />
+                formatter={(v) => (v != null && v !== undefined) ? fmt(Number(v)) : "—"} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Line type="monotone" dataKey="actual" stroke="#10b981" strokeWidth={2.5} name="Actual"
                 dot={{ r: 4, fill: "#10b981" }} connectNulls={false} />
@@ -1810,7 +1810,7 @@ const EnhancedFinancialReports: React.FC = () => {
 
     // Per-month budget vs actual. `target` is the month's total budget from the
     // backend (0 when none was set); months without a budget aren't compared.
-    const historyData = monthly.slice(-6).filter((m: any) => (m.target ?? 0) > 0).map((m: any) => ({
+    const historyData = monthly.slice(-6).filter((m) => (m.target ?? 0) > 0).map((m) => ({
       month: m.month,
       actual: Math.round(m.expenses ?? 0),
       budget: Math.round(m.target),
@@ -2148,7 +2148,7 @@ const EnhancedFinancialReports: React.FC = () => {
       : avgRate >= 10 ? "text-amber-500 dark:text-amber-400"
       : "text-red-500 dark:text-red-400";
 
-    const SRTooltip = ({ active, payload, label }: any) => {
+    const SRTooltip = ({ active, payload, label }: ChartTooltipProps) => {
       if (!active || !payload?.length) return null;
       const d = payload[0]?.payload as typeof monthly[0];
       if (!d?.income) return null;

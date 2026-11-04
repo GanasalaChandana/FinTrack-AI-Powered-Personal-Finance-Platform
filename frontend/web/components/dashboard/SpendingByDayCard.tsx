@@ -21,7 +21,7 @@ const fmt = (v: number) =>
     style: "currency", currency: "USD", minimumFractionDigits: 0,
   }).format(v);
 
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label }: ChartTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 shadow-lg text-xs">
@@ -30,7 +30,7 @@ function CustomTooltip({ active, payload, label }: any) {
         Avg {fmt(payload[0]?.value ?? 0)}/visit
       </p>
       <p className="text-gray-400 dark:text-gray-500 mt-0.5">
-        {payload[0]?.payload?.count} transactions
+        {String(payload[0]?.payload?.count ?? 0)} transactions
       </p>
     </div>
   );

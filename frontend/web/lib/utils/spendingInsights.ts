@@ -77,7 +77,7 @@ function topMerchantInsight(txs: Transaction[]): SpendingInsight | null {
 
   const counts: Record<string, { count: number; total: number }> = {};
   for (const t of thisMonth) {
-    const m = (t as any).merchant || t.description || "Unknown";
+    const m = t.merchant || t.description || "Unknown";
     if (!counts[m]) counts[m] = { count: 0, total: 0 };
     counts[m].count++;
     counts[m].total += Math.abs(t.amount);
@@ -160,7 +160,7 @@ function biggestExpenseInsight(txs: Transaction[]): SpendingInsight | null {
   if (thisMonth.length === 0) return null;
 
   const biggest = thisMonth.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))[0];
-  const desc = (biggest as any).merchant || biggest.description || "Unknown";
+  const desc = biggest.merchant || biggest.description || "Unknown";
 
   return {
     id: "biggest-expense",

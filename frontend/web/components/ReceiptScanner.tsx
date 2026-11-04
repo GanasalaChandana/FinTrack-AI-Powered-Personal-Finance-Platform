@@ -7,9 +7,19 @@ import {
 } from "lucide-react";
 import { parseReceiptImage, type ParsedReceipt } from "@/lib/utils/ocrParser";
 
+/** The receipt as the user edits it before saving */
+export interface ScannedTransaction {
+  merchant: string;
+  date: string;
+  amount: number | string;
+  category: string;
+  description: string;
+  type: string;
+}
+
 interface ReceiptScannerProps {
   onReceiptParsed?: (receipt: ParsedReceipt) => void;
-  onSaveTransaction?: (transaction: any) => void;
+  onSaveTransaction?: (transaction: ScannedTransaction) => void;
 }
 
 const CATEGORIES = [
@@ -25,7 +35,7 @@ export function ReceiptScanner({ onReceiptParsed, onSaveTransaction }: ReceiptSc
   const [parsedData, setParsedData] = useState<ParsedReceipt | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedData, setEditedData] = useState<any>(null);
+  const [editedData, setEditedData] = useState<ScannedTransaction | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -220,20 +230,20 @@ export function ReceiptScanner({ onReceiptParsed, onSaveTransaction }: ReceiptSc
                     { label: "Date", key: "date", type: "date" },
                     { label: "Amount", key: "amount", type: "number" },
                     { label: "Description", key: "description", type: "text" },
-                  ].map(field => (
+                  ].map((field) => ({ ...field, key: field.key as "merchant" | "date" | "amount" | "description" })).map(field => (
                     <div key={field.key}>
                       <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                         {field.label}
                       </label>
                       <input type={field.type} value={editedData?.[field.key] || ""}
                         step={field.type === "number" ? "0.01" : undefined}
-                        onChange={(e) => setEditedData({ ...editedData, [field.key]: field.type === "number" ? parseFloat(e.target.value) : e.target.value })}
+                        onChange={(e) => editedData && setEditedData({ ...editedData, [field.key]: field.type === "number" ? parseFloat(e.target.value) : e.target.value })}
                         className={inputCls} />
                     </div>
                   ))}
                   <div>
                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Category</label>
-                    <select value={editedData?.category || ""} onChange={(e) => setEditedData({ ...editedData, category: e.target.value })} className={inputCls}>
+                    <select value={editedData?.category || ""} onChange={(e) => editedData && setEditedData({ ...editedData, category: e.target.value })} className={inputCls}>
                       {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>

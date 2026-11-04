@@ -5,7 +5,7 @@ import { X, DollarSign, Calendar, Tag, FileText, CreditCard, TrendingUp, Trendin
 import { apiRequest } from "@/lib/api";
 import { getExpenseCategories, getIncomeCategories } from "@/lib/utils/categories";
 
-interface Transaction {
+export interface ModalTransaction {
   id?: number;
   type: "income" | "expense";
   category: string;
@@ -22,8 +22,8 @@ interface Transaction {
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (transaction: Transaction) => Promise<void>;
-  transaction?: Transaction | null;
+  onSave: (transaction: ModalTransaction) => Promise<void>;
+  transaction?: ModalTransaction | null;
   mode?: "add" | "edit";
 }
 
@@ -75,7 +75,7 @@ function keywordMatch(text: string): string | null {
 
 
 export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = "add" }: TransactionModalProps) {
-  const [formData, setFormData] = useState<Transaction>({
+  const [formData, setFormData] = useState<ModalTransaction>({
     type: "expense",
     category: "",
     amount: 0,

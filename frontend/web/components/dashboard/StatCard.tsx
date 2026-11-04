@@ -36,7 +36,7 @@ const sparkColorMap: Record<string, string> = {
   accent: '#06B6D4',
 };
 
-const SparkTooltip = ({ active, payload }: any) => {
+const SparkTooltip = ({ active, payload }: ChartTooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 text-[10px] font-bold px-2 py-1 rounded-sm shadow-lg pointer-events-none">

@@ -59,7 +59,7 @@ export function GoalProgressCard({
   onDelete,
 }: GoalProgressCardProps) {
   const targetAmount = goal.targetAmount || 0;
-  const currentAmount = goal.currentAmount || (goal as any).current || 0;
+  const currentAmount = goal.currentAmount || 0;
   const percentage = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0;
   const remaining = Math.max(0, targetAmount - currentAmount);
   const daysRemaining = getDaysRemaining(goal.deadline);

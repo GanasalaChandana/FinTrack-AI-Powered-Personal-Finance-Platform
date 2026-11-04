@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Brain, Loader2, Sparkles, AlertTriangle, CheckCircle, Info, Lightbulb, TrendingUp, ArrowRight, X, ChevronDown, Filter, RefreshCw, AlertCircle, Calendar, Star, Scissors, Smartphone, Coffee, Zap } from "lucide-react";
 import { transactionsAPI, type Transaction as ApiTransaction } from "@/lib/api";
 import { generateInsights, generateActionPlan, type SpendingInsight } from "@/lib/utils/insightsEngine";
+import { errorMessage } from "@/lib/utils/errors";
 
 // ── Design maps ───────────────────────────────────────────────────────────────
 
@@ -467,8 +468,8 @@ export default function InsightsPage() {
       const data = await transactionsAPI.getAll();
       if (!Array.isArray(data)) throw new Error("Invalid response format");
       setTransactions(data);
-    } catch (err: any) {
-      setError(err?.message ?? "Failed to load transactions");
+    } catch (err) {
+      setError(errorMessage(err) ?? "Failed to load transactions");
       setTransactions([]);
     } finally {
       setIsLoading(false);

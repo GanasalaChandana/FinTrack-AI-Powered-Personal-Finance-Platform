@@ -19,8 +19,8 @@ export function PWAInstallBanner() {
 
   useEffect(() => {
     // Detect iOS (Safari doesn't fire beforeinstallprompt)
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as any).MSStream;
-    const inStandalone = (window.navigator as any).standalone === true;
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+    const inStandalone = window.navigator.standalone === true;
     setIsIOS(ios);
 
     const wasDismissed = sessionStorage.getItem(DISMISSED_KEY) === "1";

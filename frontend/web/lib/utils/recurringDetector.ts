@@ -267,6 +267,8 @@ export function detectRecurringTransactions(
 }
 
 // Create a recurring rule from detected pattern
+export type RecurringRuleDraft = ReturnType<typeof createRecurringRule>;
+
 export function createRecurringRule(recurring: RecurringTransaction) {
   return {
     pattern: recurring.pattern.description,

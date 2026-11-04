@@ -97,7 +97,7 @@ const CustomTooltip = ({
 
 // ── Active bar shape (highlights clicked category) ────────────────────────────
 
-const ActiveBar = (props: any) => {
+const ActiveBar = (props: { x?: number; y?: number; width?: number; height?: number; fill?: string }) => {
   const { x, y, width, height, fill } = props;
   return (
     <g>
@@ -131,7 +131,7 @@ export function BudgetComparisonChart({
   const totalRemaining = data.reduce((s, d) => s + Math.max(0, d.budget - d.spent), 0);
   const overallPct     = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
 
-  const handleBarClick = (barData: any) => {
+  const handleBarClick = (barData: { activePayload?: { payload: { category: string } }[] } | null) => {
     if (!barData?.activePayload?.[0]) return;
     const category = barData.activePayload[0].payload.category as string;
     setActiveCategory((prev) => (prev === category ? null : category));

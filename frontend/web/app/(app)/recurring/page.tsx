@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Loader2, RefreshCw, AlertCircle, Sparkles, X, CheckCircle, Trash2, Plus, TrendingDown, TrendingUp, Clock } from "lucide-react";
 import { authAPI, removeToken, transactionsAPI, type Transaction as ApiTransaction } from "@/lib/api";
 import { RecurringTransactionsDashboard } from "@/components/RecurringTransactionsDashboard";
+import type { RecurringRuleDraft } from "@/lib/utils/recurringDetector";
+import { errorMessage } from "@/lib/utils/errors";
 
 // ── API helpers ────────────────────────────────────────────────────────────────
 
@@ -408,8 +410,8 @@ export default function RecurringPage() {
       const data = await transactionsAPI.getAll();
       if (!Array.isArray(data)) throw new Error("Invalid response format");
       setTransactions(data.map(transformTransaction));
-    } catch (err: any) {
-      setError(err?.message ?? "Failed to load transactions");
+    } catch (err) {
+      setError(errorMessage(err) ?? "Failed to load transactions");
       setTransactions([]);
     } finally {
       setIsLoading(false);
@@ -439,11 +441,11 @@ export default function RecurringPage() {
   }, [loadTransactions, loadSavedRules]);
 
   // Create rule — POST to backend
-  const handleCreateRule = useCallback(async (rule: any) => {
+  const handleCreateRule = useCallback(async (rule: RecurringRuleDraft) => {
     try {
       const today = new Date().toISOString().split("T")[0];
       const payload: CreateRulePayload = {
-        description: rule.pattern ?? rule.description ?? "Recurring transaction",
+        description: rule.pattern || "Recurring transaction",
         amount:      Math.abs(rule.amount ?? 0),
         category:    rule.category,
         type:        (rule.type ?? "EXPENSE").toUpperCase(),

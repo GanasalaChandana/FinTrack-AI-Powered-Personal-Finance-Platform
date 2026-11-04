@@ -265,14 +265,14 @@ function AddForm({ types, label, accent, onAdd }: AddFormProps) {
 
 // ─── Custom tooltip for chart ─────────────────────────────────────────────────
 
-const NWTooltip = ({ active, payload, label }: any) => {
+const NWTooltip = ({ active, payload, label }: ChartTooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg p-3 text-xs">
       <p className="font-bold text-gray-600 dark:text-gray-300 mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i) => (
         <p key={i} style={{ color: p.color }} className="font-semibold">
-          {p.name}: {fmt(p.value)}
+          {p.name}: {fmt(p.value ?? 0)}
         </p>
       ))}
     </div>

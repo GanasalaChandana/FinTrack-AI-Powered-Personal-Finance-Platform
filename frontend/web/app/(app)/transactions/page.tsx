@@ -20,6 +20,7 @@ import { useToast } from "@/components/ui/Toast";
 import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
 import { TransactionModal } from "@/components/modals/TransactionModal";
 import { exportCsv, exportPdf, exportXlsx, type ExportRow } from "@/lib/exportTransactions";
+import { errorMessage } from "@/lib/utils/errors";
 
 /* =========================
    Types
@@ -312,7 +313,7 @@ export default function TransactionManager() {
     userId: t.userId,
     amount: t.amount,
     description: t.description,
-    merchant: (t as any).merchant || t.description || "Unknown",
+    merchant: t.merchant || t.description || "Unknown",
     category: mapCategoryToUI(t.category),
     categoryName: t.category || "Other",
     date: t.date,
@@ -320,10 +321,10 @@ export default function TransactionManager() {
     recurring: t.recurring,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
-    status: ((t as any).status === "pending" ? "pending" : "completed") as TxStatus,
-    paymentMethod: ((t as any).paymentMethod as string) || "",
+    status: (t.status === "pending" ? "pending" : "completed") as TxStatus,
+    paymentMethod: (t.paymentMethod as string) || "",
     tags: t.tags ? t.tags.split(",").map((s) => s.trim()).filter(Boolean) : [],
-    notes: (t as any).notes || undefined,
+    notes: t.notes || undefined,
     aiSuggested: false,
   });
 
@@ -336,16 +337,16 @@ export default function TransactionManager() {
       const transformed: Transaction[] = data.map(normalizeTransaction);
       setTransactions(transformed);
       setFilteredTransactions(transformed);
-    } catch (err: any) {
+    } catch (err) {
       console.error("❌ Failed to load transactions:", err);
-      if (err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
+      if (errorMessage(err)?.includes("401") || errorMessage(err)?.includes("Unauthorized")) {
         setError("Authentication failed. Please sign in again.");
         setTimeout(() => {
           localStorage.removeItem("user");
           router.replace("/register?mode=signin");
         }, 2000);
       } else {
-        setError(err?.message || "Failed to load transactions");
+        setError(errorMessage(err) || "Failed to load transactions");
       }
       setTransactions([]);
       setFilteredTransactions([]);
@@ -413,8 +414,8 @@ export default function TransactionManager() {
   const runExport = async (format: "csv" | "excel" | "pdf") => {
     try {
       await exportTransactions(filteredTransactions, format, "");
-    } catch (err: any) {
-      toast.error(`Export failed: ${err?.message || "unknown error"}`);
+    } catch (err) {
+      toast.error(`Export failed: ${errorMessage(err) || "unknown error"}`);
     }
   };
   const handleExportCSV = () => runExport("csv");
@@ -851,8 +852,8 @@ export default function TransactionManager() {
               try {
                 await exportTransactions(selectedTxs, format, "-selected");
                 setSelectedTransactions([]);
-              } catch (err: any) {
-                toast.error(`Export failed: ${err?.message || "unknown error"}`);
+              } catch (err) {
+                toast.error(`Export failed: ${errorMessage(err) || "unknown error"}`);
               }
             }}
             onBulkDuplicate={() => {

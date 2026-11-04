@@ -354,53 +354,53 @@ export default function HealthPage() {
 
       // ── Income / Expenses ────────────────────────────────────────────────
       const income   = transactions
-        .filter((t: any) => t.type === "income")
-        .reduce((s: number, t: any) => s + (t.amount ?? 0), 0);
+        .filter((t) => t.type === "income")
+        .reduce((s: number, t) => s + (t.amount ?? 0), 0);
       const expenses = transactions
-        .filter((t: any) => t.type === "expense")
-        .reduce((s: number, t: any) => s + (t.amount ?? 0), 0);
+        .filter((t) => t.type === "expense")
+        .reduce((s: number, t) => s + (t.amount ?? 0), 0);
 
       // ── Budget totals (✅ uses resolveLimit/resolveSpent aliases) ────────
-      const totalBudget = budgets.reduce((s: number, b: any) => s + resolveLimit(b), 0);
-      const totalSpent  = budgets.reduce((s: number, b: any) => s + resolveSpent(b), 0);
+      const totalBudget = budgets.reduce((s: number, b) => s + resolveLimit(b), 0);
+      const totalSpent  = budgets.reduce((s: number, b) => s + resolveSpent(b), 0);
 
       // ── Savings ──────────────────────────────────────────────────────────
       const savings = transactions
         .filter(
-          (t: any) =>
+          (t) =>
             t.category?.toLowerCase().includes("savings") ||
             t.type === "savings"
         )
-        .reduce((s: number, t: any) => s + Math.abs(t.amount ?? 0), 0);
+        .reduce((s: number, t) => s + Math.abs(t.amount ?? 0), 0);
 
       // ── Debt ─────────────────────────────────────────────────────────────
       const debt = transactions
         .filter(
-          (t: any) =>
+          (t) =>
             ["debt", "loan", "credit card"].some((k) =>
               t.category?.toLowerCase().includes(k)
             ) || t.type === "debt"
         )
-        .reduce((s: number, t: any) => s + Math.abs(t.amount ?? 0), 0);
+        .reduce((s: number, t) => s + Math.abs(t.amount ?? 0), 0);
 
       // ── Emergency fund ───────────────────────────────────────────────────
       const emergency = transactions
         .filter(
-          (t: any) =>
+          (t) =>
             t.category?.toLowerCase().includes("emergency") ||
             t.type === "emergency"
         )
-        .reduce((s: number, t: any) => s + Math.abs(t.amount ?? 0), 0);
+        .reduce((s: number, t) => s + Math.abs(t.amount ?? 0), 0);
 
       // ── Payment history ──────────────────────────────────────────────────
       const payments = transactions.filter(
-        (t: any) =>
+        (t) =>
           t.type === "payment" ||
           ["bill", "payment"].some((k) => t.category?.toLowerCase().includes(k))
       );
       // A payment is "on time" when: explicitly flagged, not marked late, or no status at all
       const onTime = payments.filter(
-        (t: any) => t.status === "on-time" || t.onTime === true || (!t.late && t.status !== "late")
+        (t) => t.status === "on-time" || t.onTime === true || (!t.late && t.status !== "late")
       ).length;
 
       if (transactions.length === 0 && budgets.length === 0) {

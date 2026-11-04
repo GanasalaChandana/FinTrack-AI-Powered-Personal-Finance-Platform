@@ -87,6 +87,8 @@ jobs:
           tags: |
             ${{ steps.image.outputs.name }}:latest
             ${{ steps.image.outputs.name }}:${{ github.sha }}
+          build-args: |
+            APP_VERSION=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -159,8 +161,14 @@ jobs:
     runs-on: ubuntu-24.04   # Playwright 1.59 has no browsers for ubuntu-26.04 (now ubuntu-latest)
     # A healthy run takes ~5 min. When the live site is mid-deploy (e.g. new frontend,
     # old backend) every test fails and retries; stop early instead of running 45 min.
-    timeout-minutes: 20
-    needs: [ backend-test, frontend-typecheck, frontend-unit ]   # only run if all pass
+    # (+ up to 10 min per service waiting for this push's deploys)
+    timeout-minutes: 35
+    needs: [ backend-test, frontend-typecheck, frontend-unit, backend-image ]
+    # Run when the checks passed; backend-image is skipped on pull requests
+    if: >-
+      !cancelled() && needs.backend-test.result == 'success'
+      && needs.frontend-typecheck.result == 'success' && needs.frontend-unit.result == 'success'
+      && needs.backend-image.result != 'failure'
     defaults:
       run:
         working-directory: frontend/web   # all steps run inside frontend/web
@@ -173,6 +181,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # to see which parts this push changed
 
       - name: Set up Node 22
         uses: actions/setup-node@v5
@@ -183,6 +193,30 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # The tests run against the live site, so wait until it runs this push:
+      # Vercel and Render deploy separately, and testing a new frontend against
+      # the old backend (or the reverse) fails for reasons that aren't real.
+      - name: Wait for this push's deploys
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          changed() {
+            git cat-file -e "$BEFORE^{commit}" 2>/dev/null || return 0
+            ! git diff --quiet "$BEFORE" "$SHA" -- "$1"
+          }
+          wait_for() { # name url
+            for i in $(seq 1 60); do
+              v=$(curl -s --max-time 15 "$2" | jq -r '.version // empty' 2>/dev/null)
+              [ "$v" = "$SHA" ] && { echo "$1 is live at $SHA"; return 0; }
+              echo "$1: ${v:-no answer} (waiting for $SHA, $i/60)"; sleep 10
+            done
+            echo "::warning::$1 did not report $SHA within 10 minutes; testing what is live"
+          }
+          if changed ../../backend/monolith; then wait_for backend "$API_URL/api/auth/health"; fi
+          if changed .; then wait_for frontend "$BASE_URL/build-info"; fi
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium

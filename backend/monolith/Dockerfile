@@ -16,6 +16,9 @@ RUN mkdir -p /app/out/lib \
 
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
+# The commit this image was built from, reported by GET /api/auth/health
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 COPY --from=build /app/out/ ./
 
 # Startup is dominated by class loading and JIT on Render's small CPU share:

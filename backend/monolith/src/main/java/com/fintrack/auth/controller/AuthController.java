@@ -34,6 +34,9 @@ public class AuthController {
     private final TokenRevocationService tokenRevocationService;
     private final com.fintrack.auth.security.AuthCookies authCookies;
 
+    @org.springframework.beans.factory.annotation.Value("${APP_VERSION:dev}")
+    private String appVersion = "dev";
+
     // Separate per-account limiter: the IP can be faked via X-Forwarded-For, the
     // target email can't. Kept apart from the IP table so flooding it with fake
     // IPs can't reset an account's counter.
@@ -249,6 +252,8 @@ public class AuthController {
         return ResponseEntity.ok(Map.of(
                 "status",    "UP",
                 "service",   "auth-service",
+                // The commit this build came from (set by CI); CI waits for it after a deploy
+                "version",   appVersion,
                 "timestamp", System.currentTimeMillis()));
     }
 

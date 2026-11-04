@@ -127,6 +127,16 @@ The Playwright config starts the Next.js dev server automatically. Auth state is
 
 ---
 
+### Load test — k6 (optional)
+
+`tests/performance/load-test.js` signs in once and has up to 15 virtual users load the dashboard and reports APIs. Install [k6](https://k6.io), start the backend, then:
+
+```bash
+k6 run -e BASE_URL=http://localhost:8080 -e EMAIL=you@example.com -e PASSWORD=... tests/performance/load-test.js
+```
+
+Use a test account, and run it against a local backend rather than the shared free Render instance.
+
 ## Submitting a Pull Request
 
 1. **Fork** the repository and create a feature branch from `main`:

@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Brain, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Info, Lightbulb, CheckCircle } from "lucide-react";
+import { Brain, ChevronLeft, ChevronRight, TrendingUp, Info, Lightbulb, CheckCircle } from "lucide-react";
 import { Transaction } from "@/lib/api";
-import { generateSpendingInsights, SpendingInsight, InsightSentiment } from "@/lib/utils/spendingInsights";
+import { generateSpendingInsights, InsightSentiment } from "@/lib/utils/spendingInsights";
 
 interface Props {
   transactions: Transaction[];

@@ -47,7 +47,6 @@ test.describe('FinTrack Smoke Tests', () => {
     await expect(page).toHaveURL(/dashboard/);
 
     // At least one stat card should be visible (Total Income / Expenses / etc.)
-    const statCards = page.locator('[class*="StatCard"], [data-testid="stat-card"]');
     // Alternatively match by text content visible on the page
     await expect(
       page.locator('text=/Total Income|Total Expenses|Net Savings|Net Worth/i').filter({ visible: true }).first()

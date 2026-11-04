@@ -107,7 +107,7 @@ export const alertService = {
       });
       
       return Array.isArray(response) ? response : [];
-    } catch (error) {
+    } catch {
       // Return empty array instead of throwing to prevent UI crashes
       return [];
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { Flame, Target, Trophy, Calendar } from "lucide-react";
+import { Flame, Trophy, Calendar } from "lucide-react";
 import type { Transaction } from "@/lib/api";
 
 interface NoSpendStreakCardProps {

@@ -2,11 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  DollarSign, TrendingUp, TrendingDown, Target, Wallet,
-  PiggyBank, AlertCircle, Loader2, Upload, BarChart3, Camera,
-  Brain, RefreshCw, Activity, CreditCard, Lock, Zap, Plus, Calendar, X, RotateCcw,
-} from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Target, Wallet, PiggyBank, Loader2, Upload, BarChart3, Camera, Brain, RefreshCw, Activity, Plus, Calendar, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { useToast } from "@/components/ui/Toast";
@@ -37,17 +33,7 @@ import { TransactionModal } from "@/components/modals/TransactionModal";
 import { CSVImportModal, type CSVRow } from "@/components/CSVImportModal";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { OnboardingWizard, shouldShowOnboarding } from "@/components/OnboardingWizard";
-import { getUser,
-  isAuthenticated as hasSession,
-  isAuthenticated as checkAuth,
-  transactionsAPI,
-  budgetsAPI,
-  goalsAPI,
-  authAPI,
-  type Budget,
-  type Transaction,
-  type Goal,
-} from "@/lib/api";
+import { getUser, isAuthenticated as checkAuth, transactionsAPI, budgetsAPI, goalsAPI, authAPI, type Budget, type Transaction, type Goal } from "@/lib/api";
 
 // Note: Toast is now provided by ToastProvider in app layout
 

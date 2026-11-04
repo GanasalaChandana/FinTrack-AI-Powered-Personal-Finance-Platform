@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+
 import {
   ChevronLeft, ChevronRight, Calendar, TrendingUp, TrendingDown,
   DollarSign, Loader2, X, Clock,
@@ -46,7 +46,6 @@ interface DayData {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CalendarPage() {
-  const router = useRouter();
   const today = new Date();
 
   const [currentYear, setCurrentYear] = useState(today.getFullYear());

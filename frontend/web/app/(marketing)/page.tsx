@@ -2,12 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  BarChart3, Shield, Zap, TrendingUp, TrendingDown, Upload, Bell,
-  Target, RefreshCw, ChevronDown, ArrowRight, Check, X, Menu,
-  Lock, FileText, Brain, DollarSign, PieChart, CreditCard,
-  AlertTriangle, Sparkles, Activity, CalendarDays, Minus, Loader2,
-} from "lucide-react";
+import { BarChart3, Shield, Upload, Bell, Target, RefreshCw, ChevronDown, ArrowRight, Check, X, Menu, Lock, FileText, Brain, DollarSign, CreditCard, AlertTriangle, Sparkles, Activity, CalendarDays, Loader2 } from "lucide-react";
 import { authAPI } from "@/lib/api";
 
 export default function LandingPage() {
@@ -25,7 +20,7 @@ export default function LandingPage() {
     try {
       await authAPI.demoLogin();
       router.push("/dashboard");
-    } catch (err: any) {
+    } catch {
       setDemoError("Demo unavailable — try again in a moment.");
       setDemoLoading(false);
     }

@@ -3,10 +3,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import {
-  X, Upload, FileText, AlertCircle, Download, CheckCircle,
-  ChevronRight, ChevronLeft, Loader2, Sparkles, Info,
-} from "lucide-react";
+import { X, Upload, FileText, AlertCircle, Download, CheckCircle, ChevronRight, ChevronLeft, Loader2, Sparkles } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public types (unchanged — dashboard passes these)
@@ -256,7 +253,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
   title = "Import Bank Transactions",
   description = "Upload a CSV export from any bank — we'll detect the columns automatically.",
   maxFileSize = 10,
-  sampleData,      // kept for compat, we use our own sample
+  sampleData: _sampleData, // kept for compat, we use our own sample
 }) => {
   const [step,       setStep]       = useState<Step>("upload");
   const [parsed,     setParsed]     = useState<Parsed | null>(null);
@@ -441,7 +438,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                     <p className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-1">Works with any bank</p>
                     <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
                       We automatically detect column names from Chase, Bank of America, Wells Fargo, Mint,
-                      and 100+ other banks. If the auto-detection isn't perfect, you can manually map
+                      and 100+ other banks. If the auto-detection isn&apos;t perfect, you can manually map
                       columns in the next step.
                     </p>
                     <div className="flex flex-wrap gap-1.5 mt-2">

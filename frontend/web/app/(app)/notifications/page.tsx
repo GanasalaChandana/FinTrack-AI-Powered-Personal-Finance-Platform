@@ -2,16 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import {
-  Mail, Bell, BellOff, Check, X, RefreshCw, CheckCheck, Loader2,
-  Trash2, Info, AlertTriangle, CheckCircle2, Sparkles,
-  TrendingUp, TrendingDown, DollarSign, ShoppingBag,
-  CreditCard, Target, Gift, Repeat, Clock, Filter,
-  type LucideIcon,
-} from "lucide-react";
+import { BellOff, Check, X, RefreshCw, CheckCheck, Loader2, Trash2, CheckCircle2, Sparkles, TrendingUp, TrendingDown, DollarSign, ShoppingBag, CreditCard, Target, Gift, Repeat, Clock, Filter, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
-import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/PageHeader";
+import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -187,7 +181,7 @@ function generateNotifications(transactions: Transaction[]): SmartNotification[]
   Object.entries(merchantMap)
     .filter(([, c]) => c >= 3)
     .slice(0, 2)
-    .forEach(([merchant, count], i) => {
+    .forEach(([merchant, count]) => {
       notifs.push({
         id: mk(`recurring-${merchant.replace(/\s+/g, '-').toLowerCase().slice(0, 20)}`), type: "INFO", read: false,
         title: "Recurring Transaction Detected",

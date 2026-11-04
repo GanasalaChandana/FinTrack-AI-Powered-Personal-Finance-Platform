@@ -283,7 +283,7 @@ export async function apiRequest<T = any>(
       if (text && contentType.includes("application/json")) {
         try {
           data = JSON.parse(text);
-        } catch (err) {
+        } catch {
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${text || response.statusText}`);
           }
@@ -306,7 +306,7 @@ export async function apiRequest<T = any>(
           // Refresh failed or backend has no /refresh endpoint → log out
           removeToken();
           if (typeof window !== "undefined") {
-            setTimeout(() => { window.location.href = "/login"; }, 100);
+            setTimeout(() => { window.location.assign("/login"); }, 100); // full reload: the session was cleared
           }
         }
 

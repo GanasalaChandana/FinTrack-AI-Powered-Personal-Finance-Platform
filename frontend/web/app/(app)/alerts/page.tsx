@@ -2,17 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import {
-  Bell, BellOff, TrendingUp, AlertTriangle, CheckCircle2,
-  Info, Zap, ShoppingBag, Coffee, Home, Car, Utensils,
-  CreditCard, Target, Sparkles, RefreshCw, Settings,
-  ChevronRight, Trash2, Check, X, Filter, Loader2,
-  DollarSign, ArrowUpRight, ArrowDownRight, Clock,
-  type LucideIcon,
-} from "lucide-react";
+import { Bell, BellOff, TrendingUp, AlertTriangle, CheckCircle2, Zap, ShoppingBag, CreditCard, Target, Sparkles, RefreshCw, Settings, ChevronRight, Trash2, Check, X, Loader2, DollarSign, Clock, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
-import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/PageHeader";
+import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────

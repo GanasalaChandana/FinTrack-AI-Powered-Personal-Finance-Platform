@@ -42,7 +42,7 @@ const CATEGORY_ALIASES: Record<string, string[]> = {
 
 /** Display a YYYY-MM-DD string without timezone shifting (avoids UTC→local offset) */
 function displayDate(iso: string): string {
-  const [y, m, d] = iso.split("-");
+  const [, m, d] = iso.split("-");
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   return `${months[parseInt(m) - 1]} ${parseInt(d)}`;
 }

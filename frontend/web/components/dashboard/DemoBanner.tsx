@@ -47,7 +47,7 @@ export function DemoBanner() {
           DEMO MODE
         </span>
         <span className="hidden sm:inline" style={{ color: "rgba(255,255,255,0.7)" }}>
-          — You're exploring a pre-filled demo account. Data resets on every demo login.
+          — You&apos;re exploring a pre-filled demo account. Data resets on every demo login.
         </span>
       </div>
 

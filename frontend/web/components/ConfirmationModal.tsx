@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, AlertCircle, Info, Trash2 } from 'lucide-react';
+import { AlertTriangle, Info, Trash2 } from 'lucide-react';
 import { Modal, ModalContent, ModalFooter } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 

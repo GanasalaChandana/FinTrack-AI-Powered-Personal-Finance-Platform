@@ -90,7 +90,6 @@ export function MonthEndForecastCard({ transactions }: Props) {
   // Status: are we on track vs last month?
   const isOver = vsLastMonth !== null && vsLastMonth > 10;
   const isUnder = vsLastMonth !== null && vsLastMonth < -10;
-  const isNeutral = !isOver && !isUnder;
 
   const statusColor = isOver
     ? "text-red-600 dark:text-red-400"
@@ -199,7 +198,7 @@ export function MonthEndForecastCard({ transactions }: Props) {
             </p>
           ) : isOver && (dailyBudgetToMatch === null || dailyBudgetToMatch <= 0) ? (
             <p>
-              <span className="font-bold">High pace</span> — already at last month's total with {daysLeft} days left
+              <span className="font-bold">High pace</span> — already at last month&apos;s total with {daysLeft} days left
             </p>
           ) : isUnder ? (
             <p>
@@ -208,7 +207,7 @@ export function MonthEndForecastCard({ transactions }: Props) {
             </p>
           ) : (
             <p>
-              <span className="font-bold">Steady pace</span> — projected spend is close to last month's total
+              <span className="font-bold">Steady pace</span> — projected spend is close to last month&apos;s total
             </p>
           )}
         </div>

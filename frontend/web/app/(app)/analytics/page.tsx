@@ -6,10 +6,7 @@ import {
   BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, Legend,
 } from "recharts";
-import {
-  BarChart3, TrendingUp, TrendingDown, ShoppingBag,
-  Calendar, DollarSign, Loader2, ArrowUpRight, Trophy, Search,
-} from "lucide-react";
+import { BarChart3, TrendingUp, ShoppingBag, Calendar, DollarSign, Loader2, ArrowUpRight, Trophy, Search } from "lucide-react";
 import { transactionsAPI, type Transaction } from "@/lib/api";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -99,7 +96,7 @@ function getMerchantLeaderboard(transactions: Transaction[]): MerchantStat[] {
   const grandTotal = [...map.values()].reduce((s, v) => s + v.total, 0);
 
   return [...map.entries()]
-    .map(([name, v], _, arr) => ({
+    .map(([name, v]) => ({
       rank: 0,
       name,
       total: v.total,

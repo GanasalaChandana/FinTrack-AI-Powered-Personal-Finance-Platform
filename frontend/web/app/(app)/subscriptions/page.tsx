@@ -3,13 +3,9 @@
 // Subscription Tracker — detects recurring fixed-amount transactions and
 // presents them as a subscription management dashboard.
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import {
-  RefreshCw, AlertTriangle, CheckCircle, Clock, TrendingUp,
-  Search, Loader2, DollarSign, Calendar, Zap, ChevronRight,
-  XCircle, BarChart3, Filter,
-} from "lucide-react";
+import { RefreshCw, AlertTriangle, Clock, TrendingUp, Search, Loader2, DollarSign, Calendar, BarChart3 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
@@ -330,7 +326,7 @@ export default function SubscriptionsPage() {
             <RefreshCw className="w-12 h-12 text-gray-200 dark:text-gray-700" />
             <p className="text-base font-bold text-gray-500 dark:text-gray-400">No recurring charges detected yet</p>
             <p className="text-sm text-gray-400 dark:text-gray-500 max-w-sm">
-              Add at least 2 transactions from the same merchant at a regular interval and they'll appear here automatically.
+              Add at least 2 transactions from the same merchant at a regular interval and they&apos;ll appear here automatically.
             </p>
           </div>
         ) : (
@@ -423,7 +419,7 @@ export default function SubscriptionsPage() {
                       {cancelCandidateIds.size} potential cancel {cancelCandidateIds.size === 1 ? "candidate" : "candidates"}
                     </p>
                     <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5">
-                      These recurring charges haven't had a transaction in over 60 days. They may be cancelled already or forgotten autopays.
+                      These recurring charges haven&apos;t had a transaction in over 60 days. They may be cancelled already or forgotten autopays.
                     </p>
                     <div className="flex flex-wrap gap-2 mt-3">
                       {[...cancelCandidateIds].map((name) => (

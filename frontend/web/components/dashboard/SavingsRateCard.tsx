@@ -29,7 +29,7 @@ function getMonthlyRates(transactions: Transaction[]): Array<{ month: string; ra
     .sort(([a], [b]) => a.localeCompare(b))
     .slice(-6)
     .map(([key, { income, expenses }]) => {
-      const [year, month] = key.split("-");
+      const [, month] = key.split("-");
       const rate = income > 0 ? Math.round(((income - expenses) / income) * 100) : 0;
       return { month: MONTHS[parseInt(month) - 1], rate, income, expenses };
     });

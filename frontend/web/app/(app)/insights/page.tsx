@@ -1,19 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import {
-  Brain, Loader2, Sparkles, AlertTriangle, CheckCircle, Info,
-  Lightbulb, TrendingUp, TrendingDown, ArrowRight, X, ChevronDown,
-  Filter, RefreshCw, AlertCircle, DollarSign, Calendar, Star,
-  Scissors, Smartphone, Coffee, Zap,
-} from "lucide-react";
+import { Brain, Loader2, Sparkles, AlertTriangle, CheckCircle, Info, Lightbulb, TrendingUp, ArrowRight, X, ChevronDown, Filter, RefreshCw, AlertCircle, Calendar, Star, Scissors, Smartphone, Coffee, Zap } from "lucide-react";
 import { transactionsAPI, type Transaction as ApiTransaction } from "@/lib/api";
-import {
-  generateInsights,
-  generateActionPlan,
-  type SpendingInsight,
-  type ActionTip,
-} from "@/lib/utils/insightsEngine";
+import { generateInsights, generateActionPlan, type SpendingInsight } from "@/lib/utils/insightsEngine";
 
 // ── Design maps ───────────────────────────────────────────────────────────────
 
@@ -102,7 +92,7 @@ function ActionPlanSection({ transactions }: { transactions: ApiTransaction[] })
   const toggle = (id: string) => {
     setDone(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       savePlanDone(next);
       return next;
     });
@@ -223,7 +213,7 @@ function ActionPlanSection({ transactions }: { transactions: ApiTransaction[] })
           <div className="mt-4 flex items-center gap-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl px-4 py-3">
             <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
             <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-              All actions complete! Keep it up — you're on track to save ${totalSavings.toLocaleString()}/year. 🎉
+              All actions complete! Keep it up — you&apos;re on track to save ${totalSavings.toLocaleString()}/year. 🎉
             </p>
           </div>
         )}
@@ -505,7 +495,7 @@ export default function InsightsPage() {
           <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-7 h-7 text-red-500" />
           </div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Couldn't Load Insights</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Couldn&apos;t Load Insights</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{error}</p>
           <button onClick={loadTransactions}
             className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition">

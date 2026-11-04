@@ -347,7 +347,7 @@ export function CommandPalette({ isOpen, onClose, onLogout, onCycleTheme, curren
           {query.trim() && filteredNav.length === 0 && filteredActions.length === 0 && filteredTxns.length === 0 && !loadingTxns && (
             <div className="py-12 text-center">
               <Search className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">No results for <strong>"{query}"</strong></p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No results for <strong>&quot;{query}&quot;</strong></p>
             </div>
           )}
         </div>

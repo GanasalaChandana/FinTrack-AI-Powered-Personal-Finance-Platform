@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Target, TrendingUp, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
+import { Target, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 

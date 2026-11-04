@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Edit2, Trash2, AlertCircle } from 'lucide-react';
 import { type Budget } from '@/lib/api';
@@ -50,7 +50,6 @@ export function BudgetProgressCard({
   icon,
 }: BudgetProgressCardProps) {
   const budgetAmount = budget.budget || 0;
-  const spentAmount = Math.min(spent, budgetAmount * 1.2); // Cap at 120% for display
   const percentage = budgetAmount > 0 ? (spent / budgetAmount) * 100 : 0;
   const remaining = Math.max(0, budgetAmount - spent);
   const isExceeded = spent > budgetAmount;
@@ -61,12 +60,6 @@ export function BudgetProgressCard({
     if (isAlert) return 'bg-error-600';
     if (isWarning) return 'bg-warning-600';
     return 'bg-success-600';
-  };
-
-  const getStatusVariant = () => {
-    if (isAlert) return 'error';
-    if (isWarning) return 'warning';
-    return 'success';
   };
 
   return (
@@ -155,7 +148,7 @@ export function BudgetProgressCard({
             <div className="flex items-center gap-2 p-2 bg-warning-50 dark:bg-warning-900 dark:bg-opacity-20 rounded-sm border border-warning-200 dark:border-warning-800">
               <AlertCircle className="w-4 h-4 text-warning-600 dark:text-warning-400 flex-shrink-0" />
               <p className="text-xs font-medium text-warning-700 dark:text-warning-300">
-                You're at {percentage.toFixed(0)}% of your budget
+                You&apos;re at {percentage.toFixed(0)}% of your budget
               </p>
             </div>
           )}

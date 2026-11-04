@@ -3,17 +3,10 @@
 // Merchant Analytics — groups all transactions by merchant/payee,
 // ranks by total spend, and provides a drill-down per merchant.
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Store, Search, TrendingUp, TrendingDown, Minus, X,
-  BarChart3, DollarSign, ShoppingBag, Loader2, ChevronDown,
-  ArrowUpDown, Calendar,
-} from "lucide-react";
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  LineChart, Line, CartesianGrid,
-} from "recharts";
+import { Store, Search, TrendingUp, TrendingDown, Minus, X, BarChart3, DollarSign, ShoppingBag, Loader2, ArrowUpDown } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
 
@@ -391,7 +384,7 @@ export default function MerchantsPage() {
               <Store className="w-12 h-12 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
               <p className="text-base font-bold text-gray-500 dark:text-gray-400">No expense transactions found</p>
               <p className="text-sm text-gray-400 dark:text-gray-500 max-w-sm mx-auto mt-1">
-                Add some expenses and they'll appear here grouped by merchant.
+                Add some expenses and they&apos;ll appear here grouped by merchant.
               </p>
             </div>
           ) : (

@@ -22,10 +22,10 @@ import { csvCell } from "@/lib/exportTransactions";
 import { CheckCircle } from "lucide-react";
 import { IncomeExpenseComparison } from "@/components/charts/AdvancedCharts";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+
 import { Alert } from "@/components/ui/Alert";
-import { useToast } from "@/components/ui/Toast";
-import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/PageHeader";
+
+import { PageHeader, Section, PageContent } from "@/components/layouts/PageHeader";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -156,7 +156,7 @@ function ErrorMessage({ message, onRetry }: { message: string; onRetry?: () => v
       <div className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center mx-auto mb-4">
         <AlertCircle className="w-7 h-7 text-red-500" />
       </div>
-      <h3 className="text-base font-bold text-red-800 dark:text-red-300 mb-2">Couldn't load data</h3>
+      <h3 className="text-base font-bold text-red-800 dark:text-red-300 mb-2">Couldn&apos;t load data</h3>
       <p className="text-sm text-red-600 dark:text-red-400 mb-4">{message}</p>
       {onRetry && (
         <button onClick={onRetry}
@@ -172,7 +172,6 @@ function ErrorMessage({ message, onRetry }: { message: string; onRetry?: () => v
 
 const EnhancedFinancialReports: React.FC = () => {
   const router = useRouter();
-  const { toast } = useToast();
   const [isAuth, setIsAuth] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [selectedReport, setSelectedReport] = useState<ReportTab>("overview");
@@ -544,7 +543,7 @@ const EnhancedFinancialReports: React.FC = () => {
         spent: b.amount ?? 0,
       }));
       exportMonthlyReport(txns, budgets, period);
-    } catch (err) {
+    } catch {
       setExportError("Export failed. Please try again.");
     } finally {
       setIsExporting(false);
@@ -1826,7 +1825,6 @@ const EnhancedFinancialReports: React.FC = () => {
     const overBudgetMonths = historyData.filter(m => m.actual > m.budget).length;
     const underBudgetMonths = historyData.filter(m => m.actual <= m.budget).length;
     const totalActual = historyData.reduce((s, m) => s + m.actual, 0);
-    const totalBudget = historyData.reduce((s, m) => s + m.budget, 0);
     const avgAdherence = Math.round((underBudgetMonths / historyData.length) * 100);
 
     return (

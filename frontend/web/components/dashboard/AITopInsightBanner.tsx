@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, TrendingUp, Info, X, ArrowRight, Brain, Zap } from "lucide-react";
+import { AlertTriangle, TrendingUp, Info, X, ArrowRight } from "lucide-react";
 import { Transaction } from "@/lib/api";
 import { generateAIInsights } from "@/lib/utils/aiInsights";
 

@@ -180,7 +180,7 @@ export function generateInsights(transactions: ApiTransaction[]): SpendingInsigh
   let weekend = 0, weekday = 0;
   expenses.forEach((t) => {
     const d = new Date(t.date).getDay();
-    (d === 0 || d === 6) ? (weekend += Math.abs(t.amount)) : (weekday += Math.abs(t.amount));
+    if (d === 0 || d === 6) weekend += Math.abs(t.amount); else weekday += Math.abs(t.amount);
   });
   const wkPct = weekend + weekday > 0 ? (weekend / (weekend + weekday)) * 100 : 0;
   if (wkPct > THRESHOLDS.weekendSpendPct) {
@@ -258,17 +258,12 @@ export function generateActionPlan(transactions: ApiTransaction[]): ActionTip[] 
   const expenses = transactions.filter(t => isType(t, "expense"));
   if (expenses.length === 0) return tips;
 
-  const now = new Date();
   const monthSet = new Set(expenses.map(t => (t.date ?? "").slice(0, 7)));
   const months = Math.max(monthSet.size, 1);
 
   // Category totals → monthly avg
   const catTotals: Record<string, number> = {};
   expenses.forEach(t => { catTotals[t.category] = (catTotals[t.category] ?? 0) + Math.abs(t.amount ?? 0); });
-  const topCats = Object.entries(catTotals)
-    .map(([name, total]) => ({ name, monthlyAvg: total / months }))
-    .sort((a, b) => b.monthlyAvg - a.monthlyAvg)
-    .slice(0, 3);
   // Only flexible spending gets a "trim it" tip
   const flexibleTop = Object.entries(catTotals)
     .filter(([name]) => !FIXED_COST_CATEGORIES.has(name))
@@ -338,7 +333,7 @@ export function generateActionPlan(transactions: ApiTransaction[]): ActionTip[] 
   let weekend = 0, weekday = 0;
   expenses.forEach(t => {
     const d = new Date((t.date ?? "") + "T00:00:00").getDay();
-    (d === 0 || d === 6) ? (weekend += Math.abs(t.amount ?? 0)) : (weekday += Math.abs(t.amount ?? 0));
+    if (d === 0 || d === 6) weekend += Math.abs(t.amount ?? 0); else weekday += Math.abs(t.amount ?? 0);
   });
   const weekendPct = weekend + weekday > 0 ? (weekend / (weekend + weekday)) * 100 : 0;
   if (weekendPct > 42) {

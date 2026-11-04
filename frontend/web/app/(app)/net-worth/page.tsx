@@ -6,11 +6,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
-import {
-  TrendingUp, TrendingDown, Plus, Trash2, Edit2, Check, X,
-  Wallet, CreditCard, Home, Car, Briefcase, PiggyBank, DollarSign,
-  Building, BarChart3, Target, Flag, Sparkles,
-} from "lucide-react";
+import { TrendingUp, TrendingDown, Plus, Trash2, Edit2, Check, X, Wallet, CreditCard, Home, Car, Briefcase, PiggyBank, DollarSign, Building, BarChart3, Flag, Sparkles } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -271,7 +267,6 @@ function AddForm({ types, label, accent, onAdd }: AddFormProps) {
 
 const NWTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
-  const nw = payload.find((p: any) => p.dataKey === "netWorth");
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg p-3 text-xs">
       <p className="font-bold text-gray-600 dark:text-gray-300 mb-1">{label}</p>
@@ -628,7 +623,7 @@ export default function NetWorthPage() {
                 <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl px-4 py-3">
                   <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                   <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                    🎉 Milestone achieved! You've reached your target of {fmt(target!)}
+                    🎉 Milestone achieved! You&apos;ve reached your target of {fmt(target!)}
                   </p>
                 </div>
               ) : (

@@ -341,7 +341,7 @@ function extractItems(lines: string[]): ReceiptItem[] {
   return items;
 }
 
-function determineCategory(merchant: string, items: ReceiptItem[]): string {
+function determineCategory(merchant: string, _items: ReceiptItem[]): string {
   const merchantLower = merchant.toLowerCase();
 
   // Grocery stores

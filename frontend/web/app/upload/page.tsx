@@ -3,17 +3,7 @@
 import { authAPI, removeToken } from "@/lib/api";
 import React, { useState, useCallback } from "react";
 import Papa from "papaparse";
-import {
-  Upload,
-  FileText,
-  CheckCircle,
-  AlertTriangle,
-  X,
-  ArrowRight,
-  Download,
-  RefreshCw,
-  AlertCircle,
-} from "lucide-react";
+import { Upload, FileText, CheckCircle, AlertTriangle, ArrowRight, Download, RefreshCw, AlertCircle } from "lucide-react";
 
 /* ---------- Auth helpers ---------- */
 
@@ -148,7 +138,7 @@ const CSVUploadSystem: React.FC = () => {
         // Expired access token: renew it and retry the upload once before signing out
         if (!isRetry && (await authAPI.refreshToken())) return handleImport(true);
         removeToken();
-        window.location.href = "/login?mode=signin";
+        window.location.assign("/login?mode=signin"); // full reload: the session was cleared
         return;
       }
 
@@ -467,7 +457,7 @@ const CSVUploadSystem: React.FC = () => {
             Upload Another File
           </button>
           <button
-            onClick={() => (window.location.href = "/transactions")}
+            onClick={() => window.location.assign("/transactions")}
             className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
           >
             View Transactions

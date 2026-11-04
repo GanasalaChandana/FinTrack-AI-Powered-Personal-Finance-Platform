@@ -1,7 +1,7 @@
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
-export default [
+const config = [
   ...nextVitals,
   ...nextTs,
   {
@@ -14,6 +14,11 @@ export default [
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/immutability": "warn",
       "react-hooks/purity": "warn",
+      // A leading underscore marks a parameter/variable that is intentionally unused
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_", varsIgnorePattern: "^_",
+        destructuredArrayIgnorePattern: "^_", caughtErrors: "none", ignoreRestSiblings: true,
+      }],
       // Only matters with the React Compiler, which this app does not use
       "react-hooks/preserve-manual-memoization": "warn",
     },
@@ -25,3 +30,5 @@ export default [
     ],
   },
 ];
+
+export default config;

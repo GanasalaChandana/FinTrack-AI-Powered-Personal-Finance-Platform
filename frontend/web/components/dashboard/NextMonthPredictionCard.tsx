@@ -1,13 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Sparkles,
-  ArrowRight,
-} from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Sparkles } from "lucide-react";
 import { Transaction } from "@/lib/api";
 
 interface Props {

@@ -5,7 +5,7 @@ import {
   Plus, X, Edit2, Trash2, AlertTriangle, TrendingUp,
   Wallet, PiggyBank, Loader2, Sparkles, Calendar, Shield,
 } from "lucide-react";
-import { EmptyState } from "@/components/EmptyState";
+
 
 export interface Budget {
   id: string;
@@ -207,7 +207,7 @@ function DeleteConfirmModal({
           <div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Delete Budget?</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              This will permanently remove <span className="font-semibold text-gray-700 dark:text-gray-200">"{categoryName}"</span>.
+              This will permanently remove <span className="font-semibold text-gray-700 dark:text-gray-200">&quot;{categoryName}&quot;</span>.
             </p>
           </div>
         </div>

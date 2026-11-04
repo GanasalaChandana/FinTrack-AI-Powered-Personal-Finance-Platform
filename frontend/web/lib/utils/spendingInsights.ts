@@ -124,7 +124,6 @@ function dailyAverageInsight(txs: Transaction[]): SpendingInsight | null {
 }
 
 function weekOverWeekInsight(txs: Transaction[]): SpendingInsight | null {
-  const now = new Date();
   const thisWeekStart = startOf("week");
   const lastWeekStart = new Date(thisWeekStart);
   lastWeekStart.setDate(lastWeekStart.getDate() - 7);

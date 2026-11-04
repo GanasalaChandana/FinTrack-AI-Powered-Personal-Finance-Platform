@@ -1,10 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import {
-  Loader2, RefreshCw, AlertCircle, Sparkles, X, CheckCircle,
-  Trash2, Plus, Calendar, TrendingDown, TrendingUp, Clock,
-} from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle, Sparkles, X, CheckCircle, Trash2, Plus, TrendingDown, TrendingUp, Clock } from "lucide-react";
 import { authAPI, removeToken, transactionsAPI, type Transaction as ApiTransaction } from "@/lib/api";
 import { RecurringTransactionsDashboard } from "@/components/RecurringTransactionsDashboard";
 
@@ -32,7 +29,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}, isRetr
       // Expired access token: renew it and retry once before signing out
       if (!isRetry && (await authAPI.refreshToken())) return apiRequest<T>(endpoint, options, true);
       removeToken();
-      window.location.href = "/login?mode=signin";
+      window.location.assign("/login?mode=signin"); // full reload: the session was cleared
     }
     throw new Error(`HTTP ${res.status}`);
   }
@@ -519,7 +516,7 @@ export default function RecurringPage() {
           <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-7 h-7 text-red-500 dark:text-red-400" />
           </div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Couldn't Load Transactions</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Couldn&apos;t Load Transactions</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{error}</p>
           <button onClick={loadTransactions}
             className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition">
@@ -607,7 +604,7 @@ export default function RecurringPage() {
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-4 h-4 text-indigo-400" />
                 <h2 className="text-base font-bold text-gray-800 dark:text-gray-200">Auto-Detected Patterns</h2>
-                <span className="text-xs text-gray-400 dark:text-gray-500">— click "Save Rule" to persist any pattern</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">— click &quot;Save Rule&quot; to persist any pattern</span>
               </div>
               <RecurringTransactionsDashboard
                 transactions={transactions}

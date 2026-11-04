@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+
 import {
   DollarSign, Target, PiggyBank, Check, X,
   TrendingUp, Loader2, Upload, BarChart3, Brain,
@@ -35,7 +35,7 @@ function StepWelcome({ onNext, onSkip, userName }: { onNext: () => void; onSkip:
           Welcome{userName ? `, ${userName}` : ""}! 🎉
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-          FinTrack is your AI-powered money dashboard. Let's take 60 seconds to personalise it for you.
+          FinTrack is your AI-powered money dashboard. Let&apos;s take 60 seconds to personalise it for you.
         </p>
       </div>
 
@@ -69,7 +69,7 @@ function StepWelcome({ onNext, onSkip, userName }: { onNext: () => void; onSkip:
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition hover:opacity-90"
           style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
         >
-          Let's get started <ArrowRight className="w-4 h-4" />
+          Let&apos;s get started <ArrowRight className="w-4 h-4" />
         </button>
       </div>
     </div>
@@ -109,9 +109,9 @@ function StepIncome({ onNext }: { onNext: () => void }) {
         <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <TrendingUp className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">What's your income?</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">What&apos;s your income?</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          We'll use this to build smart budgets and track your savings rate.
+          We&apos;ll use this to build smart budgets and track your savings rate.
         </p>
       </div>
 
@@ -222,7 +222,7 @@ function StepBudget({ onNext }: { onNext: () => void }) {
         </div>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Set your monthly limits</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          We'll alert you before you overspend. Adjust any amount — or set to 0 to skip a category.
+          We&apos;ll alert you before you overspend. Adjust any amount — or set to 0 to skip a category.
         </p>
       </div>
 
@@ -380,7 +380,6 @@ function StepGoal({ onNext }: { onNext: () => void }) {
 // Step 4 — All done!
 // ─────────────────────────────────────────────────────────────────────────────
 function StepDone({ onComplete }: { onComplete: () => void }) {
-  const router = useRouter();
 
   const actions = [
     {
@@ -414,7 +413,7 @@ function StepDone({ onComplete }: { onComplete: () => void }) {
       {/* Confetti header */}
       <div className="text-center">
         <div className="text-5xl mb-3">🎉</div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">You're all set!</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">You&apos;re all set!</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
           Your account is personalised. Here are the best next steps to get real value fast.
         </p>

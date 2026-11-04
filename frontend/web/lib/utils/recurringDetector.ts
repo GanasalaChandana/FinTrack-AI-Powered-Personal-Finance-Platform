@@ -116,7 +116,7 @@ function calculateSimilarity(str1: string, str2: string): number {
 function calculateConfidence(
   transactions: Transaction[],
   avgInterval: number,
-  frequency: string
+  _frequency: string
 ): number {
   if (transactions.length < 2) return 0;
   
@@ -192,7 +192,7 @@ export function detectRecurringTransactions(
   const groups = groupSimilarTransactions(sorted);
   
   // Analyze each group
-  for (const [key, group] of groups.entries()) {
+  for (const group of groups.values()) {
     if (group.length < minOccurrences) continue;
     
     // Sort group by date

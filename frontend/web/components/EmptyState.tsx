@@ -17,7 +17,7 @@ export function EmptyState({
   description,
   actionLabel,
   onAction,
-  gradient = "from-indigo-500 to-violet-500",
+  gradient: _gradient = "from-indigo-500 to-violet-500",
 }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">

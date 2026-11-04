@@ -6,7 +6,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, AreaChart, Area,
 } from "recharts";
-import { TrendingUp, DollarSign, Loader2, ArrowUpRight, Layers } from "lucide-react";
+import { TrendingUp, DollarSign, Loader2, ArrowUpRight } from "lucide-react";
 import { transactionsAPI, type Transaction } from "@/lib/api";
 
 // ─── Constants ────────────────────────────────────────────────────────────────

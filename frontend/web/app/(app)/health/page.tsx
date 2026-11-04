@@ -1,20 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Loader2, TrendingUp, TrendingDown, AlertCircle,
-  CheckCircle, Target, Lightbulb, Sparkles, Shield, Star,
-} from "lucide-react";
+import { Loader2, TrendingUp, AlertCircle, CheckCircle, Target, Lightbulb, Sparkles, Shield, Star } from "lucide-react";
 import { transactionsAPI, budgetsAPI } from "@/lib/api";
 
 // Scoring lives in one place, shared with the dashboard widget (the two copies had
 // drifted: different grade thresholds gave the same score different grades).
-import {
-  calculateFinancialHealthScore,
-  type ComponentScore,
-  type FinancialData,
-  type HealthScoreResult,
-} from "@/lib/utils/healthScore";
+import { calculateFinancialHealthScore, type FinancialData, type HealthScoreResult } from "@/lib/utils/healthScore";
 
 
 // ── Grade label helper ────────────────────────────────────────────────────────
@@ -453,7 +445,7 @@ export default function HealthPage() {
           <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-7 h-7 text-red-500" />
           </div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Couldn't Load Data</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Couldn&apos;t Load Data</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{error}</p>
           <button
             onClick={loadData}

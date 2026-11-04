@@ -3,27 +3,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
-import {
-  Search,
-  Download,
-  Plus,
-  Edit2,
-  Trash2,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Sparkles,
-  X as Close,
-  Check,
-  Filter,
-  Copy,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle2,
-  AlertCircle,
-  Info,
-  RefreshCw,
-} from "lucide-react";
+import { Download, Plus, Edit2, Trash2, DollarSign, TrendingUp, TrendingDown, Sparkles, X as Close, Check, Filter, Copy, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 
 import {
   transactionsAPI,
@@ -37,7 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useToast } from "@/components/ui/Toast";
-import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/PageHeader";
+import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
 import { TransactionModal } from "@/components/modals/TransactionModal";
 import { exportCsv, exportPdf, exportXlsx, type ExportRow } from "@/lib/exportTransactions";
 
@@ -81,17 +61,6 @@ interface Transaction extends Omit<ApiTransaction, "category" | "type"> {
   merchant?: string;
 }
 
-interface NewTxForm {
-  date: string;
-  merchant: string;
-  description: string;
-  amount: string; // kept for edit form only
-  category: Exclude<CategoryId, "all">;
-  type: TxType;
-  status: TxStatus;
-  paymentMethod: string;
-}
-
 interface TxFilters {
   search?: string;
   type?: "all" | TxType;
@@ -101,14 +70,6 @@ interface TxFilters {
   dateTo?: string;
   minAmount?: number;
   maxAmount?: number;
-}
-
-type ToastType = "success" | "error" | "info";
-
-interface Toast {
-  id: string;
-  type: ToastType;
-  message: string;
 }
 
 /* =========================
@@ -192,9 +153,6 @@ const mapCategoryToBackend = (
   };
   return map[category] || "Other";
 };
-
-const toBackendType = (type: TxType) =>
-  type === "income" ? "INCOME" : "EXPENSE";
 
 const fromBackendType = (
   type: "INCOME" | "EXPENSE" | "income" | "expense",
@@ -483,7 +441,7 @@ export default function TransactionManager() {
       setFilteredTransactions((prev) => prev.filter((t) => !selectedTransactions.includes(t.id!)));
       setSelectedTransactions([]);
       toast.success(`Deleted ${selectedTransactions.length} transactions`);
-    } catch (err) {
+    } catch {
       toast.error("Failed to delete transactions");
     }
   };
@@ -543,7 +501,7 @@ export default function TransactionManager() {
       } else {
         toast.success("Transaction updated successfully");
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to update transaction");
     }
   };
@@ -556,7 +514,7 @@ export default function TransactionManager() {
       setFilteredTransactions((prev) => prev.filter((t) => t.id !== id));
       setSelectedTransactions((prev) => prev.filter((x) => x !== id));
       toast.success("Transaction deleted");
-    } catch (err) {
+    } catch {
       toast.error("Failed to delete transaction");
     }
   };
@@ -884,7 +842,7 @@ export default function TransactionManager() {
                 await loadTransactions();
                 setSelectedTransactions([]);
                 toast.success(`Updated category for ${selectedTxs.length} transaction${selectedTxs.length > 1 ? "s" : ""}`);
-              } catch (err) {
+              } catch {
                 toast.error("Failed to update categories");
               }
             }}

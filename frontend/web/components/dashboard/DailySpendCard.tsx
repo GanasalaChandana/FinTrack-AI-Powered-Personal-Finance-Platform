@@ -63,11 +63,6 @@ export function DailySpendCard({ transactions }: Props) {
   const isOver   = vsAvg !== null && vsAvg > 15;
   const isUnder  = vsAvg !== null && vsAvg < -15;
   const TrendIcon = isOver ? TrendingUp : isUnder ? TrendingDown : Minus;
-  const trendColor = isOver
-    ? "text-red-500"
-    : isUnder
-    ? "text-emerald-500"
-    : "text-sky-500";
   const badgeBg = isOver
     ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/40"
     : isUnder
@@ -92,7 +87,7 @@ export function DailySpendCard({ transactions }: Props) {
             </div>
             <div>
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                Today's Spending
+                Today&apos;s Spending
               </h3>
               <p className="text-xs text-gray-400 dark:text-gray-500">{dayLabel}</p>
             </div>
@@ -132,7 +127,7 @@ export function DailySpendCard({ transactions }: Props) {
         {recentToday.length > 0 ? (
           <div className="flex flex-col gap-1.5">
             <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-              Today's purchases
+              Today&apos;s purchases
             </p>
             {recentToday.map((t, i) => (
               <div key={t.id ?? i} className="flex items-center justify-between text-xs">

@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { CreditCard, Plus, Trash2, TrendingDown, DollarSign, Calendar, Zap, Target } from "lucide-react";
+import { CreditCard, Plus, Trash2, TrendingDown, DollarSign, Calendar, Zap } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -240,7 +240,6 @@ export default function DebtPayoffPage() {
   }, [debts, extraPayment]);
 
   const totalDebt = debts.reduce((s, d) => s + d.balance, 0);
-  const totalMinimum = debts.reduce((s, d) => s + d.minimumPayment, 0);
 
   const inputCls = "w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400";
 

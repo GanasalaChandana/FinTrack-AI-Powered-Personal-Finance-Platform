@@ -2,19 +2,16 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Loader2, Plus, Trash2, Pencil, Target, TrendingUp,
-  CheckCircle2, Circle, CalendarDays, X, ChevronRight, Sparkles, Wand2,
-} from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Target, TrendingUp, CalendarDays, X, Sparkles, Wand2 } from "lucide-react";
 import { BudgetManager, type Budget } from "@/components/budgets/BudgetManager";
 import { SmartBudgetSuggestionsModal, type AppliedBudget } from "@/components/budgets/SmartBudgetSuggestionsModal";
 import { apiRequest, getUser } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
-import { Alert } from "@/components/ui/Alert";
+
 import { useToast } from "@/components/ui/Toast";
-import { PageHeader, Section, Grid, PageContent } from "@/components/layouts/PageHeader";
-import { BudgetProgressCard } from "@/components/budget/BudgetProgressCard";
-import { GoalProgressCard } from "@/components/goals/GoalProgressCard";
+import { PageHeader, Section, PageContent } from "@/components/layouts/PageHeader";
+
+
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -871,7 +868,7 @@ function GoalsSection() {
     try {
       const data = await apiRequest<Goal[]>("/api/goals", { method: "GET" });
       setGoals(Array.isArray(data) ? data : []);
-    } catch (e) {
+    } catch {
       setError("Failed to load goals.");
     } finally {
       setLoading(false);
@@ -1034,8 +1031,8 @@ function GoalsSection() {
           </div>
           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">No savings goals yet</h3>
           <p className="text-sm text-gray-400 dark:text-gray-500 mb-6 max-w-sm">
-            Define what you're saving toward — emergency fund, vacation, new car, down payment.
-            Set a target amount and deadline and FinTrack will tell you if you're on track.
+            Define what you&apos;re saving toward — emergency fund, vacation, new car, down payment.
+            Set a target amount and deadline and FinTrack will tell you if you&apos;re on track.
           </p>
           <button
             onClick={() => { setEditGoal(null); setShowForm(true); }}
@@ -1531,7 +1528,7 @@ export default function GoalsBudgetsPage() {
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">
                 This will permanently delete all <span className="font-semibold text-gray-700 dark:text-gray-200">{budgets.length} budget{budgets.length !== 1 ? "s" : ""}</span>.
-                Use <span className="font-semibold">"Suggest Budgets with AI"</span> or <span className="font-semibold">"50/30/20 Wizard"</span> to create your own. This cannot be undone.
+                Use <span className="font-semibold">&quot;Suggest Budgets with AI&quot;</span> or <span className="font-semibold">&quot;50/30/20 Wizard&quot;</span> to create your own. This cannot be undone.
               </p>
               <div className="flex gap-3">
                 <button

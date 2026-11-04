@@ -4,13 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import {
-  Bell, Mail, LogOut, Menu, X, Check, AlertTriangle,
-  Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor,
-  BarChart3, Wallet, Search, Calendar, CreditCard, TrendingUp,
-  LayoutDashboard, ArrowLeftRight, Target, ChevronLeft, ChevronRight,
-  PiggyBank, DollarSign, Settings, Download, Store, Receipt,
-} from "lucide-react";
+import { Bell, Mail, LogOut, Menu, X, Check, AlertTriangle, Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor, BarChart3, Wallet, Search, Calendar, CreditCard, LayoutDashboard, ArrowLeftRight, Target, ChevronLeft, ChevronRight, PiggyBank, DollarSign, Settings, Download, Store } from "lucide-react";
 import { usePWA } from "@/components/providers/PWAProvider";
 import { authAPI, isAuthenticated as hasSession, removeToken } from "@/lib/api";
 import { useThemePreference } from "@/lib/hooks/useThemePreference";

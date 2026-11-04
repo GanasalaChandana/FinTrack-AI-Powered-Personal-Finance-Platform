@@ -91,7 +91,7 @@ export function PWAInstallBanner() {
           <div>
             <p style={{ fontWeight: 700, fontSize: "14px", color: "#1e293b", margin: "0 0 4px" }}>Install FinTrack</p>
             <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 8px", lineHeight: "1.4" }}>
-              Tap <Share size={12} style={{ display: "inline", verticalAlign: "middle" }} /> <strong>Share</strong> then <strong>"Add to Home Screen"</strong> to install.
+              Tap <Share size={12} style={{ display: "inline", verticalAlign: "middle" }} /> <strong>Share</strong> then <strong>&quot;Add to Home Screen&quot;</strong> to install.
             </p>
           </div>
         </div>

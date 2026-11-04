@@ -2,12 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import {
-  User, Lock, Globe, Tag, Download, Trash2, Save,
-  Eye, EyeOff, Shield, Loader2, CheckCircle, Bell,
-  BellOff, Palette, Sun, Moon, Monitor, FileJson,
-  FileSpreadsheet, AlertCircle,
-} from 'lucide-react';
+import { User, Lock, Globe, Tag, Download, Trash2, Save, Eye, EyeOff, Shield, Loader2, CheckCircle, Bell, Sun, Moon, Monitor, FileJson, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { apiRequest, getUser, removeToken } from '@/lib/api';
 
 /* ===================== Types ===================== */

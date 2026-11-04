@@ -207,10 +207,18 @@ jobs:
             git cat-file -e "$BEFORE^{commit}" 2>/dev/null || return 0
             ! git diff --quiet "$BEFORE" "$SHA" -- "$1"
           }
+          # Live at this commit or a newer one (a later push may already have deployed)
+          is_current() {
+            [ "$1" = "$SHA" ] && return 0
+            [ -n "$1" ] || return 1
+            git cat-file -e "$1^{commit}" 2>/dev/null || git fetch -q origin main 2>/dev/null || true
+            git merge-base --is-ancestor "$SHA" "$1" 2>/dev/null
+          }
           wait_for() { # name url
             for i in $(seq 1 60); do
-              v=$(curl -s --max-time 15 "$2" | jq -r '.version // empty' 2>/dev/null)
-              [ "$v" = "$SHA" ] && { echo "$1 is live at $SHA"; return 0; }
+              # Anything that isn't the JSON we expect (cold start page, error) just means "not yet"
+              v=$(curl -s --max-time 15 "$2" | jq -r '.version // empty' 2>/dev/null || true)
+              is_current "$v" && { echo "$1 is live at $v (needed $SHA or newer)"; return 0; }
               echo "$1: ${v:-no answer} (waiting for $SHA, $i/60)"; sleep 10
             done
             echo "::warning::$1 did not report $SHA within 10 minutes; testing what is live"

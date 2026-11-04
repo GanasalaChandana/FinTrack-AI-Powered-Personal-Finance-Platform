@@ -42,7 +42,8 @@ public class TransactionService {
         // Auto-categorize if category not provided
         if (request.getCategory() == null || request.getCategory().isEmpty()) {
             // The user's own category for this merchant if they set one before, else keyword rules
-            String category = categoryRules.suggest(userId, request.getMerchant(), request.getDescription());
+            String category = categoryRules.suggest(userId, request.getMerchant(), request.getDescription(),
+                    request.getAmount(), request.getType());
             transaction.setCategory(category);
             log.info("Auto-categorized as: {}", category);
         } else {
@@ -79,7 +80,8 @@ public class TransactionService {
         // Auto-categorize if category not provided
         if (request.getCategory() == null || request.getCategory().isEmpty()) {
             // The user's own category for this merchant if they set one before, else keyword rules
-            String category = categoryRules.suggest(userId, request.getMerchant(), request.getDescription());
+            String category = categoryRules.suggest(userId, request.getMerchant(), request.getDescription(),
+                    request.getAmount(), request.getType());
             transaction.setCategory(category);
         } else {
             transaction.setCategory(request.getCategory());
@@ -227,8 +229,9 @@ public class TransactionService {
                 .toList();
     }
 
-    public String classifyTransaction(String description, String userId) {
-        return categoryRules.suggest(userId, null, description);
+    public CategoryRuleService.Suggestion classifyTransaction(String userId, String merchant, String description,
+                                                             java.math.BigDecimal amount, String type) {
+        return categoryRules.suggestDetailed(userId, merchant, description, amount, type);
     }
 
     /**

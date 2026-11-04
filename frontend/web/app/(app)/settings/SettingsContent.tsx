@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { type LucideIcon, User, Lock, Globe, Tag, Download, Trash2, Save, Eye, EyeOff, Shield, Loader2, CheckCircle, Bell, Sun, Moon, Monitor, FileJson, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { apiRequest, getUser, removeToken, type Transaction } from '@/lib/api';
 import { errorMessage } from "@/lib/utils/errors";
+import { CategoryModelCard } from '@/components/CategoryModelCard';
 
 /* ===================== Types ===================== */
 type TabKey = 'profile' | 'security' | 'preferences' | 'categories' | 'notifications';
@@ -626,6 +627,7 @@ export default function SettingsContent() {
         {/* ── CATEGORIES ── */}
         {activeTab === 'categories' && (
           <div className="space-y-6">
+            <CategoryModelCard />
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
               <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-5">Custom Categories</h2>
               <div className="flex gap-2 mb-6 flex-wrap">

@@ -107,4 +107,47 @@ class LearnedCategoryTest {
         assertThat(CategoryRuleService.key(null, "Rent October")).isEqualTo("rent october");
         assertThat(CategoryRuleService.key(" ", null)).isNull();
     }
+
+    @Test
+    @DisplayName("the model learns from the user's history: suggests a category for an unseen merchant")
+    void modelFromHistory() throws Exception {
+        // 18 labelled transactions in three of the user's own categories
+        for (int i = 0; i < 6; i++) {
+            create("Green Leaf Market " + i, "Groceries");
+            create("Night Owl Cinema " + i, "Fun Money");
+            create("Metro Water Works " + i, "Home Bills");
+        }
+        // A merchant it has never seen, sharing words with one category
+        String res = mockMvc.perform(post("/api/transactions/classify").header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"merchant\":\"Night Owl Cinema Downtown\",\"amount\":12.5,\"type\":\"EXPENSE\"}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        var node = json.readTree(res);
+        assertThat(node.get("category").asText()).isEqualTo("Fun Money"); // a label only this user uses
+        assertThat(node.get("source").asText()).isEqualTo("model");
+        assertThat(node.get("confidence").asDouble()).isGreaterThanOrEqualTo(0.6);
+
+        // And new transactions without a category use it
+        assertThat(categoryOf(create("Night Owl Cinema Uptown", null))).isEqualTo("Fun Money");
+
+        // Accuracy is reported against a majority-class baseline
+        mockMvc.perform(get("/api/transactions/category-model").header("Authorization", bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.trained").value(true))
+                .andExpect(jsonPath("$.examples").value(19))
+                .andExpect(jsonPath("$.accuracy").value(org.hamcrest.Matchers.greaterThan(0.9)))
+                .andExpect(jsonPath("$.baselineAccuracy").value(org.hamcrest.Matchers.lessThan(0.5)));
+    }
+
+    @Test
+    @DisplayName("with too little history the model stays out and keyword rules answer")
+    void tooLittleHistory() throws Exception {
+        create("Night Owl Cinema", "Fun Money");
+        mockMvc.perform(post("/api/transactions/classify").header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"merchant\":\"Night Owl Cinema 2\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.source").value("keywords"));
+        mockMvc.perform(get("/api/transactions/category-model").header("Authorization", bearer))
+                .andExpect(jsonPath("$.trained").value(false));
+    }
 }

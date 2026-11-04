@@ -5,6 +5,9 @@ import { X, DollarSign, Calendar, Tag, FileText, CreditCard, TrendingUp, Trendin
 import { apiRequest } from "@/lib/api";
 import { getExpenseCategories, getIncomeCategories } from "@/lib/utils/categories";
 
+/** Where a suggested category came from (see the backend's CategoryRuleService) */
+type SuggestionSource = "learned" | "model" | "keywords";
+
 export interface ModalTransaction {
   id?: string | number;
   type: "income" | "expense";
@@ -91,6 +94,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [predicting, setPredicting] = useState(false);
   const [aiSuggested, setAiSuggested] = useState(false);
+  const [suggestion, setSuggestion] = useState<{ source: SuggestionSource; confidence?: number } | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Dynamic categories (preset + custom) — refreshed when modal opens
   const [expenseCategories, setExpenseCategories] = useState<string[]>(getExpenseCategories());
@@ -112,74 +116,68 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
   useEffect(() => {
     if (transaction && mode === "edit") {
       setFormData(transaction);
-      setAiSuggested(false);
+      setAiSuggested(false); setSuggestion(null);
     } else if (mode === "add") {
       // Support prefill for duplicate — strip the id
       setFormData(transaction
         ? { ...transaction, id: undefined }
         : { type: "expense", category: "", amount: 0, date: new Date().toISOString().split("T")[0], merchant: "", description: "", status: "completed", notes: "", tags: "", paymentMethod: "" }
       );
-      setAiSuggested(false);
+      setAiSuggested(false); setSuggestion(null);
     }
   }, [transaction, mode, isOpen]);
 
-  // Auto-categorize when merchant or description changes (expenses + income)
+  // Auto-categorize when merchant or description changes (expenses + income):
+  // an instant keyword guess, then the user's own history from the backend
+  // (a category they chose for this merchant, or the model trained on their
+  // transactions), which wins over the generic keywords.
   useEffect(() => {
     if (mode === "edit") return;
 
     const text = [formData.merchant, formData.description].filter(Boolean).join(" ").trim();
     if (text.length < 2) return;
 
-    // Income categorization — instant keyword match
-    if (formData.type === "income") {
-      const local = incomeKeywordMatch(text);
-      if (local) {
-        setFormData((prev) => {
-          if (prev.category && !aiSuggested) return prev;
-          return { ...prev, category: local };
-        });
-        setAiSuggested(true);
-      }
-      return;
-    }
-
-    // Expense: Step 1 — instant local keyword match
-    const local = keywordMatch(text);
-    if (local) {
+    const apply = (category: string, source: SuggestionSource, confidence?: number) => {
       setFormData((prev) => {
-        if (prev.category && !aiSuggested) return prev;
-        return { ...prev, category: local };
+        if (prev.category && !aiSuggested) return prev; // the user picked one: keep it
+        return { ...prev, category };
       });
       setAiSuggested(true);
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-      return;
-    }
+      setSuggestion({ source, confidence });
+    };
 
-    // Expense: Step 2 — debounced ML API fallback
+    const local = formData.type === "income" ? incomeKeywordMatch(text) : keywordMatch(text);
+    if (local) apply(local, "keywords");
+
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(async () => {
       setPredicting(true);
       try {
-        const result = await apiRequest<{ category: string; confidence: number }>(
+        const r = await apiRequest<{ category: string; source: SuggestionSource; confidence: number }>(
           "/api/transactions/classify",
-          { method: "POST", body: JSON.stringify({ description: text }) }
+          {
+            method: "POST",
+            body: JSON.stringify({
+              merchant: formData.merchant,
+              description: formData.description,
+              amount: formData.amount || undefined,
+              type: formData.type.toUpperCase(),
+            }),
+          }
         );
-        if (result?.category && result.category !== "Uncategorized" && result.category !== "Other") {
-          const normalized = result.category.toLowerCase();
-          const matched = expenseCategories.find((c) => c.toLowerCase() === normalized);
-          const finalCategory = matched || result.category;
-          setFormData((prev) => {
-            if (prev.category && !aiSuggested) return prev;
-            return { ...prev, category: finalCategory };
-          });
-          setAiSuggested(true);
+        const useful = r?.category && r.category !== "Uncategorized" && r.category !== "Other";
+        // History beats keywords; the backend's own keyword guess only fills a blank
+        if (useful && (r.source !== "keywords" || !local)) {
+          const list = formData.type === "expense" ? expenseCategories : incomeCategories;
+          const matched = list.find((c) => c.toLowerCase() === r.category.toLowerCase());
+          apply(matched || r.category, r.source, r.confidence);
         }
-      } catch { /* silent */ }
+      } catch { /* suggestions are optional */ }
       setPredicting(false);
-    }, 700);
+    }, 600);
 
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when the text/type changes
   }, [formData.merchant, formData.description, formData.type, mode]);
 
   const categories = formData.type === "expense" ? expenseCategories : incomeCategories;
@@ -317,13 +315,18 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
                 {predicting && (
                   <span className="flex items-center gap-1 text-xs text-indigo-500">
                     <Loader2 className="h-3 w-3 animate-spin" />
-                    AI suggesting...
+                    Suggesting...
                   </span>
                 )}
                 {!predicting && aiSuggested && formData.category && (
-                  <span className="flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full">
+                  <span
+                    className="flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full"
+                    title={suggestion?.source === "model" ? "Predicted by a model trained on your own transactions" : undefined}
+                  >
                     <Sparkles className="h-3 w-3" />
-                    AI suggested
+                    {suggestion?.source === "learned" ? "Your category for this merchant"
+                      : suggestion?.source === "model" ? `From your history · ${Math.round((suggestion.confidence ?? 0) * 100)}%`
+                      : "Suggested"}
                   </span>
                 )}
               </div>
@@ -341,6 +344,9 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
                   {categories.map((cat) => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
+                  {formData.category && !categories.includes(formData.category) && (
+                    <option value={formData.category}>{formData.category}</option>
+                  )}
                 </select>
               </div>
               {errors.category && <p className="mt-1 text-sm text-red-600">{errors.category}</p>}

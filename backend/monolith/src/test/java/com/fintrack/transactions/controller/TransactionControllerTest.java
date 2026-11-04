@@ -55,6 +55,10 @@ class TransactionControllerTest {
     @MockitoBean
     private com.fintrack.auth.security.TokenRevocationService tokenRevocationService;
 
+    @MockitoBean
+    @SuppressWarnings("unused")
+    private com.fintrack.transactions.ml.CategoryModelService categoryModelService;
+
     // Required because TransactionController now injects TransactionRepository
     // for the DELETE /all endpoint — @WebMvcTest doesn't load JPA beans
     @MockitoBean

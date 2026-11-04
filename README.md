@@ -81,7 +81,7 @@
 | 🧾 | **Receipt Scanner** | Camera/file upload → Tesseract.js OCR extracts merchant, amount, date |
 | 📊 | **Interactive Reports** | Nine report views: overview, custom, trends, comparison, 6-month forecast, budget history, tax, income, savings. Safe CSV / Excel / PDF exports (no third-party CDN scripts) |
 | 💳 | **Payment Methods** | Transactions carry a payment method, read from CSV imports and editable per transaction |
-| 🎯 | **Category Auto-Tagging** | Transactions saved or imported without a category get one from keyword rules on the description and merchant (e.g. "Uber" → Transportation); you can always change it |
+| 🎯 | **Smart Categories (ML)** | New and imported transactions are categorised from your own history: a category you set for that merchant, else a **Naive Bayes classifier trained on your categorised transactions** (merchant and description words, amount size), else keyword rules. Settings shows its cross-validated accuracy against a majority-class baseline |
 | 🔐 | **Secure Auth** | Email/password and Google sign-in, JWT HS256, refresh token rotation, per-IP and per-account rate limiting, BCrypt hashing, case-insensitive unique emails |
 | 👤 | **Account Controls** | Change password (8+ characters), reset data, or delete your account and all of its data |
 
@@ -190,7 +190,7 @@ Successful logins reset the IP and account counters. Successful sign-ups do **no
 
 ## 🧠 Analytics Engine (client-side, rule-based, zero API cost)
 
-The "AI" features are classic statistics and heuristics that run in the browser — averages, standard deviations, burn-rate projections and similarity matching. **They are not machine-learning models.** Transaction categories come from keyword rules in the backend.
+The "AI" features are classic statistics and heuristics that run in the browser — averages, standard deviations, burn-rate projections and similarity matching. **They are not machine-learning models.** The one machine-learning component is the per-user category model (multinomial Naive Bayes, trained in the backend on the user's own categorised transactions; see *Smart Categories*).
 
 ### Anomaly Detection — `lib/utils/aiInsights.ts`
 ```

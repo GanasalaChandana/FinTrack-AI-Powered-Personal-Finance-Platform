@@ -22,6 +22,7 @@ public class TransactionController {
 
     private final TransactionService    transactionService;
     private final TransactionRepository transactionRepository;
+    private final com.fintrack.transactions.ml.CategoryModelService categoryModelService;
 
     private static final int DEFAULT_TRANSACTION_LIMIT = 500;
     private static final int MAX_TRANSACTION_LIMIT     = 2000;
@@ -54,18 +55,37 @@ public class TransactionController {
     // ⚠️ IMPORTANT: Specific routes MUST come BEFORE generic path variable routes
     // Move all specific endpoints (classify, summary, health) BEFORE /{id}
 
+    /**
+     * Body: {"merchant", "description", "amount", "type"} (all optional).
+     * Returns {category, source: learned|model|keywords, confidence 0..1}.
+     */
     @PostMapping("/classify")
-    public ResponseEntity<Map<String, String>> classifyTransaction(
-            @RequestBody Map<String, String> request,
+    public ResponseEntity<Map<String, Object>> classifyTransaction(
+            @RequestBody Map<String, Object> request,
             @RequestHeader(name = "X-User-Id", required = false) String userId) {
 
         if (userId == null || userId.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        String description = request.get("description");
-        log.debug("Classifying transaction for user: {}", userId);
-        String category = transactionService.classifyTransaction(description, userId);
-        return ResponseEntity.ok(Map.of("category", category));
+        java.math.BigDecimal amount = null;
+        try {
+            Object a = request.get("amount");
+            if (a != null && !a.toString().isBlank()) amount = new java.math.BigDecimal(a.toString());
+        } catch (NumberFormatException ignored) { /* amount is optional */ }
+        var s = transactionService.classifyTransaction(userId,
+                (String) request.get("merchant"), (String) request.get("description"),
+                amount, (String) request.get("type"));
+        return ResponseEntity.ok(Map.of("category", s.category(), "source", s.source(), "confidence", s.confidence()));
+    }
+
+    /** How well the category model does on this user's own transactions (5-fold cross-validation). */
+    @GetMapping("/category-model")
+    public ResponseEntity<com.fintrack.transactions.ml.CategoryModelService.Stats> categoryModelStats(
+            @RequestHeader(name = "X-User-Id", required = false) String userId) {
+        if (userId == null || userId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(categoryModelService.stats(userId));
     }
 
     /** Body: {"merchant": "...", "category": "..."}. Recategorizes that merchant's transactions. */

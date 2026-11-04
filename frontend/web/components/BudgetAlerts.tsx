@@ -53,6 +53,7 @@ export function BudgetAlerts() {
     }, 30000);
 
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on mount / route change only; the loader is recreated every render
   }, [mounted, pathname]);
 
   const fetchAlerts = async () => {

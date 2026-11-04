@@ -170,6 +170,7 @@ export function ReceiptScanner({ onReceiptParsed, onSaveTransaction }: ReceiptSc
           </div>
 
           <div className="rounded-2xl overflow-hidden bg-slate-100 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 flex items-center justify-center" style={{ minHeight: 220 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- local preview of the picked file (blob URL); next/image adds nothing here */}
             <img src={selectedImage} alt="Receipt preview"
               className="max-h-80 w-auto object-contain rounded-xl" />
           </div>
@@ -291,6 +292,7 @@ export function ReceiptScanner({ onReceiptParsed, onSaveTransaction }: ReceiptSc
           {/* Thumbnail + actions */}
           {selectedImage && (
             <div className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-3">
+              {/* eslint-disable-next-line @next/next/no-img-element -- local preview of the picked file (blob URL); next/image adds nothing here */}
               <img src={selectedImage} alt="Receipt thumbnail"
                 className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-gray-100 dark:border-gray-600" />
               <div className="flex-1 min-w-0">

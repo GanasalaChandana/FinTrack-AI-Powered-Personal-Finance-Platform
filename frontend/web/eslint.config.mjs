@@ -11,16 +11,19 @@ const config = [
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-empty-object-type": "warn",
       "react/no-unescaped-entities": "warn",
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/immutability": "warn",
-      "react-hooks/purity": "warn",
+      // These rules describe what the React Compiler needs; this app doesn't use the
+      // compiler. Its pages load data in effects on purpose (fetch on mount, read
+      // localStorage after hydration), which these rules flag wholesale. The classic
+      // hook rules (rules-of-hooks, exhaustive-deps) stay on.
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/immutability": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/preserve-manual-memoization": "off",
       // A leading underscore marks a parameter/variable that is intentionally unused
       "@typescript-eslint/no-unused-vars": ["warn", {
         argsIgnorePattern: "^_", varsIgnorePattern: "^_",
         destructuredArrayIgnorePattern: "^_", caughtErrors: "none", ignoreRestSiblings: true,
       }],
-      // Only matters with the React Compiler, which this app does not use
-      "react-hooks/preserve-manual-memoization": "warn",
     },
   },
   {

@@ -59,6 +59,11 @@ function AuthPageContent() {
   const [googleLoaded, setGoogleLoaded] = useState(false);
   const googleInitialized = useRef(false);
   const lastGoogleCallTime = useRef(0);
+  // Google is initialised once; it calls through this ref so it always runs the
+  // current handler (not the first render's copy with stale state)
+  const googleSignInRef = useRef<(r: { credential: string }) => void>(() => {});
+  // After each render (handleGoogleSignIn is defined below; effects run after render)
+  useEffect(() => { googleSignInRef.current = handleGoogleSignIn; });
   const backendAwake = useRef(false);
 
   // Load Google OAuth Script
@@ -95,7 +100,7 @@ function AuthPageContent() {
     try {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleSignIn,
+        callback: (r: { credential: string }) => googleSignInRef.current(r),
         auto_select: false,
         cancel_on_tap_outside: false,
         itp_support: true,
@@ -119,7 +124,7 @@ function AuthPageContent() {
     } catch {
       setError('Google Sign-In initialization failed. Please try manual login.');
     }
-  }, [googleLoaded, mode]);
+  }, [googleLoaded, mode]); // handler is read through googleSignInRef
 
   const ensureBackendAwake = async (apiUrl: string): Promise<boolean> => {
     if (backendAwake.current) {
@@ -429,6 +434,7 @@ function AuthPageContent() {
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #4a1d96 50%, #0f172a 100%)' }}>

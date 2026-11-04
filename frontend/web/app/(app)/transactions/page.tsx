@@ -187,6 +187,10 @@ const QUICK_DATE_FILTERS = [
    Main Component
    ========================= */
 
+
+// Words that make a multi-word search a natural-language filter ("food last month")
+const NL_TRIGGERS = /\b(last|this|past|over|under|between|more than|less than|expensive|income|expense|spent|food|travel|entertainment|shopping|month|week|year|days?)\b/i;
+
 export default function TransactionManager() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -270,6 +274,7 @@ export default function TransactionManager() {
       return;
     }
     void loadTransactions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on mount / route change only; the loader is recreated every render
   }, [router]);
 
   // Handle ?highlight=<id> from command palette — scroll to and briefly highlight that row
@@ -638,7 +643,6 @@ export default function TransactionManager() {
   }, [activeFilters]);
 
   // NL search keywords that trigger smart parsing
-  const NL_TRIGGERS = /\b(last|this|past|over|under|between|more than|less than|expensive|income|expense|spent|food|travel|entertainment|shopping|month|week|year|days?)\b/i;
 
   // Filter + sort effect
   React.useEffect(() => {

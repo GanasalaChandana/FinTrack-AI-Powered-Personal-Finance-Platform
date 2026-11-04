@@ -498,9 +498,10 @@ interface GoalCardProps {
 function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalCardProps) {
   // Contribution history from localStorage
   const [contribHistory, setContribHistory] = useState<ContribEntry[]>([]);
+  const currentAmount = goal.current;
   useEffect(() => {
     setContribHistory(getContributionHistory(goal.id));
-  }, [goal.id, goal.current]); // refresh whenever current amount changes
+  }, [goal.id, currentAmount]); // refresh whenever current amount changes
 
   // Group by month for mini chart
   const contribByMonth = useMemo(() => {

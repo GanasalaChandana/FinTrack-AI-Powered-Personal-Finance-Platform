@@ -294,6 +294,7 @@ export default function Navigation() {
       window.removeEventListener('storage', readBudget);
       window.removeEventListener('keydown', onKey);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on mount / route change only; the loader is recreated every render
   }, [pathname]);
 
   // close dropdowns on outside click

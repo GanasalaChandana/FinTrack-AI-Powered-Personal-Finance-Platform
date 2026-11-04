@@ -227,7 +227,7 @@ function StepBudget({ onNext }: { onNext: () => void }) {
       </div>
 
       <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-        {BUDGET_PRESETS.map(({ category, icon, color }) => (
+        {BUDGET_PRESETS.map(({ category, icon }) => (
           <div key={category} className="flex items-center gap-3">
             <span className="text-xl w-8 text-center shrink-0">{icon}</span>
             <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{category}</span>

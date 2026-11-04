@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search, LayoutDashboard, ArrowRightLeft, Target, FileText,
@@ -141,7 +141,7 @@ export function CommandPalette({ isOpen, onClose, onLogout, onCycleTheme, curren
     ...filteredTxns.map(d => ({ type: "transaction" as const, data: d })),
   ];
 
-  const activateItem = useCallback((index: number) => {
+  const activateItem = (index: number) => {
     const item = allItems[index];
     if (!item) return;
     if (item.type === "nav") {
@@ -154,16 +154,22 @@ export function CommandPalette({ isOpen, onClose, onLogout, onCycleTheme, curren
       router.push(`/transactions?highlight=${t.id}`);
       onClose();
     }
-  }, [allItems, router, onClose]);
+  };
+
+  // The key handler reads the latest list and selection through a ref, so it is
+  // added once per open instead of on every render
+  const keyState = useRef({ activateItem, activeIndex, count: allItems.length, onClose });
+  useEffect(() => { keyState.current = { activateItem, activeIndex, count: allItems.length, onClose }; });
 
   // Keyboard navigation
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
+      const { activateItem, activeIndex, count, onClose } = keyState.current;
       if (e.key === "Escape") { onClose(); return; }
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setActiveIndex(i => Math.min(i + 1, allItems.length - 1));
+        setActiveIndex(i => Math.min(i + 1, count - 1));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setActiveIndex(i => Math.max(i - 1, 0));
@@ -174,7 +180,7 @@ export function CommandPalette({ isOpen, onClose, onLogout, onCycleTheme, curren
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [isOpen, activeIndex, activateItem, allItems.length, onClose]);
+  }, [isOpen]);
 
   // Scroll active item into view
   useEffect(() => {

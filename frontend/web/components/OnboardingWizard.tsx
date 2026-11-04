@@ -17,7 +17,7 @@ const ONBOARDING_KEY = "fintrack-onboarding-done";
 function StepWelcome({ onNext, onSkip, userName }: { onNext: () => void; onSkip: () => void; userName: string }) {
   const highlights = [
     { icon: BarChart3, color: "#6366f1", bg: "rgba(99,102,241,0.12)", label: "Live dashboard",    desc: "Income, expenses & net worth at a glance" },
-    { icon: Brain,     color: "#8b5cf6", bg: "rgba(139,92,246,0.12)", label: "4 AI models",       desc: "Anomaly detection, forecasts, predictions" },
+    { icon: Brain,     color: "#8b5cf6", bg: "rgba(139,92,246,0.12)", label: "4 insight engines", desc: "Anomaly detection, forecasts, predictions" },
     { icon: Target,    color: "#10b981", bg: "rgba(16,185,129,0.12)", label: "Budgets & goals",   desc: "Set limits, track progress automatically" },
     { icon: Bell,      color: "#f59e0b", bg: "rgba(245,158,11,0.12)", label: "Smart alerts",      desc: "Unusual spending caught before it hurts" },
   ];

@@ -43,8 +43,8 @@ export default function LandingPage() {
   const faqs = [
     { q: "Is my financial data secure?", a: "All data is encrypted in transit with TLS and at rest. JWT tokens are HS256-signed, refresh tokens are SHA-256 hashed and single-use — replaying a stolen token immediately revokes all sessions. We never store bank credentials." },
     { q: "Which file formats do you support?", a: "CSV exports from any bank. As long as your export has Date, Amount, and Description columns, FinTrack can import it. Most banks (Chase, BofA, Wells Fargo, Citi, and 100+ others) support this." },
-    { q: "Does the AI require an external API?", a: "No. All four AI models run entirely in the browser using your transaction data. There are no API calls to OpenAI or any third-party model — which means zero latency, zero cost, and your data never leaves your device." },
-    { q: "Can I import historical transactions?", a: "Yes — import as many months of history as your bank provides. The AI models improve with more data: anomaly detection needs ≥3 transactions per category, and next-month prediction uses a 3-month rolling window." },
+    { q: "Is my data sent to an AI service?", a: "No. The insights are statistics and rules (averages, standard deviations, burn rates) computed in your browser from your own transactions. Nothing is sent to OpenAI or any other third-party model; your transactions are stored only in FinTrack's own database." },
+    { q: "Can I import historical transactions?", a: "Yes — import as many months of history as your bank provides. The insights get sharper with more data: anomaly detection needs ≥3 transactions per category, and next-month prediction uses a 3-month rolling window." },
     { q: "Is there a mobile app?", a: "The web app is fully responsive and works great on mobile. The sidebar collapses to a drawer and all charts reflow for small screens." },
   ];
 
@@ -104,8 +104,8 @@ export default function LandingPage() {
 
   const stats = [
     { value: "52",     label: "Backend tests, 0 failures" },
-    { value: "4",      label: "Client-side AI models" },
-    { value: "0",      label: "External AI API calls" },
+    { value: "4",      label: "Built-in insight engines" },
+    { value: "0",      label: "Third-party AI calls" },
     { value: "HS256",  label: "JWT + refresh rotation" },
   ];
 
@@ -171,7 +171,7 @@ export default function LandingPage() {
           </div>
 
           <div className="hide-mobile" style={{display:"flex",alignItems:"center",gap:32}}>
-            {[["#features","Features"],["#ai","AI Models"],["#how-it-works","How it works"],["#pricing","Pricing"]].map(([href,label])=>(
+            {[["#features","Features"],["#ai","Insights"],["#how-it-works","How it works"],["#pricing","Pricing"]].map(([href,label])=>(
               <a key={href} className="nav-link" href={href}>{label}</a>
             ))}
           </div>
@@ -198,7 +198,7 @@ export default function LandingPage() {
 
         {menuOpen&&(
           <div style={{background:"rgba(10,15,30,0.98)",borderTop:"1px solid rgba(255,255,255,0.06)",padding:"16px 24px 24px"}}>
-            {[["#features","Features"],["#ai","AI Models"],["#how-it-works","How it works"],["#pricing","Pricing"]].map(([href,label])=>(
+            {[["#features","Features"],["#ai","Insights"],["#how-it-works","How it works"],["#pricing","Pricing"]].map(([href,label])=>(
               <a key={href} href={href} className="nav-link" style={{display:"block",padding:"12px 0",borderBottom:"1px solid rgba(255,255,255,0.04)",fontSize:16}} onClick={()=>setMenuOpen(false)}>{label}</a>
             ))}
             <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:16}}>
@@ -225,7 +225,7 @@ export default function LandingPage() {
 
           <div className="badge fade-up" style={{marginBottom:28,display:"inline-flex",animationDelay:"0s"}}>
             <Brain size={12}/>
-            AI-Powered Finance · Production-Grade Stack
+            Smart Insights · Production-Grade Stack
           </div>
 
           <h1 className="hero-title fade-up" style={{
@@ -238,7 +238,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="fade-up" style={{fontSize:19,color:"#94a3b8",lineHeight:1.65,maxWidth:560,margin:"0 auto 12px",fontWeight:400,animationDelay:"0.2s"}}>
-            Import bank transactions, track spending, set budgets — powered by <strong style={{color:"#c7d2fe"}}>4 client-side AI models</strong> that run with zero API cost and zero latency.
+            Import bank transactions, track spending, set budgets — with <strong style={{color:"#c7d2fe"}}>4 built-in insight engines</strong> that run in your browser with zero API cost.
           </p>
 
           <p className="fade-up" style={{fontSize:14,color:"#64748b",marginBottom:36,animationDelay:"0.25s"}}>
@@ -330,7 +330,7 @@ export default function LandingPage() {
               {/* AI banner in mock */}
               <div style={{background:"linear-gradient(135deg,#4f46e5,#9333ea)",borderRadius:10,padding:"10px 16px",display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
                 <Brain size={14} color="white"/>
-                <span style={{fontSize:12,fontWeight:700,color:"white"}}>AI INSIGHTS</span>
+                <span style={{fontSize:12,fontWeight:700,color:"white"}}>SMART INSIGHTS</span>
                 <span style={{fontSize:11,color:"rgba(255,255,255,0.7)"}}>Real-time analysis of your spending patterns · 4 models active</span>
               </div>
               {/* AI cards preview */}
@@ -357,10 +357,10 @@ export default function LandingPage() {
           <div style={{textAlign:"center",marginBottom:56}}>
             <div className="badge" style={{marginBottom:16,display:"inline-flex"}}><Brain size={12}/> Core technology</div>
             <h2 style={{fontFamily:"Fraunces,serif",fontSize:48,fontWeight:900,color:"#f1f5f9",letterSpacing:"-0.02em",marginBottom:16}}>
-              Four AI models,{" "}<em style={{color:"#818cf8",fontStyle:"italic"}}>zero API cost</em>
+              Four insight engines,{" "}<em style={{color:"#818cf8",fontStyle:"italic"}}>zero API cost</em>
             </h2>
             <p style={{fontSize:17,color:"#64748b",maxWidth:560,margin:"0 auto"}}>
-              Every insight runs entirely in the browser — no external model, no latency, no data leaving your device.
+              Plain statistics and rules, computed in your browser: no third-party model, no waiting, nothing to pay for.
             </p>
           </div>
 
@@ -412,7 +412,7 @@ export default function LandingPage() {
             {[
               {n:"1",icon:Lock,   title:"Create your account",      desc:"Sign up in 30 seconds. Email + password. No credit card required.",                                                                      color:"#6366f1"},
               {n:"2",icon:Upload, title:"Import your transactions",  desc:"Export a CSV from your bank and upload it. Categories are filled in automatically and learn from your corrections.",                               color:"#10b981"},
-              {n:"3",icon:Brain,  title:"Let AI surface patterns",   desc:"View spending by category, get anomaly alerts, see month-end forecasts, and next-month predictions — all updating live.",               color:"#f59e0b"},
+              {n:"3",icon:Brain,  title:"Let FinTrack surface patterns",   desc:"View spending by category, get anomaly alerts, see month-end forecasts, and next-month predictions — all updating live.",               color:"#f59e0b"},
             ].map((step)=>(
               <div key={step.n} className="feature-card card-hover" style={{display:"flex",flexDirection:"column",gap:20}}>
                 <div style={{display:"flex",alignItems:"center",gap:16}}>
@@ -516,7 +516,7 @@ export default function LandingPage() {
             </div>
             {[
               ["Automatic categorisation", false, true],
-              ["AI anomaly detection",     false, true],
+              ["Anomaly detection",     false, true],
               ["Next-month prediction",    false, true],
               ["Budget alerts",            false, true],
               ["Import from any bank CSV", false, true],
@@ -592,7 +592,7 @@ export default function LandingPage() {
           <h2 style={{fontFamily:"Fraunces,serif",fontSize:52,fontWeight:900,color:"#f1f5f9",letterSpacing:"-0.02em",marginBottom:20,lineHeight:1.05}}>
             Ready to take control of your{" "}<em style={{color:"#818cf8",fontStyle:"italic"}}>finances?</em>
           </h2>
-          <p style={{fontSize:18,color:"#64748b",marginBottom:40}}>Import your first transactions in under 2 minutes. AI insights activate immediately.</p>
+          <p style={{fontSize:18,color:"#64748b",marginBottom:40}}>Import your first transactions in under 2 minutes. Insights activate immediately.</p>
           <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
             <button className="btn-primary" style={{fontSize:17,padding:"16px 36px"}} onClick={()=>router.push("/login?mode=signup")}>
               Get started for free <ArrowRight size={18}/>
@@ -623,7 +623,7 @@ export default function LandingPage() {
                 </div>
                 <span style={{fontFamily:"Fraunces,serif",fontSize:18,fontWeight:700,color:"#f1f5f9"}}>FinTrack</span>
               </div>
-              <p style={{fontSize:14,color:"#475569",lineHeight:1.6,maxWidth:300}}>AI-powered personal finance. Track spending, set budgets, and understand your money — built to production standards.</p>
+              <p style={{fontSize:14,color:"#475569",lineHeight:1.6,maxWidth:300}}>Smart personal finance. Track spending, set budgets, and understand your money — built to production standards.</p>
               <a href="https://github.com/GanasalaChandana/fintrack" target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,marginTop:16,fontSize:13,color:"#6366f1",textDecoration:"none"}}>
                 View on GitHub <ArrowRight size={12}/>
               </a>
@@ -632,7 +632,7 @@ export default function LandingPage() {
               <div>
                 <p style={{fontSize:12,fontWeight:700,color:"#64748b",letterSpacing:"0.08em",marginBottom:14,textTransform:"uppercase"}}>Product</p>
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                  {[["#features","Features"],["#ai","AI Models"],["#how-it-works","How it works"],["#pricing","Pricing"]].map(([href,label])=>(
+                  {[["#features","Features"],["#ai","Insights"],["#how-it-works","How it works"],["#pricing","Pricing"]].map(([href,label])=>(
                     <a key={label} href={href} style={{fontSize:14,color:"#475569",textDecoration:"none"}}>{label}</a>
                   ))}
                 </div>

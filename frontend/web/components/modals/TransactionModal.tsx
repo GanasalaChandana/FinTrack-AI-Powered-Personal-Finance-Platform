@@ -6,7 +6,7 @@ import { apiRequest } from "@/lib/api";
 import { getExpenseCategories, getIncomeCategories } from "@/lib/utils/categories";
 
 export interface ModalTransaction {
-  id?: number;
+  id?: string | number;
   type: "income" | "expense";
   category: string;
   amount: number;

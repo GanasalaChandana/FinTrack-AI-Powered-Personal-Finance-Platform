@@ -49,6 +49,14 @@ export interface Transaction {
   categoryName?: string;
 }
 
+/** What create/update accept: optional text fields may be sent as null to clear them. */
+export type TransactionInput = Omit<Transaction, "id" | "merchant" | "notes" | "tags" | "paymentMethod"> & {
+  merchant?: string | null;
+  notes?: string | null;
+  tags?: string | null;
+  paymentMethod?: string | null;
+};
+
 export interface Budget {
   id?: string;
   category: string;
@@ -395,14 +403,14 @@ export const transactionsAPI = {
     return apiRequest<Transaction>(`/api/transactions/${id}`, { method: "GET" }, true);
   },
 
-  create: async (transaction: Omit<Transaction, "id">): Promise<Transaction> => {
+  create: async (transaction: TransactionInput): Promise<Transaction> => {
     return apiRequest<Transaction>("/api/transactions", {
       method: "POST",
       body: JSON.stringify(transaction),
     }, true);
   },
 
-  update: async (id: string, transaction: Partial<Transaction>): Promise<Transaction> => {
+  update: async (id: string, transaction: Partial<TransactionInput>): Promise<Transaction> => {
     return apiRequest<Transaction>(`/api/transactions/${id}`, {
       method: "PUT",
       body: JSON.stringify(transaction),

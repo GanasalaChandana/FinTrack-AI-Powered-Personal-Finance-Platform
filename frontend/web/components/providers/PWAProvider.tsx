@@ -22,7 +22,7 @@ export function usePWA() {
 }
 
 export function PWAProvider({ children }: { children: ReactNode }) {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled]       = useState(false);
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export function PWAProvider({ children }: { children: ReactNode }) {
     // Listen for install prompt
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent); // fired as "beforeinstallprompt"
     };
 
     // Listen for successful install

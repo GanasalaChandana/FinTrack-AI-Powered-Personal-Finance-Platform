@@ -247,7 +247,7 @@ const EnhancedFinancialReports: React.FC = () => {
     if (!reportsData?.monthlyData?.length) return [];
     const cats = reportsData.categoryBreakdown.slice(0, 5);
     return reportsData.monthlyData.map((m) => {
-      const row: Record<string, any> = { month: m.month };
+      const row: Record<string, string | number> = { month: m.month };
       cats.forEach((cat) => {
         const share = reportsData.summary.totalExpenses > 0
           ? cat.amount / reportsData.summary.totalExpenses
@@ -1045,7 +1045,7 @@ const EnhancedFinancialReports: React.FC = () => {
             <div>
               <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Group By</label>
               <select value={customConfig.groupBy}
-                onChange={(e) => setCustomConfig({ ...customConfig, groupBy: e.target.value as any })}
+                onChange={(e) => setCustomConfig({ ...customConfig, groupBy: e.target.value as CustomGroupBy })}
                 className="w-full rounded-xl border-2 border-gray-100 dark:border-gray-600 px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-indigo-500 outline-none bg-slate-50 dark:bg-gray-700 transition">
                 <option value="day">Daily</option>
                 <option value="week">Weekly</option>

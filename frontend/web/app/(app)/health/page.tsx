@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Loader2, TrendingUp, AlertCircle, CheckCircle, Target, Lightbulb, Sparkles, Shield, Star } from "lucide-react";
-import { transactionsAPI, budgetsAPI } from "@/lib/api";
+import { transactionsAPI, budgetsAPI, type Transaction, type Budget } from "@/lib/api";
 
 // Scoring lives in one place, shared with the dashboard widget (the two copies had
 // drifted: different grade thresholds gave the same score different grades).
@@ -302,7 +302,8 @@ function FinancialHealthScore({ data }: { data: FinancialData }) {
 
 // ── Field-alias resolvers (same pattern as dashboard fix) ─────────────────────
 
-const resolveSpent = (b: any): number => {
+const resolveSpent = (budget: Budget): number => {
+  const b = budget as unknown as Record<string, unknown>; // older payloads used other field names
   const candidates = [
     b.spent, b.usedAmount, b.amountSpent, b.amount_spent,
     b.currentSpending, b.current_spending, b.totalSpent,
@@ -318,7 +319,8 @@ const resolveSpent = (b: any): number => {
   return 0;
 };
 
-const resolveLimit = (b: any): number => {
+const resolveLimit = (budget: Budget): number => {
+  const b = budget as unknown as Record<string, unknown>;
   const candidates = [
     b.budget, b.limit, b.amount, b.budgetAmount, b.budget_amount,
     b.targetAmount, b.target_amount, b.monthlyLimit, b.monthly_limit,
@@ -348,8 +350,8 @@ export default function HealthPage() {
     setError(null);
     try {
       const [transactions, budgets] = await Promise.all([
-        transactionsAPI.getAll().catch(() => [] as any[]),
-        budgetsAPI.getAll().catch(() => [] as any[]),
+        transactionsAPI.getAll().catch(() => [] as Transaction[]),
+        budgetsAPI.getAll().catch(() => [] as Budget[]),
       ]);
 
       // ── Income / Expenses ────────────────────────────────────────────────
@@ -368,8 +370,7 @@ export default function HealthPage() {
       const savings = transactions
         .filter(
           (t) =>
-            t.category?.toLowerCase().includes("savings") ||
-            t.type === "savings"
+            t.category?.toLowerCase().includes("savings")
         )
         .reduce((s: number, t) => s + Math.abs(t.amount ?? 0), 0);
 
@@ -379,7 +380,7 @@ export default function HealthPage() {
           (t) =>
             ["debt", "loan", "credit card"].some((k) =>
               t.category?.toLowerCase().includes(k)
-            ) || t.type === "debt"
+            )
         )
         .reduce((s: number, t) => s + Math.abs(t.amount ?? 0), 0);
 
@@ -387,21 +388,18 @@ export default function HealthPage() {
       const emergency = transactions
         .filter(
           (t) =>
-            t.category?.toLowerCase().includes("emergency") ||
-            t.type === "emergency"
+            t.category?.toLowerCase().includes("emergency")
         )
         .reduce((s: number, t) => s + Math.abs(t.amount ?? 0), 0);
 
       // ── Payment history ──────────────────────────────────────────────────
       const payments = transactions.filter(
         (t) =>
-          t.type === "payment" ||
           ["bill", "payment"].some((k) => t.category?.toLowerCase().includes(k))
       );
-      // A payment is "on time" when: explicitly flagged, not marked late, or no status at all
-      const onTime = payments.filter(
-        (t) => t.status === "on-time" || t.onTime === true || (!t.late && t.status !== "late")
-      ).length;
+      // Transactions don't record due dates, so there's no late-payment data:
+      // every bill payment counts as on time (as it effectively did before)
+      const onTime = payments.length;
 
       if (transactions.length === 0 && budgets.length === 0) {
         setError(

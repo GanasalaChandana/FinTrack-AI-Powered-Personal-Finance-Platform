@@ -7,6 +7,8 @@
 //    so raw HTML in a description would run as script inside the app)
 //  - Excel is a real .xlsx with plain-text cells (no HTML-disguised .xls)
 
+import type { CellObject, SheetData } from "write-excel-file/browser";
+
 export interface ExportRow {
   date: string;
   merchant: string;
@@ -66,13 +68,13 @@ export async function exportXlsx(rows: ExportRow[], filename: string) {
   // Loaded on demand — only people who export pay for the library
   const writeExcelFile = (await import("write-excel-file/browser")).default;
 
-  const head = (value: string) =>
-    ({ value, fontWeight: "bold" as const, textColor: "#FFFFFF", backgroundColor: "#1E40AF" });
+  const head = (value: string): CellObject =>
+    ({ value, fontWeight: "bold", textColor: "#FFFFFF", backgroundColor: "#1E40AF" });
   // Strings are always written as text cells (formulas need an explicit type), so a
   // merchant like "=HYPERLINK(...)" from an imported file can't run in Excel
-  const text = (v: unknown) => ({ value: v == null ? "" : String(v), type: String });
+  const text = (v: unknown): CellObject => ({ value: v == null ? "" : String(v), type: String });
 
-  const sheetData = [
+  const sheetData: SheetData = [
     ["Date", "Merchant", "Description", "Category", "Amount", "Type", "Payment Method", "Status", "Recurring", "Tags", "Notes"].map(head),
     ...rows.map((r) => [
       text(r.date), text(r.merchant), text(r.description), text(r.category),
@@ -83,7 +85,7 @@ export async function exportXlsx(rows: ExportRow[], filename: string) {
   ];
   const columns = [12, 24, 36, 18, 14, 10, 18, 12, 10, 20, 30].map((width) => ({ width }));
 
-  const blob = await writeExcelFile(sheetData as any, { columns, stickyRowsCount: 1, sheet: "Transactions" } as any).toBlob();
+  const blob = await writeExcelFile(sheetData, { columns, stickyRowsCount: 1, sheet: "Transactions" }).toBlob();
   download(blob, filename);
 }
 

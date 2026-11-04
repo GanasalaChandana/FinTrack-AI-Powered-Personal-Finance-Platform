@@ -25,7 +25,7 @@ interface QuickAction {
 }
 
 interface Transaction {
-  id: string | number;
+  id?: string | number;
   merchant?: string;
   description?: string;
   amount: number;
@@ -103,7 +103,7 @@ export function CommandPalette({ isOpen, onClose, onLogout, onCycleTheme, curren
     setActiveIndex(0);
     setLoadingTxns(true);
     transactionsAPI.getAll()
-      .then((data: any[]) => setTransactions(data.slice(0, 200)))
+      .then((data) => setTransactions(data.slice(0, 200)))
       .catch(() => setTransactions([]))
       .finally(() => setLoadingTxns(false));
     setTimeout(() => inputRef.current?.focus(), 50);

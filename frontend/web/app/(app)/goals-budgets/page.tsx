@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Plus, Trash2, Pencil, Target, TrendingUp, CalendarDays, X, Sparkles, Wand2 } from "lucide-react";
 import { BudgetManager, type Budget } from "@/components/budgets/BudgetManager";
 import { SmartBudgetSuggestionsModal, type AppliedBudget } from "@/components/budgets/SmartBudgetSuggestionsModal";
-import { apiRequest, getUser } from "@/lib/api";
+import { apiRequest, getUser, type Transaction as ApiTransaction, type Budget as ApiBudget } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 
 import { useToast } from "@/components/ui/Toast";
@@ -1193,7 +1193,7 @@ export default function GoalsBudgetsPage() {
   const [isLoading,       setIsLoading]       = useState(true);
   const [isFetching,      setIsFetching]      = useState(false);
   const [budgets,         setBudgets]         = useState<Budget[]>([]);
-  const [allTransactions, setAllTransactions] = useState<any[]>([]);
+  const [allTransactions, setAllTransactions] = useState<ApiTransaction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showWizard5030,  setShowWizard5030]  = useState(false);
   const [rolloverCredits, setRolloverCredits] = useState<Record<string, number>>({});
@@ -1250,8 +1250,9 @@ export default function GoalsBudgetsPage() {
 
     try {
       const [rawBudgets, transactions] = await Promise.all([
-        apiRequest<any[]>("/api/budgets", { method: "GET" }),
-        apiRequest<any[]>("/api/transactions", { method: "GET" }).catch(() => [] as any[]),
+        // older payloads named the amount limit/amount
+        apiRequest<(ApiBudget & { limit?: number; amount?: number })[]>("/api/budgets", { method: "GET" }),
+        apiRequest<ApiTransaction[]>("/api/transactions", { method: "GET" }).catch(() => [] as ApiTransaction[]),
       ]);
 
       // Store all transactions so the AI suggestion modal can analyse them

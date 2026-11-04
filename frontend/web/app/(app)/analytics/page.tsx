@@ -151,7 +151,7 @@ function getCategoryTrends(transactions: Transaction[]) {
 
   return {
     data: months.map(({ key, label }) => {
-      const row: Record<string, any> = { month: label };
+      const row: Record<string, string | number> = { month: label };
       topCats.forEach((cat) => {
         row[cat] = parseFloat(
           transactions

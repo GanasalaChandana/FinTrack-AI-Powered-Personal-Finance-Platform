@@ -238,7 +238,6 @@ function StepBudget({ onNext }: { onNext: () => void }) {
                 value={budgets[category]}
                 onChange={e => setBudgets(prev => ({ ...prev, [category]: e.target.value }))}
                 className="w-full pl-6 pr-2 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-right text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                style={{ focusBorderColor: color } as any}
               />
             </div>
           </div>

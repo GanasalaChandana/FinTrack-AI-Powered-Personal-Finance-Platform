@@ -349,13 +349,13 @@ export default function DebtPayoffPage() {
                 <div>
                   <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2">Method</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {[
+                    {([
                       { key: "avalanche", label: "Avalanche", desc: "Highest APR first — saves most interest" },
                       { key: "snowball", label: "Snowball", desc: "Lowest balance first — builds momentum" },
-                    ].map(({ key, label, desc }) => (
+                    ] as const).map(({ key, label, desc }) => (
                       <button
                         key={key}
-                        onClick={() => setStrategy(key as any)}
+                        onClick={() => setStrategy(key)}
                         className={`p-3 rounded-xl border text-left transition-colors ${
                           strategy === key
                             ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, TrendingUp, Info, X, ArrowRight } from "lucide-react";
 import { Transaction } from "@/lib/api";
-import { generateAIInsights } from "@/lib/utils/aiInsights";
+import { generateAIInsights, type Transaction as AITransaction } from "@/lib/utils/aiInsights";
 
 interface Props {
   transactions: Transaction[];
@@ -19,7 +19,7 @@ export function AITopInsightBanner({ transactions }: Props) {
 
   const topInsight = useMemo(() => {
     if (!transactions.length) return null;
-    const insights = generateAIInsights(transactions as any);
+    const insights = generateAIInsights(transactions as unknown as AITransaction[]);
     // Pick the highest-priority insight
     return (
       insights.find((i) => i.type === "warning" && i.impact === "high") ??

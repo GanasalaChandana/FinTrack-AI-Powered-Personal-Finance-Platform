@@ -166,7 +166,9 @@ const processCategoryBreakdown = (transactions: Transaction[], days: number) => 
     .slice(0, 6);
 };
 
-const buildSparkline = (trendData: any[], key: "income" | "expenses" | "savings") =>
+type SpendingPoint = React.ComponentProps<typeof SpendingTrendChart>["data"][number];
+
+const buildSparkline = (trendData: SpendingPoint[], key: "income" | "expenses" | "savings") =>
   trendData.map((m) => ({ v: m[key] }));
 
 // ✅ FIXED: Calculate stats directly from transactions within date range
@@ -256,9 +258,9 @@ export default function DashboardPage() {
   const [goals, setGoals]                     = useState<Goal[]>([]);
   const [hasTransactions, setHasTransactions] = useState(false);
 
-  const [spendingTrendData, setSpendingTrendData]       = useState<any[]>([]);
-  const [budgetComparisonData, setBudgetComparisonData] = useState<any[]>([]);
-  const [categoryData, setCategoryData]                 = useState<any[]>([]);
+  const [spendingTrendData, setSpendingTrendData]       = useState<SpendingPoint[]>([]);
+  const [budgetComparisonData, setBudgetComparisonData] = useState<React.ComponentProps<typeof BudgetComparisonChart>["data"]>([]);
+  const [categoryData, setCategoryData]                 = useState<React.ComponentProps<typeof CategoryPieChart>["data"]>([]);
   const [stats, setStats] = useState({
     totalIncome: 0, totalExpenses: 0, totalSavings: 0, netWorth: 0,
     incomeChange: null as number | null, expensesChange: null as number | null,
@@ -266,7 +268,6 @@ export default function DashboardPage() {
 
   const [showCsvModal, setShowCsvModal]                   = useState(false);
   const [showTransactionModal, setShowTransactionModal]   = useState(false);
-  const [editingTransaction, setEditingTransaction]       = useState<any>(null);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showOnboarding, setShowOnboarding]               = useState(false);
   const [showResetConfirm, setShowResetConfirm]           = useState(false);
@@ -293,7 +294,7 @@ export default function DashboardPage() {
       if (e.shiftKey && e.key === "?") { e.preventDefault(); setShowKeyboardShortcuts(true); return; }
       if (e.ctrlKey || e.metaKey) {
         switch (e.key.toLowerCase()) {
-          case "n": e.preventDefault(); setEditingTransaction(null); setShowTransactionModal(true); break;
+          case "n": e.preventDefault(); setShowTransactionModal(true); break;
           case "d": e.preventDefault(); router.push("/dashboard"); break;
           case "b": e.preventDefault(); router.push("/goals-budgets?tab=budgets"); break;
           case "t": e.preventDefault(); router.push("/transactions"); break;
@@ -429,16 +430,11 @@ export default function DashboardPage() {
   const handleSaveTransaction = async (transaction: ModalTransaction) => {
     const { id: _id, ...data } = transaction; // the modal's numeric id isn't the API's id
     try {
-      if (editingTransaction) {
-        await transactionsAPI.update(editingTransaction.id, data);
-        toast.success("Transaction updated!");
-      } else {
-        await transactionsAPI.create(data);
-        toast.success("Transaction added!");
-      }
+      // The dashboard's modal only adds; editing happens on the Transactions page
+      await transactionsAPI.create(data);
+      toast.success("Transaction added!");
       await fetchDashboardData();
       setShowTransactionModal(false);
-      setEditingTransaction(null);
       // Notify Goals & Budgets page to refetch so budget spent amounts stay in sync
       if (typeof window !== "undefined") window.dispatchEvent(new Event("fintrack-transactions-changed"));
     } catch {
@@ -446,7 +442,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleAddTransaction = () => { setEditingTransaction(null); setShowTransactionModal(true); };
+  const handleAddTransaction = () => { setShowTransactionModal(true); };
 
   const handleResetData = async () => {
     setIsResetting(true);
@@ -528,10 +524,9 @@ export default function DashboardPage() {
       )}
       <TransactionModal
         isOpen={showTransactionModal}
-        onClose={() => { setShowTransactionModal(false); setEditingTransaction(null); }}
+        onClose={() => setShowTransactionModal(false)}
         onSave={handleSaveTransaction}
-        transaction={editingTransaction}
-        mode={editingTransaction ? "edit" : "add"}
+        mode="add"
       />
       <CSVImportModal
         isOpen={showCsvModal}

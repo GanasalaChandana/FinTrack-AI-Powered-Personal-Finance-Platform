@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useToast } from "@/components/ui/Toast";
 import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
-import { TransactionModal } from "@/components/modals/TransactionModal";
+import { TransactionModal, type ModalTransaction } from "@/components/modals/TransactionModal";
 import { exportCsv, exportPdf, exportXlsx, type ExportRow } from "@/lib/exportTransactions";
 import { errorMessage } from "@/lib/utils/errors";
 
@@ -204,7 +204,7 @@ export default function TransactionManager() {
 
   const [showAdd, setShowAdd] = React.useState(false);
   // Phone cards edit through the full form instead of inline table cells
-  const [modalEditTx, setModalEditTx] = React.useState<any | null>(null);
+  const [modalEditTx, setModalEditTx] = React.useState<ModalTransaction | null>(null);
   const [nlFilter, setNlFilter] = React.useState<NLFilter | null>(null);
   // Initialize filters from URL params (supports ?category=Food&type=expense&search=starbucks)
   const [activeFilters, setActiveFilters] = React.useState<TxFilters>(() => {
@@ -228,7 +228,7 @@ export default function TransactionManager() {
   // ✅ Pagination state
   const [currentPage, setCurrentPage] = React.useState(1);
 
-  const [prefillTx, setPrefillTx] = React.useState<any>(null);
+  const [prefillTx, setPrefillTx] = React.useState<ModalTransaction | null>(null);
   const { toast } = useToast();
 
   // Same normalisation as the backend's CategoryRuleService.key
@@ -372,7 +372,7 @@ export default function TransactionManager() {
 
   // ✅ Recurring merchant detection
   const recurringMerchants = React.useMemo(() => {
-    const summary = detectRecurring(transactions as any[]);
+    const summary = detectRecurring(transactions as unknown as ApiTransaction[]); // only reads merchant/date/amount/type
     return new Set(summary.items.map((i) => i.merchant.toLowerCase().trim()));
   }, [transactions]);
 
@@ -472,11 +472,11 @@ export default function TransactionManager() {
         paymentMethod: editForm.paymentMethod || null,
         category: backendCategory,
         amount: editForm.amount!,
-        type: uiType.toUpperCase(),
+        type: uiType.toUpperCase() as "INCOME" | "EXPENSE",
         status: editForm.status ?? "completed",
         notes: editForm.notes || null,
         tags: tagsArr.join(",") || null,
-      } as any);
+      });
       const normalized = normalizeTransaction(updated);
       const updateFn = (list: Transaction[]) =>
         list.map((t) =>
@@ -547,17 +547,17 @@ export default function TransactionManager() {
         merchant: tx.merchant,
         category: tx.category, // the form already uses backend category names
         amount: Math.abs(tx.amount),
-        type: tx.type.toUpperCase(),
+        type: tx.type.toUpperCase() as "INCOME" | "EXPENSE",
         status: tx.status ?? "completed",
         notes: tx.notes || null,
         paymentMethod: tx.paymentMethod || null,
         tags: tagsArr.join(",") || null,
-      } as any);
+      });
       const normalized = normalizeTransaction(updated);
       const updateFn = (list: Transaction[]) =>
         list.map((t) =>
           t.id === id
-            ? { ...normalized, status: (tx.status as any) || t.status, merchant: tx.merchant || normalized.merchant, tags: tagsArr.length > 0 ? tagsArr : normalized.tags }
+            ? { ...normalized, status: (tx.status as TxStatus | undefined) || t.status, merchant: tx.merchant || normalized.merchant, tags: tagsArr.length > 0 ? tagsArr : normalized.tags }
             : t,
         );
       const before = transactions.find((t) => t.id === id);
@@ -601,7 +601,7 @@ export default function TransactionManager() {
       ...(tx.notes ? { notes: tx.notes } : {}),
       ...(tx.tags ? { tags: tx.tags } : {}),
       ...(tx.paymentMethod ? { paymentMethod: tx.paymentMethod } : {}),
-    } as any);
+    });
     const newTx: Transaction = { ...normalizeTransaction(created), merchant: tx.merchant.trim() };
     setTransactions((prev) => [newTx, ...prev]);
     setFilteredTransactions((prev) => [newTx, ...prev]);
@@ -650,7 +650,7 @@ export default function TransactionManager() {
     if (searchTerm && isNL) {
       const parsed = parseNLQuery(searchTerm);
       setNlFilter(parsed);
-      filtered = applyNLFilter(filtered as any, parsed) as any;
+      filtered = applyNLFilter(filtered, parsed);
     } else {
       setNlFilter(null);
       if (searchTerm) {
@@ -833,11 +833,11 @@ export default function TransactionManager() {
                       merchant: transaction.merchant || null,
                       category: mapCategoryToBackend(categoryId as Exclude<CategoryId, "all">, transaction.type, transaction.categoryName),
                       amount: Math.abs(transaction.amount),
-                      type: transaction.type.toUpperCase(),
+                      type: transaction.type.toUpperCase() as "INCOME" | "EXPENSE",
                       status: transaction.status ?? "completed",
                       notes: transaction.notes || null,
                       tags: (transaction.tags || []).join(",") || null,
-                    } as any),
+                    }),
                   ),
                 );
                 await loadTransactions();

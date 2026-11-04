@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { User, Lock, Globe, Tag, Download, Trash2, Save, Eye, EyeOff, Shield, Loader2, CheckCircle, Bell, Sun, Moon, Monitor, FileJson, FileSpreadsheet, AlertCircle } from 'lucide-react';
-import { apiRequest, getUser, removeToken } from '@/lib/api';
+import { type LucideIcon, User, Lock, Globe, Tag, Download, Trash2, Save, Eye, EyeOff, Shield, Loader2, CheckCircle, Bell, Sun, Moon, Monitor, FileJson, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { apiRequest, getUser, removeToken, type Transaction } from '@/lib/api';
 import { errorMessage } from "@/lib/utils/errors";
 
 /* ===================== Types ===================== */
@@ -99,7 +99,7 @@ export default function SettingsContent() {
   const loadProfile = useCallback(async () => {
     setProfileLoading(true);
     try {
-      const data = await apiRequest<any>('/api/users/profile');
+      const data = await apiRequest<Partial<ProfileData>>('/api/users/profile');
       setProfile({
         firstName: data.firstName ?? '',
         lastName:  data.lastName  ?? '',
@@ -114,7 +114,7 @@ export default function SettingsContent() {
   const handleProfileSave = async () => {
     setProfileSaving(true);
     try {
-      const updated = await apiRequest<any>('/api/users/profile', {
+      const updated = await apiRequest<Partial<ProfileData>>('/api/users/profile', {
         method: 'PUT',
         body: JSON.stringify({ firstName: profile.firstName, lastName: profile.lastName }),
       });
@@ -231,7 +231,7 @@ export default function SettingsContent() {
       const currentUser = getUser();
       if (!currentUser?.id) { showToast('Not authenticated', 'error'); return; }
 
-      const transactions = await apiRequest<any[]>('/api/transactions');
+      const transactions = await apiRequest<Transaction[]>('/api/transactions');
       const owned = Array.isArray(transactions)
         ? transactions.filter((t) => !t.userId || t.userId === currentUser.id)
         : [];
@@ -293,7 +293,7 @@ export default function SettingsContent() {
 
   const inputCls = 'w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white dark:bg-gray-700 dark:text-gray-100 transition placeholder:text-gray-400 dark:placeholder:text-gray-500';
 
-  const TABS: { key: TabKey; label: string; Icon: any }[] = [
+  const TABS: { key: TabKey; label: string; Icon: LucideIcon }[] = [
     { key: 'profile',       label: 'Profile',       Icon: User   },
     { key: 'security',      label: 'Security',      Icon: Lock   },
     { key: 'preferences',   label: 'Preferences',   Icon: Globe  },
@@ -482,7 +482,7 @@ export default function SettingsContent() {
             <div>
               <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Date Format</label>
               <select className={inputCls} value={mergedPrefs.dateFormat}
-                onChange={(e) => setPrefs({ ...mergedPrefs, dateFormat: e.target.value as any })}>
+                onChange={(e) => setPrefs({ ...mergedPrefs, dateFormat: e.target.value as Preferences['dateFormat'] })}>
                 {(['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'] as const).map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             </div>

@@ -95,7 +95,7 @@ const SHORT_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Safely parse any date string/number into a Date, returns null on failure */
-function parseDate(raw: any): Date | null {
+function parseDate(raw: unknown): Date | null {
   if (!raw) return null;
   if (typeof raw === "number") return new Date(raw);
   if (typeof raw === "string") {
@@ -363,7 +363,7 @@ function isEmptyReport(data: ReportsData): boolean {
 class ReportsService {
   async getFinancialReports(dateRange: ReportsRange = "last-30-days"): Promise<ReportsData> {
     try {
-      const raw  = await apiRequest<any>(`/api/reports/financial?range=${encodeURIComponent(dateRange)}`, { method: "GET" });
+      const raw  = await apiRequest<ReportsData & { data?: ReportsData }>(`/api/reports/financial?range=${encodeURIComponent(dateRange)}`, { method: "GET" });
       const data: ReportsData = raw?.data ?? raw;
       if (!isEmptyReport(data)) {
         return data;
@@ -504,15 +504,15 @@ class ReportsService {
     return new Blob([html], { type: "text/html;charset=utf-8" });
   }
 
-  async getComparisonData(period1: string, period2: string): Promise<any> {
+  async getComparisonData(period1: string, period2: string): Promise<unknown> {
     try {
-      return await apiRequest<any>(`/api/reports/comparison?period1=${encodeURIComponent(period1)}&period2=${encodeURIComponent(period2)}`, { method: "GET" });
+      return await apiRequest<unknown>(`/api/reports/comparison?period1=${encodeURIComponent(period1)}&period2=${encodeURIComponent(period2)}`, { method: "GET" });
     } catch { return null; }
   }
 
-  async getForecastData(months = 6): Promise<any> {
+  async getForecastData(months = 6): Promise<unknown> {
     try {
-      return await apiRequest<any>(`/api/reports/forecast?months=${months}`, { method: "GET" });
+      return await apiRequest<unknown>(`/api/reports/forecast?months=${months}`, { method: "GET" });
     } catch { return null; }
   }
 }

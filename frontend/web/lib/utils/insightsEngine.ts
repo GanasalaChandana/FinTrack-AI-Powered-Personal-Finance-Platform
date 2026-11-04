@@ -43,7 +43,7 @@ const THRESHOLDS = {
  * and called their 3-month total a monthly cost.
  */
 export function detectedSubscriptions(transactions: ApiTransaction[]) {
-  const subs = detectRecurring(transactions as any).items.filter((i) => i.isSubscription);
+  const subs = detectRecurring(transactions).items.filter((i) => i.isSubscription);
   const perMonth = (a: number, f: string) => (f === "weekly" ? a * 4.33 : f === "biweekly" ? a * 2.17 : a);
   const monthly = subs.reduce((s, i) => s + perMonth(Math.abs(i.amount), i.frequency), 0);
   return { count: subs.length, monthly, names: subs.map((i) => i.merchant) };

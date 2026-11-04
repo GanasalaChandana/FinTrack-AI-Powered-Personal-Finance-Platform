@@ -8,6 +8,7 @@
 
 import { useState, useMemo } from "react";
 import { X, Sparkles, TrendingUp, Check, Loader2, Info } from "lucide-react";
+import type { Transaction } from "@/lib/api";
 
 // ── Per-category visual metadata ─────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ export interface AppliedBudget {
 }
 
 interface Props {
-  transactions:       any[];          // raw transaction objects from the API
+  transactions:       Transaction[];  // transactions from the API
   existingCategories: string[];       // categories that already have budgets
   onApply:            (budgets: AppliedBudget[]) => Promise<void>;
   onClose:            () => void;

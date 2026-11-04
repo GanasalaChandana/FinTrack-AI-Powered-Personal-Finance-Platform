@@ -395,7 +395,7 @@ function transformTransaction(apiTxn: ApiTransaction) {
 
 export default function RecurringPage() {
   const [isLoading,       setIsLoading]       = useState(true);
-  const [transactions,    setTransactions]    = useState<any[]>([]);
+  const [transactions,    setTransactions]    = useState<ReturnType<typeof transformTransaction>[]>([]);
   const [savedRules,      setSavedRules]      = useState<SavedRule[]>([]);
   const [error,           setError]           = useState<string | null>(null);
   const [showAddForm,     setShowAddForm]     = useState(false);
@@ -427,7 +427,7 @@ export default function RecurringPage() {
       // Response is a Spring Page object with `content` array
       const rules = Array.isArray(data)
         ? data
-        : (data as any).content ?? [];
+        : data.content ?? [];
       setSavedRules(rules);
     } catch {
       // Non-fatal — just show empty saved rules

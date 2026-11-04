@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle, ArrowRight, Zap } from "lucide-react";
 import { Transaction } from "@/lib/api";
-import { generateAIInsights } from "@/lib/utils/aiInsights";
+import { generateAIInsights, type Transaction as AITransaction } from "@/lib/utils/aiInsights";
 
 interface Props {
   transactions: Transaction[];
@@ -13,7 +13,7 @@ interface Props {
 export function AnomalyInsightsCard({ transactions }: Props) {
   const anomalies = useMemo(() => {
     if (!transactions.length) return [];
-    const insights = generateAIInsights(transactions as any);
+    const insights = generateAIInsights(transactions as unknown as AITransaction[]);
     return insights
       .filter((i) => i.type === "warning" && (i.impact === "high" || i.impact === "medium"))
       .slice(0, 3);

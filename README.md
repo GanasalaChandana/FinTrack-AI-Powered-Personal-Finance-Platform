@@ -8,11 +8,11 @@
 
 [![CI](https://img.shields.io/github/actions/workflow/status/GanasalaChandana/FinTrack-AI-Powered-Personal-Finance-Platform/ci.yml?branch=main&style=flat-square&label=CI&logo=github)](https://github.com/GanasalaChandana/FinTrack-AI-Powered-Personal-Finance-Platform/actions)
 &nbsp;
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot%203.2-Java%2017-6db33f?style=flat-square&logo=spring)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot%203.4-Java%2017-6db33f?style=flat-square&logo=spring)](https://spring.io/projects/spring-boot)
 &nbsp;
-[![Next.js](https://img.shields.io/badge/Next.js%2014-TypeScript-black?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js%2016-TypeScript-black?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 &nbsp;
-[![Tests](https://img.shields.io/badge/Backend%20Tests-100%2B%20JUnit-22c55e?style=flat-square&logo=junit5)](https://github.com/GanasalaChandana/FinTrack-AI-Powered-Personal-Finance-Platform/actions)
+[![Tests](https://img.shields.io/badge/Backend%20Tests-130%2B%20JUnit-22c55e?style=flat-square&logo=junit5)](https://github.com/GanasalaChandana/FinTrack-AI-Powered-Personal-Finance-Platform/actions)
 &nbsp;
 [![License: MIT](https://img.shields.io/badge/License-MIT-gray?style=flat-square)](LICENSE)
 

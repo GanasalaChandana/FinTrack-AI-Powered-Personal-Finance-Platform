@@ -25,17 +25,25 @@ public class BudgetAlertScheduler {
     private final AlertService alertService;
     private final BudgetRepository budgetRepository;
     private final BudgetsService budgetsService;
+    private final com.fintrack.notifications.service.NotificationEmailService notificationEmails;
 
     public BudgetAlertScheduler(AlertService alertService, BudgetRepository budgetRepository,
-                                BudgetsService budgetsService) {
+                                BudgetsService budgetsService,
+                                com.fintrack.notifications.service.NotificationEmailService notificationEmails) {
         this.alertService = alertService;
         this.budgetRepository = budgetRepository;
         this.budgetsService = budgetsService;
+        this.notificationEmails = notificationEmails;
     }
 
     @Scheduled(fixedDelay = 3600000, initialDelay = 300000) // hourly, first run 5 min after start-up
     @SchedulerLock(name = "budgetAlerts", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     public void checkBudgetAlerts() {
+        checkBudgetAlertsNow();
+    }
+
+    /** The work of the hourly job, without its lock. */
+    public void checkBudgetAlertsNow() {
         log.info("Running budget alert check...");
         try {
             List<Budget> budgets = budgetRepository.findByMonth(YearMonth.now().toString());
@@ -62,20 +70,21 @@ public class BudgetAlertScheduler {
 
                     double percentage = (spent / budgetAmount) * 100;
 
+                    // No currency symbol: the user's currency is a display setting in the browser
+                    String title = null, message = null, type = null, severity = null;
                     if (percentage >= 100) {
-                        alertService.createAlertIfNotExists(
-                                userId, category, "EXCEEDED_100",
-                                "Budget Exceeded: " + category,
-                                String.format("You've exceeded your %s budget by $%.2f (spent $%.2f of $%.2f)",
-                                        category, spent - budgetAmount, spent, budgetAmount),
-                                "HIGH");
+                        type = "EXCEEDED_100"; severity = "HIGH";
+                        title = "Budget Exceeded: " + category;
+                        message = String.format("You've exceeded your %s budget by %,.2f (spent %,.2f of %,.2f)",
+                                category, spent - budgetAmount, spent, budgetAmount);
                     } else if (percentage >= 80) {
-                        alertService.createAlertIfNotExists(
-                                userId, category, "WARNING_80",
-                                "Budget Warning: " + category,
-                                String.format("You've used %.0f%% of your %s budget ($%.2f of $%.2f)",
-                                        percentage, category, spent, budgetAmount),
-                                "MEDIUM");
+                        type = "WARNING_80"; severity = "MEDIUM";
+                        title = "Budget Warning: " + category;
+                        message = String.format("You've used %.0f%% of your %s budget (%,.2f of %,.2f)",
+                                percentage, category, spent, budgetAmount);
+                    }
+                    if (type != null && alertService.createAlertIfNotExists(userId, category, type, title, message, severity)) {
+                        notificationEmails.budgetAlert(userId, title, message); // only for new alerts
                     }
                 } catch (Exception e) {
                     log.warn("Error processing budget alert: {}", e.getMessage());

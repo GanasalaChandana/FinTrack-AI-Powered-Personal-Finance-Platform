@@ -23,6 +23,7 @@ public class TransactionController {
     private final TransactionService    transactionService;
     private final TransactionRepository transactionRepository;
     private final com.fintrack.transactions.ml.CategoryModelService categoryModelService;
+    private final com.fintrack.notifications.service.NotificationEmailService notificationEmails;
 
     private static final int DEFAULT_TRANSACTION_LIMIT = 500;
     private static final int MAX_TRANSACTION_LIMIT     = 2000;
@@ -160,8 +161,13 @@ public class TransactionController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         log.debug("Creating transaction for user: {}", userId);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(transactionService.createTransaction(request, userId));
+        TransactionResponse created = transactionService.createTransaction(request, userId);
+        // Large-transaction email (only for single entries here, not for CSV imports)
+        if ("EXPENSE".equalsIgnoreCase(created.getType())) {
+            notificationEmails.largeTransaction(userId, created.getMerchant() != null ? created.getMerchant() : created.getDescription(),
+                    created.getAmount(), created.getCategory());
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")

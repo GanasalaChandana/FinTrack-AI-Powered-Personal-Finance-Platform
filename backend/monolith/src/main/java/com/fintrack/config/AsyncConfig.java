@@ -30,4 +30,18 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    public static final String MAIL_EXECUTOR = "mailExecutor";
+
+    /** Sends emails off the request thread (an SMTP server can take seconds to answer). */
+    @Bean(name = MAIL_EXECUTOR)
+    public Executor mailExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("mail-");
+        executor.initialize();
+        return executor;
+    }
 }

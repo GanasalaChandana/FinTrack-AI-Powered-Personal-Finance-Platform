@@ -87,7 +87,8 @@ public class AlertService {
 
     // ─── Dedup-safe creation ──────────────────────────────────────────────────
 
-    public void createAlertIfNotExists(String userId, String category,
+    /** Returns true when a new alert was created (false if this month already has one). */
+    public boolean createAlertIfNotExists(String userId, String category,
             String type, String title, String message, String severity) {
 
         LocalDateTime startOfMonth = LocalDateTime.now()
@@ -111,12 +112,14 @@ public class AlertService {
             try {
                 alertRepository.save(alert);
                 log.debug("Alert created for userId={} type={}", userId, type);
+                return true;
             } catch (DataIntegrityViolationException e) {
                 // Another run created the same alert between our check and insert
                 log.debug("Alert already created concurrently for userId={} type={}", userId, type);
+                return false;
             }
-        } else {
-            log.debug("Alert already exists for userId={} type={}", userId, type);
         }
+        log.debug("Alert already exists for userId={} type={}", userId, type);
+        return false;
     }
 }

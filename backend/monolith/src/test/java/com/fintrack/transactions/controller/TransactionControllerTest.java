@@ -59,6 +59,10 @@ class TransactionControllerTest {
     @SuppressWarnings("unused")
     private com.fintrack.transactions.ml.CategoryModelService categoryModelService;
 
+    @MockitoBean
+    @SuppressWarnings("unused")
+    private com.fintrack.notifications.service.NotificationEmailService notificationEmailService;
+
     // Required because TransactionController now injects TransactionRepository
     // for the DELETE /all endpoint — @WebMvcTest doesn't load JPA beans
     @MockitoBean

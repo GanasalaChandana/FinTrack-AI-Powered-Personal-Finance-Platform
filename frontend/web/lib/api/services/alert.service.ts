@@ -1,5 +1,6 @@
 // services/alert.service.ts
 import { authAPI, isAuthenticated as hasSession, removeToken } from '@/lib/api';
+import { isPublicPath } from '@/lib/publicRoutes';
 
 export interface BudgetAlert {
   id: string;
@@ -19,13 +20,7 @@ function isPublicRoute(): boolean {
   if (typeof window === 'undefined') return true;
   
   const path = window.location.pathname;
-  const publicPaths = ['/', '/login', '/register', '/signin', '/signup'];
-  
-  // Check exact match
-  if (publicPaths.includes(path)) return true;
-  
-  // Check if starts with public path
-  return publicPaths.some(p => path.startsWith(`${p}/`) || path.startsWith(`${p}?`));
+  return isPublicPath(path);
 }
 
 // Helper to get alerts API URL

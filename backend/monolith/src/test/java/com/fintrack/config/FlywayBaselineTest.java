@@ -45,7 +45,7 @@ class FlywayBaselineTest {
         // If V1 disagreed with the entities, this Spring context would not have started
         // (ddl-auto=validate), so reaching here already proves the match.
         MigrationInfo current = flyway.info().current();
-        assertEquals("5", current.getVersion().getVersion()); // latest migration (V5 category rules)
+        assertEquals("6", current.getVersion().getVersion()); // latest migration (V6 password reset tokens)
         assertTrue(current.getState().isApplied());
         assertEquals("SQL", current.getType().name());
     }

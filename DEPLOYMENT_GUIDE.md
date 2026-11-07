@@ -42,6 +42,9 @@ Environment variables:
 | `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD` | Yes | See above |
 | `JWT_SECRET` | **Yes** | 32+ bytes. The app refuses to start without a strong secret. Generate with `openssl rand -base64 48`. Changing it logs everyone out |
 | `GOOGLE_CLIENT_ID` | No | Enables Google sign-in |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | For email | SMTP server for password-reset (and alert) emails. Without `MAIL_USERNAME` nothing is sent, so "Forgot password" can't deliver links. Gmail: `smtp.gmail.com`, port `587`, your address, and an [app password](https://myaccount.google.com/apppasswords) |
+| `MAIL_FROM` | No | From address for emails (defaults to `MAIL_USERNAME`) |
+| `APP_BASE_URL` | No | Web app URL used in email links; defaults to `https://fintrack-liart.vercel.app` |
 | `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_HOST` | No | Outbound email (`MAIL_HOST` defaults to `smtp.gmail.com`) |
 | `FLYWAY_ENABLED` | No | Defaults to `true`. Set to `false` to switch Flyway off without a code change |
 

@@ -8,6 +8,7 @@ import { isAuthenticated as hasSession } from "@/lib/api";
 import Navigation from "@/components/Navigation";
 import { BudgetAlerts } from "@/components/BudgetAlerts";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { isPublicPath } from "@/lib/publicRoutes";
 
 /**
  * Helper to check if route is public/auth
@@ -15,12 +16,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 function isPublicRoute(path: string | null): boolean {
   if (!path) return true;
 
-  const publicPaths = ["/", "/login", "/register", "/signin", "/signup", "/auth"];
-
-  return (
-    publicPaths.includes(path) ||
-    publicPaths.some((p) => path.startsWith(`${p}/`) || path.startsWith(`${p}?`))
-  );
+  return isPublicPath(path);
 }
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {

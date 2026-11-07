@@ -41,6 +41,7 @@ class AuthControllerRateLimitTest {
     @MockitoBean private AuthService authService;
     @MockitoBean private GoogleAuthService googleAuthService;
     @MockitoBean private DemoService demoService;
+    @MockitoBean private com.fintrack.auth.service.PasswordResetService passwordResetService;
 
     // Required so @WebMvcTest can wire the JwtAuthenticationFilter in SecurityConfig
     @MockitoBean

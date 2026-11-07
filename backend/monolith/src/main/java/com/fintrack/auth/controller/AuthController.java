@@ -41,6 +41,11 @@ public class AuthController {
     // target email can't. Kept apart from the IP table so flooding it with fake
     // IPs can't reset an account's counter.
     private final LoginRateLimiter emailRateLimiter = new LoginRateLimiter();
+    // Reset emails: at most 3 per address per hour, so the form can't be used to spam someone
+    private final LoginRateLimiter resetEmailLimiter = new LoginRateLimiter(3, 60 * 60 * 1000L);
+    // Forgot/reset have their own per-IP limit so using them doesn't use up the sign-in attempts
+    private final LoginRateLimiter resetIpLimiter = new LoginRateLimiter(10, 15 * 60 * 1000L);
+    private final com.fintrack.auth.service.PasswordResetService passwordResetService;
 
     // App-wide signup cap. The per-IP limit can be dodged with a fake
     // X-Forwarded-For, so this bounds scripted mass sign-ups regardless of IP.
@@ -188,6 +193,57 @@ public class AuthController {
             }
         }
         return ResponseEntity.noContent().header(org.springframework.http.HttpHeaders.SET_COOKIE, authCookies.cleared()).build();
+    }
+
+    // ── POST /api/auth/forgot-password ────────────────────────────────────────
+
+    /** Body: {"email"}. Always 202 with the same message, whether or not the address has an account. */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody(required = false) Map<String, String> body,
+                                            HttpServletRequest httpRequest) {
+        String ip = resolveClientIp(httpRequest);
+        String email = body != null && body.get("email") != null ? body.get("email").trim().toLowerCase() : "";
+        if (!resetIpLimiter.tryConsume(ip)) {
+            long retryAfter = resetIpLimiter.retryAfterSeconds(ip);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header("Retry-After", String.valueOf(retryAfter))
+                    .body(Map.of("error", "Too many requests",
+                                 "message", "Please try again in " + retryAfter + " seconds."));
+        }
+        // Over the per-address limit: answer the same as usual, just don't send another email
+        if (!email.isEmpty() && resetEmailLimiter.tryConsume(email)) {
+            passwordResetService.requestReset(email);
+        }
+        return ResponseEntity.accepted().body(Map.of("message",
+                "If an account exists for that email, a reset link is on its way. It works for 30 minutes."));
+    }
+
+    // ── POST /api/auth/reset-password ─────────────────────────────────────────
+
+    /** Body: {"token", "password"}. Sets the new password and signs out every session. */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody(required = false) Map<String, String> body,
+                                           HttpServletRequest httpRequest) {
+        String ip = resolveClientIp(httpRequest);
+        if (!resetIpLimiter.tryConsume(ip)) {
+            long retryAfter = resetIpLimiter.retryAfterSeconds(ip);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header("Retry-After", String.valueOf(retryAfter))
+                    .body(Map.of("error", "Too many requests",
+                                 "message", "Please try again in " + retryAfter + " seconds."));
+        }
+        String token = body != null ? body.get("token") : null;
+        String password = body != null ? body.get("password") : null;
+        try {
+            if (!passwordResetService.resetPassword(token, password)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid link",
+                        "message", "This reset link is invalid or has expired. Please request a new one."));
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid password", "message", e.getMessage()));
+        }
+        return ResponseEntity.ok().header(org.springframework.http.HttpHeaders.SET_COOKIE, authCookies.cleared())
+                .body(Map.of("message", "Your password has been changed. Please sign in."));
     }
 
     // ── POST /api/auth/google ─────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, Suspense } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { GoogleCredentialResponse } from '@/types/google';
 import { setUser, authHeaders } from '@/lib/api';
@@ -638,12 +639,12 @@ function AuthPageContent() {
                   />
                   <span className="text-gray-400">Remember me</span>
                 </label>
-                <button
-                  type="button"
+                <Link
+                  href="/forgot-password"
                   className="text-purple-400 hover:text-purple-300 font-medium"
                 >
                   Forgot password?
-                </button>
+                </Link>
               </div>
             )}
 

@@ -6,18 +6,13 @@ import toast from "react-hot-toast";
 import { AlertTriangle, XCircle } from "lucide-react";
 import { alertService, type BudgetAlert } from "@/lib/api/services/alert.service";
 import { isAuthenticated as hasSession } from "@/lib/api";
+import { isPublicPath } from "@/lib/publicRoutes";
 
 // 🛡️ Helper to check public/auth routes
 function isPublicRoute(path: string | null): boolean {
   if (!path) return true;
 
-  const publicPaths = ["/", "/login", "/register", "/signin", "/signup"];
-  return (
-    publicPaths.includes(path) ||
-    publicPaths.some(
-      (p) => path.startsWith(`${p}/`) || path.startsWith(`${p}?`)
-    )
-  );
+  return isPublicPath(path);
 }
 
 export function BudgetAlerts() {

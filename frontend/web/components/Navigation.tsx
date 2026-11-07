@@ -9,6 +9,7 @@ import { usePWA } from "@/components/providers/PWAProvider";
 import { authAPI, isAuthenticated as hasSession, removeToken } from "@/lib/api";
 import { useThemePreference } from "@/lib/hooks/useThemePreference";
 import { CommandPalette } from "@/components/CommandPalette";
+import { isPublicPath } from '@/lib/publicRoutes';
 
 const API_BASE_URL = ''; // same-origin: /api/* is proxied to the backend (session cookies)
 
@@ -246,10 +247,7 @@ export default function Navigation() {
   const router   = useRouter();
   const pathname = usePathname() || '';
 
-  const isPublic = (p: string) => {
-    const pub = ['/', '/login', '/register', '/signin', '/signup'];
-    return pub.includes(p) || pub.some(pp => p.startsWith(`${pp}/`) || p.startsWith(`${pp}?`));
-  };
+  const isPublic = isPublicPath;
 
   // ── mount + listeners ─────────────────────────────────────────────────────
   useEffect(() => {

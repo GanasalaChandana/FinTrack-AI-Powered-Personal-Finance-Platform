@@ -90,4 +90,41 @@ class RecurringTransactionServiceTest {
         assertThat(saved.getValue().getRecurringId()).isEqualTo(1L);
         assertThat(weekly.getNextOccurrence()).isEqualTo(today.plusWeeks(1));
     }
+
+    @Test
+    @DisplayName("monthly rules keep their day: Jan 31 -> Feb 28 -> Mar 31")
+    void monthlyKeepsItsDay() {
+        LocalDate d = LocalDate.of(2026, 1, 31);
+        d = RecurringTransactionService.calculateNextOccurrence(d, "MONTHLY", 31);
+        org.assertj.core.api.Assertions.assertThat(d).isEqualTo(LocalDate.of(2026, 2, 28));
+        d = RecurringTransactionService.calculateNextOccurrence(d, "MONTHLY", 31);
+        org.assertj.core.api.Assertions.assertThat(d).isEqualTo(LocalDate.of(2026, 3, 31));
+    }
+
+    @Test
+    @DisplayName("fortnightly and quarterly rules")
+    void biweeklyAndQuarterly() {
+        org.assertj.core.api.Assertions.assertThat(
+                RecurringTransactionService.calculateNextOccurrence(LocalDate.of(2026, 10, 1), "BIWEEKLY", 1))
+                .isEqualTo(LocalDate.of(2026, 10, 15));
+        org.assertj.core.api.Assertions.assertThat(
+                RecurringTransactionService.calculateNextOccurrence(LocalDate.of(2026, 11, 30), "QUARTERLY", 30))
+                .isEqualTo(LocalDate.of(2027, 2, 28));
+    }
+
+    @Test
+    @DisplayName("resuming a paused rule skips the dates missed while paused")
+    void resumeSkipsMissedDates() {
+        RecurringTransaction r = rule(LocalDate.now().minusMonths(3), "MONTHLY", null);
+        r.setStartDate(r.getNextOccurrence());
+        r.setActive(false);
+        when(recurringRepo.findByIdAndUserId(1L, "u1")).thenReturn(java.util.Optional.of(r));
+        when(recurringRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.setActive(1L, "u1", true);
+
+        org.assertj.core.api.Assertions.assertThat(r.getActive()).isTrue();
+        org.assertj.core.api.Assertions.assertThat(r.getNextOccurrence()).isAfterOrEqualTo(LocalDate.now());
+        org.assertj.core.api.Assertions.assertThat(r.getNextOccurrence()).isBefore(LocalDate.now().plusMonths(1).plusDays(1));
+    }
 }

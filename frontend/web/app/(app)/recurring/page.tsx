@@ -109,24 +109,28 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
 // ── Frequency helpers ──────────────────────────────────────────────────────────
 
 const FREQ_LABELS: Record<string, string> = {
-  DAILY: "Daily", WEEKLY: "Weekly", MONTHLY: "Monthly", YEARLY: "Yearly",
+  DAILY: "Daily", WEEKLY: "Weekly", BIWEEKLY: "Every 2 weeks", MONTHLY: "Monthly", QUARTERLY: "Quarterly", YEARLY: "Yearly",
 };
 
 const FREQ_COLORS: Record<string, string> = {
   DAILY: "bg-purple-100 dark:bg-violet-900/20 text-purple-700 dark:text-violet-400",
   WEEKLY: "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400",
   MONTHLY: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400",
+  BIWEEKLY: "bg-sky-100 dark:bg-sky-900/20 text-sky-700 dark:text-sky-400",
+  QUARTERLY: "bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
   YEARLY: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300",
 };
 
 /** Map frontend auto-detection frequencies → backend enum values */
-function mapFrequency(freq: string): "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" {
+// (biweekly used to be saved as WEEKLY and quarterly as MONTHLY, which posted
+// those bills twice / three times as often as they really happen)
+function mapFrequency(freq: string): "DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY" {
   const f = freq.toLowerCase();
   if (f === "daily")                   return "DAILY";
   if (f === "weekly")                  return "WEEKLY";
-  if (f === "biweekly")                return "WEEKLY";  // closest
+  if (f === "biweekly")                return "BIWEEKLY";
   if (f === "monthly")                 return "MONTHLY";
-  if (f === "quarterly")               return "MONTHLY"; // closest
+  if (f === "quarterly")               return "QUARTERLY";
   if (f === "yearly" || f === "annual") return "YEARLY";
   return "MONTHLY";
 }
@@ -232,7 +236,9 @@ function AddRuleForm({ onSave, onClose }: AddRuleFormProps) {
                 className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100">
                 <option value="DAILY">Daily</option>
                 <option value="WEEKLY">Weekly</option>
+                <option value="BIWEEKLY">Every 2 weeks</option>
                 <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
                 <option value="YEARLY">Yearly</option>
               </select>
             </div>
@@ -280,10 +286,11 @@ function AddRuleForm({ onSave, onClose }: AddRuleFormProps) {
 interface SavedRulesSectionProps {
   rules:     SavedRule[];
   onDelete:  (id: number) => void;
+  onToggle:  (rule: SavedRule) => void;
   onAdd:     () => void;
 }
 
-function SavedRulesSection({ rules, onDelete, onAdd }: SavedRulesSectionProps) {
+function SavedRulesSection({ rules, onDelete, onToggle, onAdd }: SavedRulesSectionProps) {
   if (rules.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
@@ -331,7 +338,8 @@ function SavedRulesSection({ rules, onDelete, onAdd }: SavedRulesSectionProps) {
           const days      = daysUntil(rule.nextOccurrence);
           let urgency     = "";
           let urgencyClr  = "text-gray-400";
-          if (days < 0)       { urgency = "Overdue";    urgencyClr = "text-red-500"; }
+          if (!rule.active)   { urgency = "Paused";     urgencyClr = "text-gray-400"; }
+          else if (days < 0)  { urgency = "Overdue";    urgencyClr = "text-red-500"; }
           else if (days === 0){ urgency = "Due today";  urgencyClr = "text-orange-500"; }
           else if (days <= 3) { urgency = `In ${days}d`; urgencyClr = "text-orange-500"; }
           else if (days <= 7) { urgency = `In ${days}d`; urgencyClr = "text-yellow-600"; }
@@ -366,6 +374,13 @@ function SavedRulesSection({ rules, onDelete, onAdd }: SavedRulesSectionProps) {
                 </div>
               </div>
 
+              <button
+                onClick={() => onToggle(rule)}
+                aria-label={rule.active ? `Pause ${rule.description}` : `Resume ${rule.description}`}
+                title={rule.active ? "Pause: stop posting this automatically" : "Resume posting from the next due date"}
+                className="px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition flex-shrink-0">
+                {rule.active ? "Pause" : "Resume"}
+              </button>
               <button
                 onClick={() => onDelete(rule.id)}
                 className="p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition flex-shrink-0">
@@ -450,8 +465,12 @@ export default function RecurringPage() {
         amount:      Math.abs(rule.amount ?? 0),
         category:    rule.category,
         type:        (rule.type ?? "EXPENSE").toUpperCase(),
+        merchant:    rule.pattern || undefined,
         frequency:   mapFrequency(rule.frequency ?? "monthly"),
-        startDate:   today,
+        // First posting on the bill's next expected date, not today (a bill due on
+        // the 15th shouldn't be posted on the day the rule is saved)
+        startDate:   rule.nextExpectedDate && rule.nextExpectedDate.slice(0, 10) > today
+          ? rule.nextExpectedDate.slice(0, 10) : today,
       };
       await apiRequest<SavedRule>("/api/recurring-transactions", {
         method: "POST",
@@ -473,6 +492,20 @@ export default function RecurringPage() {
     await loadSavedRules();
     showToast(`Rule saved for "${payload.description}"`);
   }, [loadSavedRules, showToast]);
+
+  // Pause / resume — resuming continues from the next due date (missed ones are skipped)
+  const handleToggleSavedRule = useCallback(async (rule: SavedRule) => {
+    try {
+      const updated = await apiRequest<SavedRule>(`/api/recurring-transactions/${rule.id}/active`, {
+        method: "PATCH",
+        body: JSON.stringify({ active: !rule.active }),
+      });
+      setSavedRules((prev) => prev.map((r) => (r.id === rule.id ? updated : r)));
+      showToast(updated.active ? `Resumed "${rule.description}"` : `Paused "${rule.description}"`);
+    } catch (e) {
+      showToast(errorMessage(e) ?? "Couldn't update the rule", "error");
+    }
+  }, [showToast]);
 
   // Delete rule — shows inline confirm, then DELETE from backend
   const handleDeleteSavedRule = useCallback((id: number) => {
@@ -591,6 +624,7 @@ export default function RecurringPage() {
           <SavedRulesSection
             rules={savedRules}
             onDelete={handleDeleteSavedRule}
+            onToggle={handleToggleSavedRule}
             onAdd={() => setShowAddForm(true)}
           />
 

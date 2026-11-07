@@ -40,7 +40,7 @@ public class RecurringTransactionService {
         recurring.setMerchant(request.getMerchant());
         recurring.setCategory(request.getCategory());
         recurring.setType(request.getType());
-        recurring.setFrequency(request.getFrequency());
+        recurring.setFrequency(checkedFrequency(request.getFrequency()));
         recurring.setStartDate(request.getStartDate());
         recurring.setEndDate(request.getEndDate());
         recurring.setNextOccurrence(request.getStartDate());
@@ -80,7 +80,7 @@ public class RecurringTransactionService {
         recurring.setMerchant(request.getMerchant());
         recurring.setCategory(request.getCategory());
         recurring.setType(request.getType());
-        recurring.setFrequency(request.getFrequency());
+        recurring.setFrequency(checkedFrequency(request.getFrequency()));
         recurring.setEndDate(request.getEndDate());
         recurring.setUpdatedAt(LocalDateTime.now());
 
@@ -154,7 +154,7 @@ public class RecurringTransactionService {
     }
 
     private void updateNextOccurrence(RecurringTransaction recurring) {
-        LocalDate nextDate = calculateNextOccurrence(recurring.getNextOccurrence(), recurring.getFrequency());
+        LocalDate nextDate = calculateNextOccurrence(recurring.getNextOccurrence(), recurring.getFrequency(), anchorDay(recurring));
         recurring.setNextOccurrence(nextDate);
 
         // Deactivate if past end date
@@ -165,14 +165,63 @@ public class RecurringTransactionService {
         recurringTransactionRepository.save(recurring);
     }
 
-    private LocalDate calculateNextOccurrence(LocalDate current, String frequency) {
-        return switch (frequency.toUpperCase()) {
+    public static final java.util.Set<String> FREQUENCIES =
+            java.util.Set.of("DAILY", "WEEKLY", "BIWEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
+
+    /** The day of the month a monthly/quarterly/yearly rule falls on (from its start date). */
+    private static int anchorDay(RecurringTransaction r) {
+        LocalDate start = r.getStartDate() != null ? r.getStartDate() : r.getNextOccurrence();
+        return start.getDayOfMonth();
+    }
+
+    /**
+     * Next date after {@code current}. Month-based rules keep their day of the month:
+     * a rule on the 31st goes Jan 31 → Feb 28 → Mar 31 (it used to stay on the 28th).
+     */
+    static LocalDate calculateNextOccurrence(LocalDate current, String frequency, int anchorDay) {
+        return switch (frequency == null ? "MONTHLY" : frequency.toUpperCase(java.util.Locale.ROOT)) {
             case "DAILY" -> current.plusDays(1);
             case "WEEKLY" -> current.plusWeeks(1);
-            case "MONTHLY" -> current.plusMonths(1);
-            case "YEARLY" -> current.plusYears(1);
-            default -> current.plusMonths(1);
+            case "BIWEEKLY" -> current.plusWeeks(2);
+            case "QUARTERLY" -> onDay(current.plusMonths(3), anchorDay);
+            case "YEARLY" -> onDay(current.plusYears(1), anchorDay);
+            default -> onDay(current.plusMonths(1), anchorDay);
         };
+    }
+
+    private static LocalDate onDay(LocalDate inMonth, int day) {
+        return inMonth.withDayOfMonth(Math.min(day, inMonth.lengthOfMonth()));
+    }
+
+    /**
+     * Pause or resume a rule. Resuming continues from the next date that is today or
+     * later, rather than creating every occurrence missed while paused.
+     */
+    @Transactional
+    public RecurringTransactionResponse setActive(Long id, String userId, boolean active) {
+        RecurringTransaction r = recurringTransactionRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Recurring transaction not found"));
+        if (active && !Boolean.TRUE.equals(r.getActive())) {
+            LocalDate today = LocalDate.now();
+            int guard = 0;
+            while (r.getNextOccurrence().isBefore(today) && guard++ < 2000) {
+                r.setNextOccurrence(calculateNextOccurrence(r.getNextOccurrence(), r.getFrequency(), anchorDay(r)));
+            }
+            if (r.getEndDate() != null && r.getNextOccurrence().isAfter(r.getEndDate())) {
+                throw new com.fintrack.common.BadRequestException("This rule has ended; change its end date to resume it");
+            }
+        }
+        r.setActive(active);
+        r.setUpdatedAt(LocalDateTime.now());
+        return mapToResponse(recurringTransactionRepository.save(r));
+    }
+
+    private static String checkedFrequency(String f) {
+        String up = f == null ? "" : f.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!FREQUENCIES.contains(up)) {
+            throw new com.fintrack.common.BadRequestException("Frequency must be one of " + FREQUENCIES);
+        }
+        return up;
     }
 
     private RecurringTransactionResponse mapToResponse(RecurringTransaction recurring) {

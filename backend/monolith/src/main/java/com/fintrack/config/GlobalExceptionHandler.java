@@ -58,6 +58,12 @@ public class GlobalExceptionHandler {
         return body(HttpStatus.BAD_REQUEST, message, errors);
     }
 
+    @ExceptionHandler(com.fintrack.common.BadRequestException.class)
+    public ResponseEntity<Map<String, Object>> handleBadRequest(com.fintrack.common.BadRequestException ex) {
+        // Messages written by our own code ("Frequency must be one of ...")
+        return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleUnreadable(HttpMessageNotReadableException ex) {
         return body(HttpStatus.BAD_REQUEST, "Malformed request body", null);

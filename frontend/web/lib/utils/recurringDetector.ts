@@ -278,6 +278,7 @@ export function createRecurringRule(recurring: RecurringTransaction) {
     type: recurring.pattern.type,
     dayOfWeek: recurring.pattern.dayOfWeek,
     dayOfMonth: recurring.pattern.dayOfMonth,
+    nextExpectedDate: recurring.nextExpectedDate,
     confidence: recurring.confidence,
   };
 }

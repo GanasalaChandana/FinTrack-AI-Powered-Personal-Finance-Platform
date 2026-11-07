@@ -48,6 +48,17 @@ public class RecurringTransactionController {
         return ResponseEntity.ok(transaction);
     }
 
+    /** Body: {"active": true|false}. Pause or resume a rule. */
+    @PatchMapping("/{id}/active")
+    public ResponseEntity<RecurringTransactionResponse> setActive(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, Boolean> body) {
+        Boolean active = body == null ? null : body.get("active");
+        if (active == null) return ResponseEntity.badRequest().build();
+        return ResponseEntity.ok(recurringTransactionService.setActive(id, userId, active));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<RecurringTransactionResponse> updateRecurringTransaction(
             @RequestHeader("X-User-Id") String userId,

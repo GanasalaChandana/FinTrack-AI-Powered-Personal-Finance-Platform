@@ -22,7 +22,7 @@ public class CreateRecurringTransactionRequest {
     private String type; // INCOME or EXPENSE
 
     @NotBlank
-    private String frequency; // DAILY, WEEKLY, MONTHLY, YEARLY
+    private String frequency; // DAILY, WEEKLY, BIWEEKLY, MONTHLY, QUARTERLY, YEARLY
 
     @NotNull
     private LocalDate startDate;

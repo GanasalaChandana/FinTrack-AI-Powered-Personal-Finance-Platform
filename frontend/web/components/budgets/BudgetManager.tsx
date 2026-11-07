@@ -3,9 +3,9 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import {
   Plus, X, Edit2, Trash2, AlertTriangle, TrendingUp,
-  Wallet, PiggyBank, Loader2, Sparkles, Calendar, Shield,
+  Wallet, PiggyBank, Loader2, Sparkles, Calendar, Shield, Users,
 } from "lucide-react";
-import { userCurrency } from "@/lib/userPrefs";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 
 export interface Budget {
@@ -15,6 +15,10 @@ export interface Budget {
   spent: number;
   icon: string;
   color: string;
+  /** Shared with the household: spending counts every member */
+  shared?: boolean;
+  /** Created by the current user (only the creator can delete it or change sharing) */
+  mine?: boolean;
 }
 
 interface BudgetManagerProps {
@@ -23,6 +27,8 @@ interface BudgetManagerProps {
   onUpdateBudget: (id: Budget["id"], budget: Partial<Budget>) => Promise<void>;
   onDeleteBudget: (id: Budget["id"]) => Promise<void>;
   onSuggest?: () => void;   // opens the AI smart-suggestions modal
+  /** The user's household name, when they are in one (enables sharing) */
+  householdName?: string | null;
 }
 
 type Mode = "add" | "edit";
@@ -32,6 +38,7 @@ interface FormState {
   budget: string;
   icon: string;
   color: string;
+  share: boolean;
 }
 
 const PRESET_CATEGORIES = [
@@ -230,12 +237,12 @@ function DeleteConfirmModal({
 
 // ── BudgetManager ─────────────────────────────────────────────────────────────
 
-export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBudget, onSuggest }: BudgetManagerProps) {
+export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBudget, onSuggest, householdName }: BudgetManagerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("add");
   const [editingId, setEditingId] = useState<Budget["id"] | null>(null);
-  const [form, setForm] = useState<FormState>({ category: "", budget: "", icon: "💰", color: "#3b82f6" });
-  const [errors, setErrors] = useState<Partial<FormState>>({});
+  const [form, setForm] = useState<FormState>({ category: "", budget: "", icon: "💰", color: "#3b82f6", share: false });
+  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<Budget["id"] | null>(null);
   const [pendingDeleteBudget, setPendingDeleteBudget] = useState<Budget | null>(null);
@@ -281,17 +288,21 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
 
   const openAddModal = () => {
     setMode("add"); setEditingId(null);
-    setForm({ category: "", budget: "", icon: "💰", color: "#3b82f6" });
+    setForm({ category: "", budget: "", icon: "💰", color: "#3b82f6", share: false });
     setErrors({}); setIsModalOpen(true);
   };
   const openEditModal = (b: Budget) => {
     setMode("edit"); setEditingId(b.id);
-    setForm({ category: b.category, budget: String(b.budget), icon: b.icon, color: b.color });
+    setForm({ category: b.category, budget: String(b.budget), icon: b.icon, color: b.color, share: !!b.shared });
     setErrors({}); setIsModalOpen(true);
   };
 
-  const validate = (f: FormState): Partial<FormState> => {
-    const e: Partial<FormState> = {};
+  // Sharing can be set when the user is in a household and created the budget
+  const editing = budgets.find((b) => b.id === editingId);
+  const canShare = !!householdName && (mode === "add" || editing?.mine !== false);
+
+  const validate = (f: FormState): Partial<Record<keyof FormState, string>> => {
+    const e: Partial<Record<keyof FormState, string>> = {};
     if (!f.category.trim()) e.category = "Please select or enter a category";
     if (!f.budget.trim() || isNaN(Number(f.budget)) || Number(f.budget) <= 0) e.budget = "Enter a valid positive amount";
     return e;
@@ -305,6 +316,7 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
     const payload = {
       category: form.category.trim(), budget: Number(form.budget),
       icon: form.icon.trim() || "💰", color: form.color,
+      ...(canShare ? { shareWithHousehold: form.share } : {}),
     };
     setIsSaving(true);
     try {
@@ -355,7 +367,7 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
         </div>
 
         {isModalOpen && <BudgetModal mode={mode} form={form} errors={errors} isSaving={isSaving}
-          onChange={setForm} onClose={() => setIsModalOpen(false)} onSubmit={handleSubmit} />}
+          onChange={setForm} onClose={() => setIsModalOpen(false)} onSubmit={handleSubmit} householdName={canShare ? householdName : null} />}
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       </div>
     );
@@ -520,7 +532,10 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
                         </div>
                         <div className="min-w-0">
                           <h3 className="font-bold text-gray-900 dark:text-gray-100 leading-tight truncate text-sm">{b.category}</h3>
-                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Limit: {fmt(b.budget)}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                            Limit: {fmt(b.budget)}
+                            {b.shared && <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/40 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-300"><Users className="w-2.5 h-2.5" /> Shared</span>}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
@@ -528,12 +543,12 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
                           className="p-1.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-300 dark:text-gray-600 hover:text-indigo-500 transition-all" aria-label="Edit">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => setPendingDeleteBudget(b)}
+                        {b.mine !== false && <button onClick={() => setPendingDeleteBudget(b)}
                           className="p-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-300 dark:text-gray-600 hover:text-red-400 transition-all" aria-label="Delete">
                           {isCurrentlyDeleting
                             ? <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />
                             : <Trash2 className="w-3.5 h-3.5" />}
-                        </button>
+                        </button>}
                       </div>
                     </div>
 
@@ -591,7 +606,7 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
 
       {isModalOpen && (
         <BudgetModal mode={mode} form={form} errors={errors} isSaving={isSaving}
-          onChange={setForm} onClose={() => !isSaving && setIsModalOpen(false)} onSubmit={handleSubmit} />
+          onChange={setForm} onClose={() => !isSaving && setIsModalOpen(false)} onSubmit={handleSubmit} householdName={canShare ? householdName : null} />
       )}
       {pendingDeleteBudget && (
         <DeleteConfirmModal categoryName={pendingDeleteBudget.category}
@@ -626,11 +641,13 @@ function SummaryCard({ label, value, sub, Icon, bgAccent, textAccent, valueColor
 // ── Budget Modal ──────────────────────────────────────────────────────────────
 
 interface BudgetModalProps {
-  mode: Mode; form: FormState; errors: Partial<FormState>; isSaving: boolean;
+  mode: Mode; form: FormState; errors: Partial<Record<keyof FormState, string>>; isSaving: boolean;
   onChange: (f: FormState) => void; onClose: () => void; onSubmit: (e: React.FormEvent) => void;
+  /** Set when the share toggle should be shown */
+  householdName?: string | null;
 }
 
-function BudgetModal({ mode, form, errors, isSaving, onChange, onClose, onSubmit }: BudgetModalProps) {
+function BudgetModal({ mode, form, errors, isSaving, onChange, onClose, onSubmit, householdName }: BudgetModalProps) {
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
       <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col max-h-[90vh]">
@@ -671,7 +688,7 @@ function BudgetModal({ mode, form, errors, isSaving, onChange, onClose, onSubmit
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Monthly Limit ($)</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Monthly Limit ({currencySymbol()})</label>
             <input type="number" min={0.01} step="0.01" value={form.budget}
               onChange={(e) => onChange({ ...form, budget: e.target.value })}
               placeholder="e.g., 300"
@@ -698,6 +715,17 @@ function BudgetModal({ mode, form, errors, isSaving, onChange, onClose, onSubmit
               </div>
             </div>
           </div>
+
+          {householdName && (
+            <label className="flex items-start gap-3 rounded-xl border-2 border-gray-100 dark:border-gray-600 px-4 py-3 cursor-pointer">
+              <input type="checkbox" checked={form.share} onChange={(e) => onChange({ ...form, share: e.target.checked })}
+                className="mt-0.5 h-4 w-4 accent-indigo-600" />
+              <span className="text-sm">
+                <span className="font-semibold text-gray-800 dark:text-gray-100">Share with {householdName}</span>
+                <span className="block text-xs text-gray-500 dark:text-gray-400">Everyone in the household sees this budget and their spending in this category counts toward it. Transactions stay private.</span>
+              </span>
+            </label>
+          )}
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} disabled={isSaving}

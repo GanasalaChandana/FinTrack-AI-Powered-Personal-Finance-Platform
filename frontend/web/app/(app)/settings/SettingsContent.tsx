@@ -2,15 +2,16 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { type LucideIcon, Landmark, User, Lock, Globe, Tag, Download, Trash2, Save, Eye, EyeOff, Shield, Loader2, CheckCircle, Bell, Sun, Moon, Monitor, FileJson, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { type LucideIcon, Home, Landmark, User, Lock, Globe, Tag, Download, Trash2, Save, Eye, EyeOff, Shield, Loader2, CheckCircle, Bell, Sun, Moon, Monitor, FileJson, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { apiRequest, getUser, removeToken, type Transaction } from '@/lib/api';
 import { errorMessage } from "@/lib/utils/errors";
 import { CategoryModelCard } from '@/components/CategoryModelCard';
 import { BankConnections } from '@/components/BankConnections';
+import { HouseholdSettings } from '@/components/HouseholdSettings';
 import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 /* ===================== Types ===================== */
-type TabKey = 'profile' | 'security' | 'preferences' | 'categories' | 'notifications' | 'banks';
+type TabKey = 'profile' | 'security' | 'preferences' | 'categories' | 'notifications' | 'banks' | 'household';
 
 interface ProfileData {
   firstName: string;
@@ -94,7 +95,7 @@ const DEFAULT_NOTIFS: NotificationPrefs = {
 };
 
 const isTab = (v: string | null): v is TabKey =>
-  v === 'profile' || v === 'security' || v === 'preferences' || v === 'categories' || v === 'notifications' || v === 'banks';
+  v === 'profile' || v === 'security' || v === 'preferences' || v === 'categories' || v === 'notifications' || v === 'banks' || v === 'household';
 
 /* ===================== Main Component ===================== */
 export default function SettingsContent() {
@@ -353,6 +354,7 @@ export default function SettingsContent() {
     { key: 'notifications', label: 'Notifications', Icon: Bell   },
     { key: 'categories',    label: 'Categories',    Icon: Tag    },
     { key: 'banks',         label: 'Bank accounts', Icon: Landmark },
+    { key: 'household',     label: 'Household',     Icon: Home },
   ];
 
   /* ===================== UI ===================== */
@@ -662,7 +664,12 @@ export default function SettingsContent() {
           </div>
         )}
 
-        {/* ── CATEGORIES ── */}
+        {activeTab === 'household' && (
+          <div className="space-y-6">
+            <HouseholdSettings notify={(m, t) => showToast(m, t)} />
+          </div>
+        )}
+
         {activeTab === 'banks' && (
           <div className="space-y-6">
             <BankConnections notify={(m, t) => showToast(m, t)} />

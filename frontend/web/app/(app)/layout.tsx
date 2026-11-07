@@ -19,7 +19,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       const token = hasSession();
 
       if (!token) {
-        const next = pathname && pathname !== "/" ? `?next=${encodeURIComponent(pathname)}` : "";
+        const next = pathname && pathname !== "/" ? `?next=${encodeURIComponent(pathname + window.location.search)}` : "";
         router.replace(`/login${next}`);
       } else {
         setIsAuthenticated(true);

@@ -61,6 +61,25 @@ public class Budget {
     @Column(name = "end_date")
     private LocalDateTime endDate;
 
+    /**
+     * The household this budget is shared with (null = personal). Set by the server
+     * from the user's own household, never from the request body.
+     */
+    @Column(name = "household_id")
+    @com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.READ_ONLY)
+    private java.util.UUID householdId;
+
+    /** Request-only: true to share with the user's household, false to make it personal. */
+    @Transient
+    @com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY)
+    private Boolean shareWithHousehold;
+
+    /** Response-only: whether this budget is shared with the household. */
+    @com.fasterxml.jackson.annotation.JsonProperty("shared")
+    public boolean isSharedWithHousehold() {
+        return householdId != null;
+    }
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

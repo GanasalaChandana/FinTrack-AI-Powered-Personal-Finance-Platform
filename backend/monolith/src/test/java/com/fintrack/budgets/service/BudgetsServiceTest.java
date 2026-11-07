@@ -38,6 +38,9 @@ class BudgetsServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+    @Mock
+    private com.fintrack.households.HouseholdService households;
+
     @InjectMocks
     private BudgetsService budgetsService;
 

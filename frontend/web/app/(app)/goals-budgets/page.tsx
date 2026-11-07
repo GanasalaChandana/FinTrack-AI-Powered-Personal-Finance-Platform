@@ -1195,6 +1195,7 @@ export default function GoalsBudgetsPage() {
   const [isLoading,       setIsLoading]       = useState(true);
   const [isFetching,      setIsFetching]      = useState(false);
   const [budgets,         setBudgets]         = useState<Budget[]>([]);
+  const [householdName,   setHouseholdName]   = useState<string | null>(null);
   const [allTransactions, setAllTransactions] = useState<ApiTransaction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showWizard5030,  setShowWizard5030]  = useState(false);
@@ -1251,11 +1252,14 @@ export default function GoalsBudgetsPage() {
     else setIsFetching(true);
 
     try {
-      const [rawBudgets, transactions] = await Promise.all([
+      const [rawBudgets, transactions, household] = await Promise.all([
         // older payloads named the amount limit/amount
         apiRequest<(ApiBudget & { limit?: number; amount?: number })[]>("/api/budgets", { method: "GET" }),
         apiRequest<ApiTransaction[]>("/api/transactions", { method: "GET" }).catch(() => [] as ApiTransaction[]),
+        apiRequest<{ id?: string; name?: string } | null>("/api/households/me", { method: "GET" }).catch(() => null), // {} when not in one
       ]);
+      setHouseholdName(household?.id ? household.name ?? null : null);
+      const me = getUser()?.id;
 
       // Store all transactions so the AI suggestion modal can analyse them
       setAllTransactions(Array.isArray(transactions) ? transactions : []);
@@ -1270,10 +1274,13 @@ export default function GoalsBudgetsPage() {
       );
       const normalized = validBudgets.map((b) => {
         const budgetAmount = Number(b.budget ?? b.limit ?? b.amount ?? 0);
-        const spent = allExpenses
+        const shared = !!(b as { shared?: boolean }).shared;
+        // A shared budget counts every member's spending, which only the server can see
+        const spent = shared ? Number(b.spent ?? 0) : allExpenses
           .filter((t) => (t.date ?? "").slice(0, 7) === activeMonth && categoryMatches(b.category, t.category ?? ""))
           .reduce((sum: number, t) => sum + Math.abs(Number(t.amount ?? 0)), 0);
-        return { id: String(b.id), category: b.category, budget: budgetAmount, spent: Math.round(spent * 100) / 100, icon: b.icon || "💰", color: b.color || "#3b82f6" } as Budget;
+        return { id: String(b.id), category: b.category, budget: budgetAmount, spent: Math.round(spent * 100) / 100, icon: b.icon || "💰", color: b.color || "#3b82f6",
+          shared, mine: !b.userId || !me || String(b.userId) === String(me) } as Budget;
       });
       setBudgets(normalized);
     } catch {
@@ -1296,9 +1303,10 @@ export default function GoalsBudgetsPage() {
   }, [fetchBudgets]);
 
   const handleAddBudget = async (budgetData: Omit<Budget, "id" | "spent">) => {
+    const { shareWithHousehold } = budgetData as { shareWithHousehold?: boolean };
     await apiRequest("/api/budgets", {
       method: "POST",
-      body: JSON.stringify({ category: budgetData.category, budget: budgetData.budget, icon: budgetData.icon || "💰", color: budgetData.color || "#3b82f6", spent: 0, month: getLocalYearMonth() }),
+      body: JSON.stringify({ category: budgetData.category, budget: budgetData.budget, icon: budgetData.icon || "💰", color: budgetData.color || "#3b82f6", spent: 0, month: getLocalYearMonth(), shareWithHousehold }),
     });
     await fetchBudgets({ silent: true });
   };
@@ -1307,7 +1315,8 @@ export default function GoalsBudgetsPage() {
     const existing = budgets.find((b) => b.id === id);
     await apiRequest(`/api/budgets/${id}`, {
       method: "PUT",
-      body: JSON.stringify({ category: updates.category ?? existing?.category, budget: updates.budget ?? existing?.budget, icon: updates.icon ?? existing?.icon ?? "💰", color: updates.color ?? existing?.color ?? "#3b82f6" }),
+      body: JSON.stringify({ category: updates.category ?? existing?.category, budget: updates.budget ?? existing?.budget, icon: updates.icon ?? existing?.icon ?? "💰", color: updates.color ?? existing?.color ?? "#3b82f6",
+        shareWithHousehold: (updates as { shareWithHousehold?: boolean }).shareWithHousehold }),
     });
     await fetchBudgets({ silent: true });
   };
@@ -1495,6 +1504,7 @@ export default function GoalsBudgetsPage() {
                 onAddBudget={handleAddBudget}
                 onUpdateBudget={handleUpdateBudget}
                 onDeleteBudget={handleDeleteBudget}
+                householdName={householdName}
                 onSuggest={() => setShowSuggestions(true)}
               />
             </>

@@ -160,6 +160,10 @@ public class BudgetController {
             Budget createdBudget = budgetsService.createBudget(budget);
             log.debug("Budget created id={} for userId={}", createdBudget.getId(), userId);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdBudget);
+        } catch (com.fintrack.budgets.exception.UnauthorizedException
+                 | com.fintrack.budgets.exception.ResourceNotFoundException
+                 | com.fintrack.common.BadRequestException e) {
+            throw e; // 403 / 404 / 400 via GlobalExceptionHandler
         } catch (Exception e) {
             log.error("Error creating budget: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -199,6 +203,10 @@ public class BudgetController {
             Budget updatedBudget = budgetsService.updateBudget(String.valueOf(id), budget, userId);
             log.debug("Budget {} updated for userId={}", id, userId);
             return ResponseEntity.ok(updatedBudget);
+        } catch (com.fintrack.budgets.exception.UnauthorizedException
+                 | com.fintrack.budgets.exception.ResourceNotFoundException
+                 | com.fintrack.common.BadRequestException e) {
+            throw e; // 403 / 404 / 400 via GlobalExceptionHandler
         } catch (Exception e) {
             log.error("Error updating budget {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -271,6 +279,10 @@ public class BudgetController {
             budgetsService.deleteBudget(String.valueOf(id), userId);
             log.info("Budget {} deleted successfully", id);
             return ResponseEntity.ok(Map.of("message", "Budget deleted successfully"));
+        } catch (com.fintrack.budgets.exception.UnauthorizedException
+                 | com.fintrack.budgets.exception.ResourceNotFoundException
+                 | com.fintrack.common.BadRequestException e) {
+            throw e; // 403 / 404 / 400 via GlobalExceptionHandler
         } catch (Exception e) {
             log.error("Error deleting budget {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

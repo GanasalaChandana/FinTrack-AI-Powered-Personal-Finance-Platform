@@ -25,6 +25,7 @@ public class BudgetsService {
 
     private final BudgetRepository budgetRepository;
     private final TransactionRepository transactionRepository;
+    private final com.fintrack.households.HouseholdService households;
 
     // ─── Auto-sync helper ────────────────────────────────────────────────────
 
@@ -40,8 +41,16 @@ public class BudgetsService {
                     ? budget.getMonth()
                     : YearMonth.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
 
-            BigDecimal spent = transactionRepository.sumExpensesByCategoryAndMonth(
-                    budget.getUserId(), budget.getCategory(), month);
+            // A household budget counts every member's spending in the category
+            java.util.List<String> people = budget.getHouseholdId() != null
+                    ? households.memberIds(budget.getHouseholdId())
+                    : java.util.List.of(budget.getUserId());
+            if (people.isEmpty()) people = java.util.List.of(budget.getUserId());
+            BigDecimal spent = BigDecimal.ZERO;
+            for (String person : people) {
+                BigDecimal s = transactionRepository.sumExpensesByCategoryAndMonth(person, budget.getCategory(), month);
+                if (s != null) spent = spent.add(s);
+            }
 
             double spentValue = spent != null ? spent.doubleValue() : 0.0;
 
@@ -72,9 +81,19 @@ public class BudgetsService {
     public List<Budget> getAllBudgetsByUserId(String userId, String month) {
         List<Budget> budgets;
         if (month != null && !month.isEmpty()) {
-            budgets = budgetRepository.findByUserIdAndMonth(userId, month);
+            budgets = new java.util.ArrayList<>(budgetRepository.findByUserIdAndMonth(userId, month));
         } else {
-            budgets = budgetRepository.findByUserId(userId);
+            budgets = new java.util.ArrayList<>(budgetRepository.findByUserId(userId));
+        }
+        // Plus the budgets other household members share
+        java.util.Optional<java.util.UUID> household = households.householdOf(userId);
+        if (household.isPresent()) {
+            List<Budget> shared = month != null && !month.isEmpty()
+                    ? budgetRepository.findByHouseholdIdAndMonth(household.get(), month)
+                    : budgetRepository.findByHouseholdId(household.get());
+            for (Budget b : shared) {
+                if (!userId.equals(b.getUserId())) budgets.add(b);
+            }
         }
         // Auto-sync spent from actual transactions on every fetch
         return syncAllSpent(budgets);
@@ -100,7 +119,7 @@ public class BudgetsService {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Budget not found"));
 
-        if (!budget.getUserId().equals(userId)) {
+        if (!canAccess(budget, userId)) {
             throw new UnauthorizedException("You don't have permission to access this budget");
         }
 
@@ -108,8 +127,31 @@ public class BudgetsService {
         return syncSpent(budget);
     }
 
+    /** The creator, or a member of the household the budget is shared with. */
+    private boolean canAccess(Budget budget, String userId) {
+        if (budget.getUserId().equals(userId)) return true;
+        return budget.getHouseholdId() != null
+                && households.householdOf(userId).map(budget.getHouseholdId()::equals).orElse(false);
+    }
+
+    /** Applies a request's shareWithHousehold: true -> the user's own household, false -> personal. */
+    private void applySharing(Budget budget, Boolean share, String userId) {
+        if (share == null) return;
+        if (!budget.getUserId().equals(userId)) {
+            throw new UnauthorizedException("Only the person who created this budget can change its sharing");
+        }
+        if (share) {
+            budget.setHouseholdId(households.householdOf(userId).orElseThrow(
+                    () -> new com.fintrack.common.BadRequestException("Join or create a household to share budgets")));
+        } else {
+            budget.setHouseholdId(null);
+        }
+    }
+
     @Transactional
     public Budget createBudget(Budget budget) {
+        budget.setHouseholdId(null); // never from the request body
+        applySharing(budget, budget.getShareWithHousehold(), budget.getUserId());
         // Set default values if not provided
         if (budget.getSpent() == null) {
             budget.setSpent(0.0);
@@ -149,6 +191,7 @@ public class BudgetsService {
     @Transactional
     public Budget updateBudget(String id, Budget budgetUpdate, String userId) {
         Budget budget = getBudgetById(id, userId);
+        applySharing(budget, budgetUpdate.getShareWithHousehold(), userId);
 
         if (budgetUpdate.getCategory() != null) {
             budget.setCategory(budgetUpdate.getCategory());
@@ -191,6 +234,9 @@ public class BudgetsService {
     @Transactional
     public void deleteBudget(String id, String userId) {
         Budget budget = getBudgetById(id, userId);
+        if (!budget.getUserId().equals(userId)) {
+            throw new UnauthorizedException("Only the person who created this budget can delete it");
+        }
         budgetRepository.delete(budget);
     }
 

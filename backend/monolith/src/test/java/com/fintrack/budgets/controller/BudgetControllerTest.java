@@ -298,14 +298,14 @@ class BudgetControllerTest {
         }
 
         @Test
-        @DisplayName("returns 500 when budget belongs to another user (service throws)")
-        void returns500ForWrongUser() throws Exception {
+        @DisplayName("returns 403 when budget belongs to another user (service throws)")
+        void returns403ForWrongUser() throws Exception {
             doThrow(new UnauthorizedException("Forbidden"))
                     .when(budgetsService).deleteBudget("1", USER_ID);
 
             mockMvc.perform(delete("/api/budgets/1")
                             .header("X-User-Id", USER_ID))
-                    .andExpect(status().isInternalServerError());
+                    .andExpect(status().isForbidden());
         }
     }
 }

@@ -45,7 +45,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     // For protected pages, check token
     const token = hasSession();
     if (!token) {
-      router.replace("/register?mode=signin&reason=auth_required");
+      // Sign in, then come back here (e.g. a household invite link)
+      const here = pathname && pathname !== "/" ? `&next=${encodeURIComponent(pathname + window.location.search)}` : "";
+      router.replace(`/login?mode=signin&reason=auth_required${here}`);
       return;
     }
 

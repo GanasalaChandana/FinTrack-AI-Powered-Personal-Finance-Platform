@@ -41,6 +41,9 @@ function AuthPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialMode = searchParams?.get('mode') === 'signup' ? 'signup' : 'signin';
+  // Where to go after signing in (same-site paths only, e.g. a household invite link)
+  const rawNext = searchParams?.get('next') ?? '';
+  const afterLogin = rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.startsWith('/\\') ? rawNext : '/dashboard';
   
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
   const [formData, setFormData] = useState({
@@ -225,7 +228,7 @@ function AuthPageContent() {
       if (data.user) {
         setUser(data.user);
         setSuccess(true);
-        setTimeout(() => router.push('/dashboard'), 1000);
+        setTimeout(() => router.push(afterLogin), 1000);
       } else {
         throw new Error('Sign-in failed: no user in the response');
       }
@@ -377,7 +380,7 @@ function AuthPageContent() {
       if (data.user) {
         setUser(data.user);
         setSuccess(true);
-        setTimeout(() => router.push('/dashboard'), 1000);
+        setTimeout(() => router.push(afterLogin), 1000);
       } else {
         throw new Error('Sign-in failed: no user in the response');
       }

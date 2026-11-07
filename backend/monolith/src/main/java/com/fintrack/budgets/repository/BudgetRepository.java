@@ -27,4 +27,19 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
     @Transactional
     @Query("DELETE FROM Budget b WHERE b.userId = :userId")
     void deleteAllByUserId(@Param("userId") String userId);
+
+    List<Budget> findByHouseholdIdAndMonth(java.util.UUID householdId, String month);
+
+    List<Budget> findByHouseholdId(java.util.UUID householdId);
+
+    /** Make a user's shared budgets personal again (they left or were removed). */
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("UPDATE Budget b SET b.householdId = NULL WHERE b.userId = :userId AND b.householdId IS NOT NULL")
+    int unshareAllForUser(@org.springframework.data.repository.query.Param("userId") String userId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("UPDATE Budget b SET b.householdId = NULL WHERE b.householdId = :householdId")
+    int unshareAllForHousehold(@org.springframework.data.repository.query.Param("householdId") java.util.UUID householdId);
 }

@@ -139,4 +139,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("month") String month);
 
     long countByUserId(String userId);
+
+    java.util.Optional<Transaction> findByUserIdAndExternalId(String userId, String externalId);
+
+    boolean existsByUserIdAndExternalId(String userId, String externalId);
 }

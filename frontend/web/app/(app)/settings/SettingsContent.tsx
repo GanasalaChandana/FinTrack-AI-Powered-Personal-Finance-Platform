@@ -2,14 +2,15 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { type LucideIcon, User, Lock, Globe, Tag, Download, Trash2, Save, Eye, EyeOff, Shield, Loader2, CheckCircle, Bell, Sun, Moon, Monitor, FileJson, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { type LucideIcon, Landmark, User, Lock, Globe, Tag, Download, Trash2, Save, Eye, EyeOff, Shield, Loader2, CheckCircle, Bell, Sun, Moon, Monitor, FileJson, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { apiRequest, getUser, removeToken, type Transaction } from '@/lib/api';
 import { errorMessage } from "@/lib/utils/errors";
 import { CategoryModelCard } from '@/components/CategoryModelCard';
+import { BankConnections } from '@/components/BankConnections';
 import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 /* ===================== Types ===================== */
-type TabKey = 'profile' | 'security' | 'preferences' | 'categories' | 'notifications';
+type TabKey = 'profile' | 'security' | 'preferences' | 'categories' | 'notifications' | 'banks';
 
 interface ProfileData {
   firstName: string;
@@ -93,7 +94,7 @@ const DEFAULT_NOTIFS: NotificationPrefs = {
 };
 
 const isTab = (v: string | null): v is TabKey =>
-  v === 'profile' || v === 'security' || v === 'preferences' || v === 'categories' || v === 'notifications';
+  v === 'profile' || v === 'security' || v === 'preferences' || v === 'categories' || v === 'notifications' || v === 'banks';
 
 /* ===================== Main Component ===================== */
 export default function SettingsContent() {
@@ -351,6 +352,7 @@ export default function SettingsContent() {
     { key: 'preferences',   label: 'Preferences',   Icon: Globe  },
     { key: 'notifications', label: 'Notifications', Icon: Bell   },
     { key: 'categories',    label: 'Categories',    Icon: Tag    },
+    { key: 'banks',         label: 'Bank accounts', Icon: Landmark },
   ];
 
   /* ===================== UI ===================== */
@@ -661,6 +663,12 @@ export default function SettingsContent() {
         )}
 
         {/* ── CATEGORIES ── */}
+        {activeTab === 'banks' && (
+          <div className="space-y-6">
+            <BankConnections notify={(m, t) => showToast(m, t)} />
+          </div>
+        )}
+
         {activeTab === 'categories' && (
           <div className="space-y-6">
             <CategoryModelCard />

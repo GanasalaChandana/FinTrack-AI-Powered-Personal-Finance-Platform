@@ -84,6 +84,10 @@ public class Transaction {
     @Column(name = "payment_method", length = 100)
     private String paymentMethod;
 
+    /** Where an imported transaction came from, e.g. "plaid:<transaction_id>" (null if entered by hand). */
+    @Column(name = "external_id", length = 255)
+    private String externalId;
+
     // Set when created by a recurring rule; unique with date, so an occurrence is never created twice
     @Column(name = "recurring_id")
     private Long recurringId;

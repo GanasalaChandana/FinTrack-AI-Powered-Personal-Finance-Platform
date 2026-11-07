@@ -64,6 +64,12 @@ public class GlobalExceptionHandler {
         return body(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
 
+    /** A Plaid (bank connection) error: its message is written for end users. */
+    @ExceptionHandler(com.fintrack.plaid.PlaidClient.PlaidException.class)
+    public ResponseEntity<Map<String, Object>> handlePlaid(com.fintrack.plaid.PlaidClient.PlaidException ex) {
+        return body(HttpStatus.BAD_GATEWAY, "Bank connection error: " + ex.getMessage(), null);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleUnreadable(HttpMessageNotReadableException ex) {
         return body(HttpStatus.BAD_REQUEST, "Malformed request body", null);

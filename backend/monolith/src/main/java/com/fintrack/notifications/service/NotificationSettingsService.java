@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.function.Consumer;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -14,43 +16,39 @@ public class NotificationSettingsService {
 
     private final NotificationSettingsRepository repo;
 
-    @Transactional(readOnly = true)
+    /** The user's settings, created with the defaults on first use. */
     public NotificationSettingsDto get(String userId) {
-        return toDto(repo.findById(userId)
-                .orElseGet(() -> repo.save(NotificationSettings.builder()
-                        .userId(userId)
-                        .emailEnabled(true)
-                        .pushEnabled(true)
-                        .budgetAlertsEnabled(true)
-                        .transactionAlertsEnabled(true)
-                        .systemNotificationsEnabled(true)
-                        .build())));
+        // Not read-only: the first call stores the defaults
+        return toDto(entity(userId));
     }
 
+    /** Updates the fields that are set (non-null) in the DTO. */
     public NotificationSettingsDto update(String userId, NotificationSettingsDto dto) {
-        NotificationSettings s = repo.findById(userId).orElseGet(() -> {
-            NotificationSettings ns = new NotificationSettings();
-            ns.setUserId(userId);
-            return ns;
-        });
-        s.setEmailEnabled(dto.emailEnabled());
-        s.setPushEnabled(dto.pushEnabled());
-        s.setBudgetAlertsEnabled(dto.budgetAlertsEnabled());
-        s.setTransactionAlertsEnabled(dto.transactionAlertsEnabled());
-        s.setSystemNotificationsEnabled(dto.systemNotificationsEnabled());
+        NotificationSettings s = entity(userId);
+        set(dto.emailEnabled(), s::setEmailEnabled);
+        set(dto.pushEnabled(), s::setPushEnabled);
+        set(dto.budgetAlertsEnabled(), s::setBudgetAlertsEnabled);
+        set(dto.transactionAlertsEnabled(), s::setTransactionAlertsEnabled);
+        set(dto.systemNotificationsEnabled(), s::setSystemNotificationsEnabled);
+        set(dto.weeklyDigest(), s::setWeeklyDigest);
+        set(dto.goalMilestones(), s::setGoalMilestones);
+        set(dto.monthlyReport(), s::setMonthlyReport);
+        set(dto.unusualSpending(), s::setUnusualSpending);
+        set(dto.largeTransactionThreshold(), s::setLargeTransactionThreshold);
         return toDto(repo.save(s));
     }
 
     public NotificationSettingsDto reset(String userId) {
-        NotificationSettings s = NotificationSettings.builder()
-                .userId(userId)
-                .emailEnabled(true)
-                .pushEnabled(true)
-                .budgetAlertsEnabled(true)
-                .transactionAlertsEnabled(true)
-                .systemNotificationsEnabled(true)
-                .build();
-        return toDto(repo.save(s));
+        return toDto(repo.save(NotificationSettings.builder().userId(userId).build()));
+    }
+
+    private NotificationSettings entity(String userId) {
+        return repo.findById(userId)
+                .orElseGet(() -> repo.save(NotificationSettings.builder().userId(userId).build()));
+    }
+
+    private static <T> void set(T value, Consumer<T> setter) {
+        if (value != null) setter.accept(value);
     }
 
     private NotificationSettingsDto toDto(NotificationSettings s) {
@@ -60,6 +58,11 @@ public class NotificationSettingsService {
                 s.isPushEnabled(),
                 s.isBudgetAlertsEnabled(),
                 s.isTransactionAlertsEnabled(),
-                s.isSystemNotificationsEnabled());
+                s.isSystemNotificationsEnabled(),
+                s.isWeeklyDigest(),
+                s.isGoalMilestones(),
+                s.isMonthlyReport(),
+                s.isUnusualSpending(),
+                s.getLargeTransactionThreshold());
     }
 }

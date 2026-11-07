@@ -51,6 +51,37 @@ const PREFS_KEY  = 'fintrack:settings-preferences';
 const CATS_KEY   = 'fintrack:settings-categories';
 const NOTIF_KEY  = 'fintrack:settings-notifications';
 
+/** The backend's notification settings (see NotificationSettingsDto). */
+interface ServerNotificationSettings {
+  budgetAlertsEnabled: boolean;
+  transactionAlertsEnabled: boolean;
+  weeklyDigest: boolean;
+  goalMilestones: boolean;
+  monthlyReport: boolean;
+  unusualSpending: boolean;
+  largeTransactionThreshold: number;
+}
+
+const fromServer = (r: ServerNotificationSettings): NotificationPrefs => ({
+  budgetAlerts: r.budgetAlertsEnabled,
+  largeTransactions: r.transactionAlertsEnabled,
+  weeklyDigest: r.weeklyDigest,
+  goalMilestones: r.goalMilestones,
+  monthlyReport: r.monthlyReport,
+  unusualSpending: r.unusualSpending,
+  largeTransactionThreshold: Number(r.largeTransactionThreshold),
+});
+
+const toServer = (n: NotificationPrefs): ServerNotificationSettings => ({
+  budgetAlertsEnabled: n.budgetAlerts,
+  transactionAlertsEnabled: n.largeTransactions,
+  weeklyDigest: n.weeklyDigest,
+  goalMilestones: n.goalMilestones,
+  monthlyReport: n.monthlyReport,
+  unusualSpending: n.unusualSpending,
+  largeTransactionThreshold: n.largeTransactionThreshold,
+});
+
 const DEFAULT_NOTIFS: NotificationPrefs = {
   budgetAlerts:             true,
   weeklyDigest:             false,
@@ -176,16 +207,35 @@ export default function SettingsContent() {
   };
 
   /* ── Notifications ──────────────────────────────────────────── */
-  const [notifs, setNotifs] = useState<NotificationPrefs>(() => {
-    try {
-      const raw = localStorage.getItem(NOTIF_KEY);
-      return raw ? { ...DEFAULT_NOTIFS, ...JSON.parse(raw) } : DEFAULT_NOTIFS;
-    } catch { return DEFAULT_NOTIFS; }
-  });
+  // Stored on the server (GET/PUT /api/notifications/settings/{userId}) so the
+  // backend can respect them; "budget alerts" and "large transactions" map to its
+  // budgetAlertsEnabled / transactionAlertsEnabled.
+  const [notifs, setNotifs] = useState<NotificationPrefs>(DEFAULT_NOTIFS);
+  const [notifsSaving, setNotifsSaving] = useState(false);
 
-  const handleNotifsSave = () => {
-    try { localStorage.setItem(NOTIF_KEY, JSON.stringify(notifs)); } catch { }
-    showToast('Notification preferences saved!');
+  useEffect(() => {
+    const uid = getUser()?.id;
+    if (!uid) return;
+    apiRequest<ServerNotificationSettings>(`/api/notifications/settings/${uid}`)
+      .then((r) => setNotifs(fromServer(r)))
+      .catch(() => { /* keep the defaults */ });
+    try { localStorage.removeItem(NOTIF_KEY); } catch { } // the old browser-only copy
+  }, []);
+
+  const handleNotifsSave = async () => {
+    const uid = getUser()?.id;
+    if (!uid) return showToast('Not signed in', 'error');
+    setNotifsSaving(true);
+    try {
+      const saved = await apiRequest<ServerNotificationSettings>(`/api/notifications/settings/${uid}`, {
+        method: 'PUT',
+        body: JSON.stringify(toServer(notifs)),
+      });
+      setNotifs(fromServer(saved));
+      showToast('Notification preferences saved!');
+    } catch (e) {
+      showToast(errorMessage(e) ?? 'Failed to save notification preferences', 'error');
+    } finally { setNotifsSaving(false); }
   };
 
   const toggleNotif = (key: keyof NotificationPrefs) => {
@@ -602,9 +652,9 @@ export default function SettingsContent() {
             )}
 
             <div className="flex justify-end">
-              <button onClick={handleNotifsSave}
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition">
-                <Save className="w-4 h-4" /> Save Preferences
+              <button onClick={() => void handleNotifsSave()} disabled={notifsSaving}
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition disabled:opacity-60">
+                {notifsSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Preferences
               </button>
             </div>
           </div>

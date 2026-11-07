@@ -26,4 +26,18 @@ public class NotificationSettings {
     private boolean transactionAlertsEnabled = true;
     @Builder.Default
     private boolean systemNotificationsEnabled = true;
+
+    // Settings → Notifications (budgetAlertsEnabled and transactionAlertsEnabled above
+    // are "Budget alerts" and "Large transactions")
+    @Builder.Default
+    private boolean weeklyDigest = false;
+    @Builder.Default
+    private boolean goalMilestones = true;
+    @Builder.Default
+    private boolean monthlyReport = true;
+    @Builder.Default
+    private boolean unusualSpending = true;
+    @Builder.Default
+    @Column(precision = 12, scale = 2, nullable = false)
+    private java.math.BigDecimal largeTransactionThreshold = new java.math.BigDecimal("500");
 }

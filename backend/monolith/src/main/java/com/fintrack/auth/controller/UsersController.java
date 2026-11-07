@@ -145,7 +145,8 @@ public class UsersController {
     @PostMapping("/change-password")
     public ResponseEntity<Map<String, String>> changePassword(
             @RequestBody ChangePasswordRequest request,
-            Authentication authentication) {
+            Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
 
         if (authentication == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         Optional<User> userOpt = userService.findByEmail(authentication.getName());
@@ -171,7 +172,8 @@ public class UsersController {
         // ...but keep this one signed in with a fresh token
         User refreshed = userService.findByEmail(user.getEmail()).orElse(user);
         var tokens = authService.issueTokens(refreshed);
-        var issued = authCookies.issue(tokens); // new session cookies for this browser
+        // New session cookies for this browser, the same kind it had
+        var issued = authCookies.issue(tokens, com.fintrack.auth.security.AuthCookies.wantsPersistent(httpRequest));
         return ResponseEntity.ok().headers(issued.getHeaders())
                 .body(Map.of("message", "Password changed successfully"));
     }

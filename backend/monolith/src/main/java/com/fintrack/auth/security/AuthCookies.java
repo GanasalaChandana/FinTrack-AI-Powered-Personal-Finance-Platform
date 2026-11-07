@@ -26,6 +26,8 @@ public class AuthCookies {
 
     public static final String ACCESS = "ft_at";
     public static final String REFRESH = "ft_rt";
+    /** Present when the user chose "Remember me"; refresh keeps the same kind of cookies. */
+    public static final String PERSIST = "ft_persist";
     /** Must be present on state-changing requests authenticated by cookie. */
     public static final String CSRF_HEADER = "X-Requested-With";
 
@@ -40,11 +42,23 @@ public class AuthCookies {
         this.secure = secure;
     }
 
-    /** 200 with the session cookies set; the tokens themselves are left out of the body. */
+    /** 200 with lasting session cookies (30 days); the tokens are left out of the body. */
     public ResponseEntity<AuthResponse> issue(AuthResponse auth) {
+        return issue(auth, true);
+    }
+
+    /**
+     * 200 with the session cookies set. With {@code persistent} false they are browser
+     * session cookies (no expiry), so the browser drops them when it closes.
+     */
+    public ResponseEntity<AuthResponse> issue(AuthResponse auth, boolean persistent) {
+        Duration access = persistent ? accessTtl : null, refresh = persistent ? REFRESH_TTL : null;
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie(ACCESS, auth.getToken(), "/", accessTtl).toString())
-                .header(HttpHeaders.SET_COOKIE, cookie(REFRESH, auth.getRefreshToken(), "/api/auth", REFRESH_TTL).toString())
+                .header(HttpHeaders.SET_COOKIE, cookie(ACCESS, auth.getToken(), "/", access).toString())
+                .header(HttpHeaders.SET_COOKIE, cookie(REFRESH, auth.getRefreshToken(), "/api/auth", refresh).toString())
+                .header(HttpHeaders.SET_COOKIE, persistent
+                        ? cookie(PERSIST, "1", "/", REFRESH_TTL).toString()
+                        : cookie(PERSIST, "", "/", Duration.ZERO).toString())
                 .body(AuthResponse.builder()
                         .user(auth.getUser())
                         .refreshTokenExpiry(auth.getRefreshTokenExpiry())
@@ -56,17 +70,27 @@ public class AuthCookies {
         return new String[] {
                 cookie(ACCESS, "", "/", Duration.ZERO).toString(),
                 cookie(REFRESH, "", "/api/auth", Duration.ZERO).toString(),
+                cookie(PERSIST, "", "/", Duration.ZERO).toString(),
         };
     }
 
     private ResponseCookie cookie(String name, String value, String path, Duration maxAge) {
-        return ResponseCookie.from(name, value == null ? "" : value)
+        var b = ResponseCookie.from(name, value == null ? "" : value)
                 .httpOnly(true)
                 .secure(secure)
                 .sameSite("Lax")
-                .path(path)
-                .maxAge(maxAge)
-                .build();
+                .path(path);
+        if (maxAge != null) b.maxAge(maxAge); // no Max-Age: a browser-session cookie
+        return b.build();
+    }
+
+    /**
+     * Whether this browser chose a lasting session. Requests without session cookies
+     * (API clients) count as lasting, as before "Remember me" existed.
+     */
+    public static boolean wantsPersistent(HttpServletRequest request) {
+        boolean cookieSession = read(request, ACCESS) != null || read(request, REFRESH) != null;
+        return !cookieSession || read(request, PERSIST) != null;
     }
 
     public static String read(HttpServletRequest request, String name) {

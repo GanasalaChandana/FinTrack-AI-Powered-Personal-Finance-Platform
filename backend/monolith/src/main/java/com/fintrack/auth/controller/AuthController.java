@@ -118,7 +118,7 @@ public class AuthController {
             rateLimiter.reset(ip); // successful login — reset counters for this IP and account
             emailRateLimiter.reset(emailKey);
             log.info("Login successful for: {}", request.getEmail());
-            return authCookies.issue(response);
+            return authCookies.issue(response, !Boolean.FALSE.equals(request.getRememberMe()));
 
         } catch (Exception e) {
             log.warn("Login failed from IP {} for {}: {}", ip, request.getEmail(), e.getMessage());
@@ -160,7 +160,9 @@ public class AuthController {
         try {
             AuthResponse response = authService.refreshAccessToken(refreshToken);
             rateLimiter.reset(ip);
-            return authCookies.issue(response);
+            // Keep the kind of session the user chose at sign-in; API clients (refresh token
+            // in the body, no cookies) get lasting cookies as before
+            return authCookies.issue(response, com.fintrack.auth.security.AuthCookies.wantsPersistent(httpRequest));
         } catch (Exception e) {
             log.warn("Token refresh failed from IP {}: {}", ip, e.getMessage());
             return ResponseEntity

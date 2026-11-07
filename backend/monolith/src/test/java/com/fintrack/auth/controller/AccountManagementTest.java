@@ -242,4 +242,31 @@ class AccountManagementTest {
         mockMvc.perform(get("/api/transactions").cookie(at))
                 .andExpect(status().is(org.hamcrest.Matchers.anyOf(org.hamcrest.Matchers.is(401), org.hamcrest.Matchers.is(403))));
     }
+
+    @Test
+    @DisplayName("'Remember me' off: browser-session cookies, kept that way on refresh; on: 30-day cookies")
+    void rememberMe() throws Exception {
+        String email = "rm-" + UUID.randomUUID() + "@test.dev";
+        signup(email);
+
+        var shortLived = mockMvc.perform(post("/api/auth/login").header("X-Forwarded-For", "203.0.113." + ip.getAndIncrement())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\",\"password\":\"Secret123!\",\"rememberMe\":false}"))
+                .andExpect(status().isOk()).andReturn().getResponse();
+        assertThat(shortLived.getHeaders("Set-Cookie")).filteredOn(c -> c.startsWith("ft_at=") || c.startsWith("ft_rt="))
+                .hasSize(2).allSatisfy(c -> assertThat(c).doesNotContain("Max-Age"));
+
+        // Refreshing keeps it a browser-session login
+        var renewed = mockMvc.perform(post("/api/auth/refresh").header("X-Requested-With", "x")
+                        .header("X-Forwarded-For", "198.51.100." + ip.getAndIncrement())
+                        .cookie(shortLived.getCookie("ft_rt")))
+                .andExpect(status().isOk()).andReturn().getResponse();
+        assertThat(renewed.getHeaders("Set-Cookie")).filteredOn(c -> c.startsWith("ft_at=")).allSatisfy(c -> assertThat(c).doesNotContain("Max-Age"));
+
+        var lasting = mockMvc.perform(post("/api/auth/login").header("X-Forwarded-For", "203.0.113." + ip.getAndIncrement())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\",\"password\":\"Secret123!\",\"rememberMe\":true}"))
+                .andExpect(status().isOk()).andReturn().getResponse();
+        assertThat(lasting.getHeaders("Set-Cookie")).filteredOn(c -> c.startsWith("ft_rt=")).allSatisfy(c -> assertThat(c).contains("Max-Age=2592000"));
+    }
 }

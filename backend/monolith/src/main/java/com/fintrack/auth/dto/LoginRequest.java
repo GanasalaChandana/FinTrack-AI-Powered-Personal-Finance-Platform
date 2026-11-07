@@ -19,4 +19,7 @@ public class LoginRequest {
 
     @NotBlank(message = "Password is required")
     private String password;
+
+    /** False: the session ends when the browser closes. Null/true: stay signed in (30 days). */
+    private Boolean rememberMe;
 }

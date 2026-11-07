@@ -56,6 +56,7 @@ function AuthPageContent() {
   const [success, setSuccess] = useState(false);
   const [wakingUp, setWakingUp] = useState(false);
   const isSubmitting = useRef(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const [googleLoaded, setGoogleLoaded] = useState(false);
   const googleInitialized = useRef(false);
@@ -311,6 +312,7 @@ function AuthPageContent() {
         ? {
             email: formData.email.toLowerCase().trim(),
             password: formData.password,
+            rememberMe, // unticked: signed out when the browser closes
           }
         : {
             firstName: formData.name.trim().split(' ')[0],
@@ -635,6 +637,8 @@ function AuthPageContent() {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input 
                     type="checkbox" 
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 text-purple-500 bg-slate-900 border-purple-500/20 rounded focus:ring-purple-500 cursor-pointer"
                   />
                   <span className="text-gray-400">Remember me</span>

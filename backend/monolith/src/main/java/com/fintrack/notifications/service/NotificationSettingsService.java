@@ -35,6 +35,7 @@ public class NotificationSettingsService {
         set(dto.monthlyReport(), s::setMonthlyReport);
         set(dto.unusualSpending(), s::setUnusualSpending);
         set(dto.largeTransactionThreshold(), s::setLargeTransactionThreshold);
+        set(dto.currency(), s::setCurrency);
         return toDto(repo.save(s));
     }
 
@@ -63,6 +64,7 @@ public class NotificationSettingsService {
                 s.isGoalMilestones(),
                 s.isMonthlyReport(),
                 s.isUnusualSpending(),
-                s.getLargeTransactionThreshold());
+                s.getLargeTransactionThreshold(),
+                s.getCurrency());
     }
 }

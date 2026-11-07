@@ -104,12 +104,17 @@ test.describe('FinTrack Smoke Tests', () => {
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/settings/);
     await expect(page.locator('text=/Settings/i').filter({ visible: true }).first()).toBeVisible({ timeout: 8_000 });
-    // All 5 tabs should be present
-    await expect(page.locator('main').getByRole('button', { name: 'Profile', exact: true })).toBeVisible();
-    await expect(page.locator('main').getByRole('button', { name: 'Security', exact: true })).toBeVisible();
-    await expect(page.locator('main').getByRole('button', { name: 'Preferences', exact: true })).toBeVisible();
-    await expect(page.locator('main').getByRole('button', { name: 'Notifications', exact: true })).toBeVisible();
-    await expect(page.locator('main').getByRole('button', { name: 'Categories', exact: true })).toBeVisible();
+    // Every section is reachable: tab buttons on wider screens, a picker on phones
+    const sections = ['Profile', 'Security', 'Preferences', 'Notifications', 'Categories', 'Bank accounts', 'Household'];
+    const picker = page.locator('#settings-section');
+    if (await picker.isVisible()) {
+      const options = await picker.locator('option').allTextContents();
+      expect(options).toEqual(expect.arrayContaining(sections));
+    } else {
+      for (const name of sections) {
+        await expect(page.locator('main').getByRole('button', { name, exact: true })).toBeVisible();
+      }
+    }
   });
 
   /* 10 ─ Settings: Notifications tab */

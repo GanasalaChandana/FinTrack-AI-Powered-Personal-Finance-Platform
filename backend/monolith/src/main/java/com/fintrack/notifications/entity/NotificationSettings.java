@@ -40,4 +40,8 @@ public class NotificationSettings {
     @Builder.Default
     @Column(precision = 12, scale = 2, nullable = false)
     private java.math.BigDecimal largeTransactionThreshold = new java.math.BigDecimal("500");
+    /** ISO 4217 code of the user's display currency (Settings → Preferences) */
+    @Builder.Default
+    @Column(length = 3, nullable = false)
+    private String currency = "USD";
 }

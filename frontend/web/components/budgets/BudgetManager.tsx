@@ -399,7 +399,7 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
                 <Sparkles className="w-4 h-4 text-indigo-500" />
                 <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">This Month</span>
               </div>
-              <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Goals &amp; Budgets</h1>
+              <h2 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Monthly budgets</h2>
               <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Track your spending limits and stay on target.</p>
             </div>
             <div className="flex items-center gap-3">

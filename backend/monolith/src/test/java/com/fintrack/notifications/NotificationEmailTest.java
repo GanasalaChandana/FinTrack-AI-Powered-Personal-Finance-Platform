@@ -87,7 +87,7 @@ class NotificationEmailTest {
 
         prefs(s -> s.setWeeklyDigest(true));
         emails.sendWeeklyDigestsNow();
-        verify(email).send(eq(address), contains("your week"), argThat(b -> b.contains("Spent:  120.00") && b.contains("Groceries")));
+        verify(email).send(eq(address), contains("your week"), argThat(b -> b.contains("Spent:  $120.00") && b.contains("Groceries")));
     }
 
     @Test
@@ -100,7 +100,7 @@ class NotificationEmailTest {
                 .content(body.formatted("50"))).andExpect(status().isCreated());
         mockMvc.perform(post("/api/transactions").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
                 .content(body.formatted("450"))).andExpect(status().isCreated());
-        verify(email, timeout(3000).times(1)).send(eq(address), contains("large transaction (450.00)"), contains("Big Store"));
+        verify(email, timeout(3000).times(1)).send(eq(address), contains("large transaction ($450.00)"), contains("Big Store"));
 
         prefs(s -> s.setTransactionAlertsEnabled(false));
         mockMvc.perform(post("/api/transactions").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
@@ -117,7 +117,7 @@ class NotificationEmailTest {
 
         budgetAlerts.checkBudgetAlertsNow();
         budgetAlerts.checkBudgetAlertsNow(); // the alert already exists: no second email
-        verify(email, timeout(3000).times(1)).send(eq(address), contains("Budget Exceeded: Dining"), contains("150.00 of 100.00"));
+        verify(email, timeout(3000).times(1)).send(eq(address), contains("Budget Exceeded: Dining"), contains("$150.00 of $100.00"));
     }
 
     @Test

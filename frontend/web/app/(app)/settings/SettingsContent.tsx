@@ -200,12 +200,20 @@ export default function SettingsContent() {
 
   const handlePrefsSave = () => {
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(mergedPrefs)); } catch { }
+    syncCurrency(mergedPrefs.currency);
     // Apply theme immediately
     const root = document.documentElement;
     if (mergedPrefs.theme === 'dark')  { root.classList.add('dark'); root.classList.remove('light'); }
     else if (mergedPrefs.theme === 'light') { root.classList.remove('dark'); root.classList.add('light'); }
     else { root.classList.remove('dark', 'light'); } // let OS decide
     showToast('Preferences saved!');
+  };
+
+  /** Emails and alerts are written on the server, so it keeps a copy of the currency. */
+  const syncCurrency = (currency: string) => {
+    const uid = getUser()?.id;
+    if (!uid) return;
+    apiRequest(`/api/notifications/settings/${uid}`, { method: 'PUT', body: JSON.stringify({ currency }) }).catch(() => { /* best effort */ });
   };
 
   /* ── Notifications ──────────────────────────────────────────── */
@@ -218,8 +226,11 @@ export default function SettingsContent() {
   useEffect(() => {
     const uid = getUser()?.id;
     if (!uid) return;
-    apiRequest<ServerNotificationSettings>(`/api/notifications/settings/${uid}`)
-      .then((r) => setNotifs(fromServer(r)))
+    apiRequest<ServerNotificationSettings & { currency?: string }>(`/api/notifications/settings/${uid}`)
+      .then((r) => {
+        setNotifs(fromServer(r));
+        if (r.currency && r.currency !== userCurrency()) syncCurrency(userCurrency()); // emails follow this browser's choice
+      })
       .catch(() => { /* keep the defaults */ });
     try { localStorage.removeItem(NOTIF_KEY); } catch { } // the old browser-only copy
   }, []);
@@ -381,7 +392,15 @@ export default function SettingsContent() {
             <h1 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">Settings</h1>
             <p className="text-gray-400 dark:text-gray-500 text-sm mt-0.5">Manage your account and preferences</p>
           </div>
-          <div className="flex overflow-x-auto px-2 scrollbar-hide">
+          {/* Phones: a picker instead of a tab bar that hides most of its tabs off-screen */}
+          <div className="sm:hidden px-4 pb-4">
+            <label htmlFor="settings-section" className="sr-only">Settings section</label>
+            <select id="settings-section" value={activeTab} onChange={(e) => goTab(e.target.value as TabKey)}
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm font-semibold text-gray-900 dark:text-gray-100">
+              {TABS.map(({ key, label }) => <option key={key} value={key}>{label}</option>)}
+            </select>
+          </div>
+          <div className="hidden sm:flex overflow-x-auto px-2 scrollbar-hide">
             {TABS.map(({ key, label, Icon }) => (
               <button key={key} onClick={() => goTab(key)}
                 className={`flex items-center gap-1.5 px-4 py-3.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-all flex-shrink-0 ${

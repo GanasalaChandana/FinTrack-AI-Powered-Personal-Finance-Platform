@@ -23,6 +23,7 @@ class BudgetAlertSchedulerTest {
     @Mock private AlertService alertService;
     @Mock private BudgetRepository budgetRepository;
     @Mock private BudgetsService budgetsService;
+    @Mock private com.fintrack.notifications.service.NotificationEmailService notificationEmails;
     @InjectMocks private BudgetAlertScheduler scheduler;
 
     private Budget budget(String category, double limit, double spent) {

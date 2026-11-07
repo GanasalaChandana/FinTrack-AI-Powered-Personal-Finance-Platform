@@ -1,5 +1,7 @@
 package com.fintrack.alerts.service;
 
+import com.fintrack.common.Money;
+
 import com.fintrack.budgets.entity.Budget;
 import com.fintrack.budgets.repository.BudgetRepository;
 import com.fintrack.budgets.service.BudgetsService;
@@ -70,18 +72,18 @@ public class BudgetAlertScheduler {
 
                     double percentage = (spent / budgetAmount) * 100;
 
-                    // No currency symbol: the user's currency is a display setting in the browser
+                    String cur = notificationEmails.currency(userId);
                     String title = null, message = null, type = null, severity = null;
                     if (percentage >= 100) {
                         type = "EXCEEDED_100"; severity = "HIGH";
                         title = "Budget Exceeded: " + category;
-                        message = String.format("You've exceeded your %s budget by %,.2f (spent %,.2f of %,.2f)",
-                                category, spent - budgetAmount, spent, budgetAmount);
+                        message = String.format("You've exceeded your %s budget by %s (spent %s of %s)", category,
+                                Money.format(spent - budgetAmount, cur), Money.format(spent, cur), Money.format(budgetAmount, cur));
                     } else if (percentage >= 80) {
                         type = "WARNING_80"; severity = "MEDIUM";
                         title = "Budget Warning: " + category;
-                        message = String.format("You've used %.0f%% of your %s budget (%,.2f of %,.2f)",
-                                percentage, category, spent, budgetAmount);
+                        message = String.format("You've used %.0f%% of your %s budget (%s of %s)", percentage, category,
+                                Money.format(spent, cur), Money.format(budgetAmount, cur));
                     }
                     if (type != null && alertService.createAlertIfNotExists(userId, category, type, title, message, severity)) {
                         notificationEmails.budgetAlert(userId, title, message); // only for new alerts

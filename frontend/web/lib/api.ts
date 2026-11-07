@@ -176,6 +176,7 @@ export function removeToken(): void {
   localStorage.removeItem("user");
   localStorage.removeItem("userId");
   localStorage.removeItem("isDemo");
+  localStorage.removeItem(SESSION_ONLY_KEY);
 }
 
 export function getUser(): User | null {
@@ -189,10 +190,21 @@ export function getUser(): User | null {
   }
 }
 
+// "Remember me" off: the profile is only valid while this browser session's marker cookie
+// lives (a cookie without an expiry, cleared with the backend's session cookies on browser close).
+const SESSION_ONLY_KEY = "ft:session-only";
+const SESSION_MARKER = "ft_alive";
+
 /** Stores the signed-in user's profile (call after the backend has set the session cookies). */
-export function setUser(user: User): void {
+export function setUser(user: User, persistent = true): void {
   if (typeof window === "undefined") return;
   clearLegacyTokens();
+  if (persistent) {
+    localStorage.removeItem(SESSION_ONLY_KEY);
+  } else {
+    localStorage.setItem(SESSION_ONLY_KEY, "1");
+    document.cookie = `${SESSION_MARKER}=1; path=/; SameSite=Lax`;
+  }
   localStorage.setItem("user", JSON.stringify(user));
   if (user.id) {
     localStorage.setItem("userId", user.id.toString());
@@ -201,6 +213,11 @@ export function setUser(user: User): void {
 
 /** True when a user profile is stored; the backend still checks the session cookie on every call. */
 export function isAuthenticated(): boolean {
+  if (typeof window !== "undefined" && localStorage.getItem(SESSION_ONLY_KEY) === "1"
+      && !document.cookie.split("; ").some((c) => c.startsWith(`${SESSION_MARKER}=`))) {
+    removeToken(); // the browser was closed since a "don't remember me" sign-in
+    return false;
+  }
   return !!getUser();
 }
 

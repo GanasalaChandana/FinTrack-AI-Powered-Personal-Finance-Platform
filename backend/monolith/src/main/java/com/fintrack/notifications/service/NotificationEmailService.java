@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
@@ -32,8 +31,7 @@ import java.util.stream.Collectors;
  * The emails FinTrack sends: budget alerts, large-transaction alerts, the weekly
  * summary and the monthly report. Each goes only to users who have email turned on
  * and that kind of email enabled in Settings → Notifications, never to the shared
- * demo account. Amounts are shown without a currency symbol: the currency setting
- * lives in the browser.
+ * demo account. Amounts use the currency picked in Settings → Preferences.
  */
 @Service
 @Slf4j
@@ -72,8 +70,8 @@ public class NotificationEmailService {
         if (amount == null) return;
         send(userId, s -> s.isTransactionAlertsEnabled()
                         && amount.abs().compareTo(s.getLargeTransactionThreshold()) >= 0,
-                "FinTrack: large transaction (" + money(amount) + ")",
-                "A transaction of " + money(amount) + " at " + (merchant == null ? "an unknown merchant" : merchant)
+                "FinTrack: large transaction (" + money(amount, currency(userId)) + ")",
+                "A transaction of " + money(amount, currency(userId)) + " at " + (merchant == null ? "an unknown merchant" : merchant)
                         + (category == null ? "" : " (" + category + ")") + " was just recorded.\n\n"
                         + "If this wasn't you, check your account. Review it: " + appUrl + "/transactions");
     }
@@ -122,16 +120,17 @@ public class NotificationEmailService {
         List<Transaction> week = transactions.findByUserIdAndDateBetween(userId, start, end);
         if (week.isEmpty()) return false; // nothing to say
         List<Transaction> before = transactions.findByUserIdAndDateBetween(userId, start.minusDays(7), start.minusDays(1));
+        String cur = currency(userId);
         BigDecimal spent = total(week, "EXPENSE"), income = total(week, "INCOME"), spentBefore = total(before, "EXPENSE");
 
         StringBuilder b = new StringBuilder("Your week (" + start + " to " + end + "):\n\n");
-        b.append("Spent:  ").append(money(spent));
+        b.append("Spent:  ").append(money(spent, cur));
         if (spentBefore.signum() > 0) {
             BigDecimal change = spent.subtract(spentBefore).multiply(BigDecimal.valueOf(100)).divide(spentBefore, 0, RoundingMode.HALF_UP);
             b.append("  (").append(change.signum() >= 0 ? "+" : "").append(change).append("% vs the week before)");
         }
-        b.append("\nIncome: ").append(money(income)).append("\n\n");
-        appendTopCategories(b, week);
+        b.append("\nIncome: ").append(money(income, cur)).append("\n\n");
+        appendTopCategories(b, week, cur);
         b.append("\nSee details: ").append(appUrl).append("/dashboard");
         return send(userId, NotificationSettings::isWeeklyDigest, "FinTrack: your week in numbers", b.toString());
     }
@@ -139,18 +138,19 @@ public class NotificationEmailService {
     boolean monthlyReport(String userId, YearMonth month) {
         List<Transaction> txns = transactions.findByUserIdAndDateBetween(userId, month.atDay(1), month.atEndOfMonth());
         if (txns.isEmpty()) return false;
+        String cur = currency(userId);
         BigDecimal spent = total(txns, "EXPENSE"), income = total(txns, "INCOME");
         String name = month.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH) + " " + month.getYear();
 
         StringBuilder b = new StringBuilder("Your report for " + name + ":\n\n");
-        b.append("Income:   ").append(money(income)).append("\n");
-        b.append("Spent:    ").append(money(spent)).append("\n");
-        b.append("Saved:    ").append(money(income.subtract(spent)));
+        b.append("Income:   ").append(money(income, cur)).append("\n");
+        b.append("Spent:    ").append(money(spent, cur)).append("\n");
+        b.append("Saved:    ").append(money(income.subtract(spent), cur));
         if (income.signum() > 0) {
             b.append(" (").append(income.subtract(spent).multiply(BigDecimal.valueOf(100)).divide(income, 0, RoundingMode.HALF_UP)).append("% of income)");
         }
         b.append("\n\n");
-        appendTopCategories(b, txns);
+        appendTopCategories(b, txns, cur);
 
         List<String> over = new ArrayList<>();
         for (Budget bu : budgets.findByUserIdAndMonth(userId, month.toString())) {
@@ -158,7 +158,7 @@ public class NotificationEmailService {
             BigDecimal catSpent = txns.stream().filter(t -> isType(t, "EXPENSE") && bu.getCategory().equalsIgnoreCase(t.getCategory()))
                     .map(t -> t.getAmount().abs()).reduce(BigDecimal.ZERO, BigDecimal::add);
             if (catSpent.compareTo(BigDecimal.valueOf(bu.getBudget())) > 0) {
-                over.add("  " + bu.getCategory() + ": " + money(catSpent) + " of " + money(BigDecimal.valueOf(bu.getBudget())));
+                over.add("  " + bu.getCategory() + ": " + money(catSpent, cur) + " of " + money(BigDecimal.valueOf(bu.getBudget()), cur));
             }
         }
         if (!over.isEmpty()) b.append("\nOver budget:\n").append(String.join("\n", over)).append("\n");
@@ -182,14 +182,14 @@ public class NotificationEmailService {
                 + "\n\n—\nYou can change which emails you get in Settings → Notifications: " + appUrl + "/settings?tab=notifications");
     }
 
-    private static void appendTopCategories(StringBuilder b, List<Transaction> txns) {
+    private static void appendTopCategories(StringBuilder b, List<Transaction> txns, String cur) {
         Map<String, BigDecimal> byCat = txns.stream().filter(t -> isType(t, "EXPENSE"))
                 .collect(Collectors.groupingBy(t -> t.getCategory() == null ? "Other" : t.getCategory(),
                         Collectors.reducing(BigDecimal.ZERO, t -> t.getAmount().abs(), BigDecimal::add)));
         if (byCat.isEmpty()) return;
         b.append("Top spending:\n");
         byCat.entrySet().stream().sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed()).limit(3)
-                .forEach(e -> b.append("  ").append(e.getKey()).append(": ").append(money(e.getValue())).append("\n"));
+                .forEach(e -> b.append("  ").append(e.getKey()).append(": ").append(money(e.getValue(), cur)).append("\n"));
     }
 
     private static BigDecimal total(List<Transaction> txns, String type) {
@@ -200,7 +200,12 @@ public class NotificationEmailService {
         return t.getAmount() != null && type.equalsIgnoreCase(t.getType());
     }
 
-    static String money(BigDecimal v) {
-        return new DecimalFormat("#,##0.00").format(v.abs().setScale(2, RoundingMode.HALF_UP));
+    static String money(BigDecimal v, String currency) {
+        return com.fintrack.common.Money.format(v, currency);
+    }
+
+    /** The user's display currency (USD until they pick one in Settings). */
+    public String currency(String userId) {
+        return userId == null ? "USD" : settings.findById(userId).map(NotificationSettings::getCurrency).orElse("USD");
     }
 }

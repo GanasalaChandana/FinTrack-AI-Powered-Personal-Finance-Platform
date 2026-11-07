@@ -378,7 +378,7 @@ function AuthPageContent() {
 
       // The session itself was set as HttpOnly cookies by the response
       if (data.user) {
-        setUser(data.user);
+        setUser(data.user, rememberMe);
         setSuccess(true);
         setTimeout(() => router.push(afterLogin), 1000);
       } else {

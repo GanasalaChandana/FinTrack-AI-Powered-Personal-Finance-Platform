@@ -20,5 +20,6 @@ public record NotificationSettingsDto(
         Boolean goalMilestones,
         Boolean monthlyReport,
         Boolean unusualSpending,
-        @DecimalMin("0") @DecimalMax("1000000000") BigDecimal largeTransactionThreshold) {
+        @DecimalMin("0") @DecimalMax("1000000000") BigDecimal largeTransactionThreshold,
+        @jakarta.validation.constraints.Pattern(regexp = "[A-Z]{3}") String currency) {
 }

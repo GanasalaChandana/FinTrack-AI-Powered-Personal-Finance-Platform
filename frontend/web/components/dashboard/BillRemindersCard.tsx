@@ -5,7 +5,7 @@ import { Bell, ExternalLink, AlertCircle, Clock, CheckCircle2 } from "lucide-rea
 import Link from "next/link";
 import { type Transaction } from "@/lib/api";
 import { detectRecurring } from "@/lib/utils/recurringDetection";
-import { userCurrency } from "@/lib/userPrefs";
+import { userCurrency, dateLocale } from "@/lib/userPrefs";
 
 interface Props {
   transactions: Transaction[];
@@ -30,7 +30,7 @@ function formatCurrency(v: number) {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString(dateLocale(), {
     month: "short",
     day: "numeric",
   });

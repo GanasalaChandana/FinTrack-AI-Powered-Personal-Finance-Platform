@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import { BarChart3, TrendingUp, ShoppingBag, Calendar, DollarSign, Loader2, ArrowUpRight, Trophy, Search } from "lucide-react";
 import { transactionsAPI, type Transaction } from "@/lib/api";
-import { userCurrency, currencySymbol } from "@/lib/userPrefs";
+import { userCurrency, currencySymbol, dateLocale } from "@/lib/userPrefs";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -478,7 +478,7 @@ export default function AnalyticsPage() {
                           {/* Last visit */}
                           <td className="px-4 py-3 text-right text-xs text-gray-400 dark:text-gray-500 hidden sm:table-cell">
                             {m.lastDate
-                              ? new Date(m.lastDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                              ? new Date(m.lastDate + "T00:00:00").toLocaleDateString(dateLocale(), { month: "short", day: "numeric" })
                               : "—"}
                           </td>
                         </tr>

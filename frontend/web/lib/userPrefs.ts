@@ -22,3 +22,26 @@ export function currencySymbol(): string {
     .formatToParts(0).find((p) => p.type === "currency");
   return part?.value ?? "$";
 }
+
+export type DateFormat = "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
+
+function readDateFormat(): DateFormat {
+  if (typeof window === "undefined") return "MM/DD/YYYY";
+  try {
+    const f = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "{}").dateFormat;
+    return f === "DD/MM/YYYY" || f === "YYYY-MM-DD" ? f : "MM/DD/YYYY";
+  } catch { return "MM/DD/YYYY"; }
+}
+
+/**
+ * Locale for formatting dates in the user's chosen order: numeric dates come out as
+ * 10/4/2026 (US), 04/10/2026 (day first) or 2026-10-04, and short ones as
+ * "Oct 4" or "4 Oct".
+ */
+export function dateLocale(): string {
+  switch (readDateFormat()) {
+    case "DD/MM/YYYY": return "en-GB";
+    case "YYYY-MM-DD": return "en-CA";
+    default: return "en-US";
+  }
+}

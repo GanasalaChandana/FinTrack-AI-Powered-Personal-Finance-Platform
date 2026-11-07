@@ -1,3 +1,4 @@
+import { dateLocale } from "@/lib/userPrefs";
 // Builds the "Custom Reports" table/chart data from the user's transactions.
 
 export type CustomMetric = "income" | "expenses" | "savings" | "net-worth";
@@ -44,14 +45,14 @@ function bucket(dateStr: string, category: string, groupBy: CustomGroupBy): { ke
   const d = parse(dateStr);
   switch (groupBy) {
     case "day":
-      return { key: iso(d), label: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) };
+      return { key: iso(d), label: d.toLocaleDateString(dateLocale(), { month: "short", day: "numeric" }) };
     case "week": {
       const monday = new Date(d);
       monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-      return { key: iso(monday), label: `Wk of ${monday.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` };
+      return { key: iso(monday), label: `Wk of ${monday.toLocaleDateString(dateLocale(), { month: "short", day: "numeric" })}` };
     }
     case "month":
-      return { key: iso(d).slice(0, 7), label: d.toLocaleDateString("en-US", { month: "short", year: "numeric" }) };
+      return { key: iso(d).slice(0, 7), label: d.toLocaleDateString(dateLocale(), { month: "short", year: "numeric" }) };
     case "category":
       return { key: category, label: category };
   }

@@ -10,7 +10,7 @@ import { ReceiptScanner, type ScannedTransaction } from "@/components/ReceiptSca
 import { transactionsAPI, isAuthenticated as checkAuth } from "@/lib/api";
 import type { ParsedReceipt } from "@/lib/utils/ocrParser";
 import { errorMessage } from "@/lib/utils/errors";
-import { userCurrency } from "@/lib/userPrefs";
+import { userCurrency, dateLocale } from "@/lib/userPrefs";
 
 // ── Saved transaction info shown after a successful save ──────────────────────
 interface SavedTx {
@@ -132,7 +132,7 @@ export default function ReceiptsPage() {
                   { label: "Merchant",  value: savedTx.merchant },
                   { label: "Amount",    value: fmt(savedTx.amount) },
                   { label: "Category",  value: savedTx.category },
-                  { label: "Date",      value: new Date(savedTx.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) },
+                  { label: "Date",      value: new Date(savedTx.date).toLocaleDateString(dateLocale(), { year: "numeric", month: "long", day: "numeric" }) },
                 ].map((row) => (
                   <div key={row.label} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">{row.label}</span>

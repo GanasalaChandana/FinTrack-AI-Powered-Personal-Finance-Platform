@@ -9,7 +9,7 @@ import { Store, Search, TrendingUp, TrendingDown, Minus, X, BarChart3, DollarSig
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
-import { userCurrency, currencySymbol } from "@/lib/userPrefs";
+import { userCurrency, currencySymbol, dateLocale } from "@/lib/userPrefs";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -102,7 +102,7 @@ function buildMerchantStats(
     const monthlyData = Object.entries(byMonth)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, amount]) => ({
-        month: new Date(`${month}-01T00:00:00`).toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+        month: new Date(`${month}-01T00:00:00`).toLocaleDateString(dateLocale(), { month: "short", year: "2-digit" }),
         amount: parseFloat(amount.toFixed(2)),
       }));
 
@@ -236,7 +236,7 @@ function MerchantModal({
                       {t.description || t.merchant || "Transaction"}
                     </span>
                     <span className="text-xs text-gray-400 dark:text-gray-500">
-                      {new Date(`${t.date.slice(0, 10)}T00:00:00`).toLocaleDateString("en-US", {
+                      {new Date(`${t.date.slice(0, 10)}T00:00:00`).toLocaleDateString(dateLocale(), {
                         month: "short", day: "numeric", year: "numeric",
                       })}
                     </span>
@@ -570,7 +570,7 @@ export default function MerchantsPage() {
                         {/* Last date */}
                         <div className="col-span-2 sm:col-span-1 text-right">
                           <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                            {new Date(`${merchant.lastDate.slice(0, 10)}T00:00:00`).toLocaleDateString("en-US", {
+                            {new Date(`${merchant.lastDate.slice(0, 10)}T00:00:00`).toLocaleDateString(dateLocale(), {
                               month: "short", day: "numeric",
                             })}
                           </span>

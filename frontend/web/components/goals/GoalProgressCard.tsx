@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Edit2, Trash2, Target, Calendar } from 'lucide-react';
 import { type Goal } from '@/lib/api';
-import { userCurrency } from "@/lib/userPrefs";
+import { userCurrency, dateLocale } from "@/lib/userPrefs";
 
 interface GoalProgressCardProps {
   goal: Goal;
@@ -24,7 +24,7 @@ const formatDate = (dateStr: string | undefined): string => {
   if (!dateStr) return 'No date';
   try {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(dateLocale(), { year: 'numeric', month: 'short', day: 'numeric' });
   } catch {
     return dateStr;
   }

@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import { TrendingUp, DollarSign, Loader2, ArrowUpRight } from "lucide-react";
 import { transactionsAPI, type Transaction } from "@/lib/api";
-import { userCurrency, currencySymbol } from "@/lib/userPrefs";
+import { userCurrency, currencySymbol, dateLocale } from "@/lib/userPrefs";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -336,7 +336,7 @@ export default function IncomePage() {
                       {t.merchant || t.description || "Income"}
                     </p>
                     <p className="text-xs text-gray-400 dark:text-gray-500">
-                      {src} · {new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      {src} · {new Date(t.date).toLocaleDateString(dateLocale(), { month: "short", day: "numeric" })}
                     </p>
                   </div>
                   <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 shrink-0">

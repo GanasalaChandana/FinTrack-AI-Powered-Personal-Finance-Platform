@@ -9,7 +9,7 @@ import {
   X, ChevronRight, Loader2, Store, Receipt,
 } from "lucide-react";
 import { transactionsAPI } from "@/lib/api";
-import { userCurrency } from "@/lib/userPrefs";
+import { userCurrency, dateLocale } from "@/lib/userPrefs";
 
 interface NavItem {
   label: string;
@@ -338,7 +338,7 @@ export function CommandPalette({ isOpen, onClose, onLogout, onCycleTheme, curren
                         {txn.merchant || txn.description || "Transaction"}
                       </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500">
-                        {txn.category} · {new Date(txn.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        {txn.category} · {new Date(txn.date).toLocaleDateString(dateLocale(), { month: "short", day: "numeric" })}
                       </p>
                     </div>
                     <span className={`text-sm font-bold shrink-0 ${isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>

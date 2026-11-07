@@ -7,7 +7,7 @@
 import { useMemo } from "react";
 import { Sun, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Transaction } from "@/lib/api";
-import { userCurrency } from "@/lib/userPrefs";
+import { userCurrency, dateLocale } from "@/lib/userPrefs";
 
 interface Props {
   transactions: Transaction[];
@@ -70,7 +70,7 @@ export function DailySpendCard({ transactions }: Props) {
     ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40"
     : "bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 border-sky-200 dark:border-sky-800/40";
 
-  const dayLabel = new Date().toLocaleDateString("en-US", {
+  const dayLabel = new Date().toLocaleDateString(dateLocale(), {
     weekday: "long", month: "short", day: "numeric",
   });
 

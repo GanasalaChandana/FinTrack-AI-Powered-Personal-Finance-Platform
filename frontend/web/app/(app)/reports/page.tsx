@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 
 import { PageHeader, Section, PageContent } from "@/components/layouts/PageHeader";
-import { userCurrency, currencySymbol } from "@/lib/userPrefs";
+import { userCurrency, currencySymbol, dateLocale } from "@/lib/userPrefs";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -2096,7 +2096,7 @@ const EnhancedFinancialReports: React.FC = () => {
 
                     {/* Date */}
                     <span className="text-xs text-gray-400 dark:text-gray-500 w-20 flex-shrink-0">
-                      {new Date(`${t.date.slice(0,10)}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      {new Date(`${t.date.slice(0,10)}T00:00:00`).toLocaleDateString(dateLocale(), { month: "short", day: "numeric" })}
                     </span>
 
                     {/* Merchant */}

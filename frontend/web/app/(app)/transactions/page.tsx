@@ -21,7 +21,7 @@ import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
 import { TransactionModal, type ModalTransaction } from "@/components/modals/TransactionModal";
 import { exportCsv, exportPdf, exportXlsx, type ExportRow } from "@/lib/exportTransactions";
 import { errorMessage } from "@/lib/utils/errors";
-import { userCurrency } from "@/lib/userPrefs";
+import { userCurrency, dateLocale } from "@/lib/userPrefs";
 
 /* =========================
    Types
@@ -85,7 +85,7 @@ const PAGE_SIZE = 10;
    ========================= */
 
 const dtUS = (d: Date, opts?: Intl.DateTimeFormatOptions) =>
-  new Intl.DateTimeFormat("en-US", opts).format(d);
+  new Intl.DateTimeFormat(dateLocale(), opts).format(d);
 
 // "2026-10-12" alone is parsed as UTC midnight, which shows the previous day
 // west of UTC — treat date-only strings as local dates instead.

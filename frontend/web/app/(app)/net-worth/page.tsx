@@ -7,7 +7,7 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import { TrendingUp, TrendingDown, Plus, Trash2, Edit2, Check, X, Wallet, CreditCard, Home, Car, Briefcase, PiggyBank, DollarSign, Building, BarChart3, Flag, Sparkles } from "lucide-react";
-import { userCurrency, currencySymbol } from "@/lib/userPrefs";
+import { userCurrency, currencySymbol, dateLocale } from "@/lib/userPrefs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -360,7 +360,7 @@ export default function NetWorthPage() {
       liabilities?: number;
       projected?: number;
     }[] = snapshots.map((s) => ({
-      label: new Date(s.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      label: new Date(s.date + "T00:00:00").toLocaleDateString(dateLocale(), { month: "short", day: "numeric" }),
       netWorth: s.netWorth,
       assets: s.assets,
       liabilities: s.liabilities,
@@ -377,7 +377,7 @@ export default function NetWorthPage() {
           const d = new Date(last.date + "T00:00:00");
           d.setMonth(d.getMonth() + i);
           base.push({
-            label: d.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+            label: d.toLocaleDateString(dateLocale(), { month: "short", year: "2-digit" }),
             projected: Math.round(last.netWorth + rate * i),
           });
         }

@@ -6,7 +6,7 @@ import { authAPI, removeToken, transactionsAPI, type Transaction as ApiTransacti
 import { RecurringTransactionsDashboard } from "@/components/RecurringTransactionsDashboard";
 import type { RecurringRuleDraft } from "@/lib/utils/recurringDetector";
 import { errorMessage } from "@/lib/utils/errors";
-import { userCurrency } from "@/lib/userPrefs";
+import { userCurrency, dateLocale } from "@/lib/userPrefs";
 
 // ── API helpers ────────────────────────────────────────────────────────────────
 
@@ -361,7 +361,7 @@ function SavedRulesSection({ rules, onDelete, onAdd }: SavedRulesSectionProps) {
                   </span>
                   <span className={`flex items-center gap-1 text-xs ${urgencyClr}`}>
                     <Clock className="w-3 h-3" />
-                    {urgency || new Date(rule.nextOccurrence).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    {urgency || new Date(rule.nextOccurrence).toLocaleDateString(dateLocale(), { month: "short", day: "numeric" })}
                   </span>
                 </div>
               </div>

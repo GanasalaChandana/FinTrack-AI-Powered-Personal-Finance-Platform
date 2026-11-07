@@ -2,7 +2,7 @@
 // Natural-language AI spending insights — pure JS, no API calls
 
 import { Transaction } from "@/lib/api";
-import { userCurrency } from "@/lib/userPrefs";
+import { userCurrency, dateLocale } from "@/lib/userPrefs";
 
 export type InsightCategory =
   | "merchant"
@@ -167,7 +167,7 @@ function biggestExpenseInsight(txs: Transaction[]): SpendingInsight | null {
     id: "biggest-expense",
     emoji: "💸",
     title: "Biggest Expense This Month",
-    description: `Your largest single purchase was ${desc} for ${fmt(Math.abs(biggest.amount))} on ${new Date(biggest.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}.`,
+    description: `Your largest single purchase was ${desc} for ${fmt(Math.abs(biggest.amount))} on ${new Date(biggest.date).toLocaleDateString(dateLocale(), { month: "short", day: "numeric" })}.`,
     sentiment: Math.abs(biggest.amount) > 500 ? "warning" : "neutral",
     category: "biggest_expense",
     value: fmt(Math.abs(biggest.amount)),

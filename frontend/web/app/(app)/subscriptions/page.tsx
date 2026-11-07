@@ -12,7 +12,7 @@ import {
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 import { detectRecurring, type RecurringTransaction } from "@/lib/utils/recurringDetection";
 import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
-import { userCurrency, currencySymbol } from "@/lib/userPrefs";
+import { userCurrency, currencySymbol, dateLocale } from "@/lib/userPrefs";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -154,7 +154,7 @@ function SubCard({
         <div className="flex items-center justify-between text-xs">
           <span className="text-gray-400 dark:text-gray-500 flex items-center gap-1">
             <Calendar className="w-3 h-3" />
-            Next: {new Date(`${item.nextExpected}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            Next: {new Date(`${item.nextExpected}T00:00:00`).toLocaleDateString(dateLocale(), { month: "short", day: "numeric" })}
           </span>
           <RenewalBadge days={days} />
         </div>

@@ -12,7 +12,7 @@ import {
   type Transaction,
   type RecurringTransaction,
 } from "@/lib/utils/recurringDetector";
-import { userCurrency, currencySymbol } from "@/lib/userPrefs";
+import { userCurrency, currencySymbol, dateLocale } from "@/lib/userPrefs";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -458,7 +458,7 @@ export function RecurringTransactionsDashboard({
                           <div className="flex items-center gap-2.5">
                             <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                             <span className="text-gray-600">
-                              {new Date(txn.date).toLocaleDateString("en-US", {
+                              {new Date(txn.date).toLocaleDateString(dateLocale(), {
                                 month: "short", day: "numeric", year: "numeric",
                               })}
                             </span>

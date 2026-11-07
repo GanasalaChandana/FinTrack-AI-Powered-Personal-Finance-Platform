@@ -3,7 +3,7 @@
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { userCurrency } from "@/lib/userPrefs";
+import { userCurrency, dateLocale } from "@/lib/userPrefs";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -80,7 +80,7 @@ export function exportMonthlyReport(
   const PH = doc.internal.pageSize.getHeight();  // 297
   const now = new Date();
   const reportPeriod = period ?? now.toLocaleString("en-US", { month: "long", year: "numeric" });
-  const generatedOn  = now.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
+  const generatedOn  = now.toLocaleDateString(dateLocale(), { day: "2-digit", month: "short", year: "numeric" });
 
   // ── Compute summary stats ─────────────────────────────────────────────────
   const totalIncome   = transactions.filter(isIncome).reduce((s, t) => s + Math.abs(t.amount), 0);
@@ -269,7 +269,7 @@ export function exportMonthlyReport(
     startY: 20,
     head: [["Date", "Merchant / Description", "Category", "Type", "Amount"]],
     body: sorted.map(t => [
-      t.date ? new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "2-digit" }) : "—",
+      t.date ? new Date(t.date).toLocaleDateString(dateLocale(), { month: "short", day: "2-digit" }) : "—",
       t.merchant || t.description || "—",
       t.category || "Other",
       isIncome(t) ? "Income" : "Expense",

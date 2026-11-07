@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 
 import { useToast } from "@/components/ui/Toast";
 import { PageHeader, Section, PageContent } from "@/components/layouts/PageHeader";
-import { userCurrency, currencySymbol } from "@/lib/userPrefs";
+import { userCurrency, currencySymbol, dateLocale } from "@/lib/userPrefs";
 
 
 
@@ -445,7 +445,7 @@ function projectedCompletion(goal: Goal): { date: string; months: number } | nul
   const d = new Date();
   d.setMonth(d.getMonth() + months);
   return {
-    date: d.toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+    date: d.toLocaleDateString(dateLocale(), { month: "short", year: "numeric" }),
     months,
   };
 }
@@ -535,7 +535,7 @@ function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalCardProps) {
     else if (days === 0){ deadlineLabel = "Due today";       deadlineColor = "text-orange-500"; }
     else if (days <= 30){ deadlineLabel = `${days}d left`;   deadlineColor = "text-orange-500"; }
     else if (days <= 90){ deadlineLabel = `${days}d left`;   deadlineColor = "text-yellow-600"; }
-    else                { deadlineLabel = new Date(goal.deadline).toLocaleDateString("en-US", { month: "short", year: "numeric" }); }
+    else                { deadlineLabel = new Date(goal.deadline).toLocaleDateString(dateLocale(), { month: "short", year: "numeric" }); }
   }
 
   return (

@@ -490,22 +490,6 @@ export default function SettingsContent() {
               </select>
             </div>
 
-            {/* Language */}
-            <div>
-              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Language</label>
-              <select className={inputCls} value={mergedPrefs.language}
-                onChange={(e) => setPrefs({ ...mergedPrefs, language: e.target.value })}>
-                {[
-                  { code: 'en', label: 'English'  },
-                  { code: 'es', label: 'Spanish'  },
-                  { code: 'fr', label: 'French'   },
-                  { code: 'de', label: 'German'   },
-                  { code: 'pt', label: 'Portuguese'},
-                  { code: 'zh', label: 'Chinese'  },
-                ].map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
-              </select>
-            </div>
-
             <div className="flex justify-end">
               <button onClick={handlePrefsSave}
                 className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition">

@@ -3,13 +3,14 @@
 import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Minus, CalendarDays } from "lucide-react";
 import { Transaction } from "@/lib/api";
+import { userCurrency } from "@/lib/userPrefs";
 
 interface Props {
   transactions: Transaction[];
 }
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 0 }).format(v);
 
 export function MonthEndForecastCard({ transactions }: Props) {
   const data = useMemo(() => {

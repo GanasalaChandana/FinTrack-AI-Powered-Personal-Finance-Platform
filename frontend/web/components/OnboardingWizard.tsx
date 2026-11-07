@@ -8,6 +8,7 @@ import {
   Bell, ArrowRight, Sparkles, ChevronRight,
 } from "lucide-react";
 import { transactionsAPI, budgetsAPI, goalsAPI, getUser } from "@/lib/api";
+import { currencySymbol } from "@/lib/userPrefs";
 
 const ONBOARDING_KEY = "fintrack-onboarding-done";
 
@@ -121,7 +122,7 @@ function StepIncome({ onNext }: { onNext: () => void }) {
             Monthly take-home pay
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">{currencySymbol()}</span>
             <input
               type="number"
               value={salary}
@@ -232,7 +233,7 @@ function StepBudget({ onNext }: { onNext: () => void }) {
             <span className="text-xl w-8 text-center shrink-0">{icon}</span>
             <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{category}</span>
             <div className="relative w-28 shrink-0">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{currencySymbol()}</span>
               <input
                 type="number"
                 value={budgets[category]}
@@ -329,7 +330,7 @@ function StepGoal({ onNext }: { onNext: () => void }) {
             <span className="text-xl">{tpl.icon}</span>
             <div>
               <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">{tpl.name}</p>
-              <p className="text-[11px] text-gray-400">${tpl.target.toLocaleString()}</p>
+              <p className="text-[11px] text-gray-400">{currencySymbol()}{tpl.target.toLocaleString()}</p>
             </div>
           </button>
         ))}
@@ -344,7 +345,7 @@ function StepGoal({ onNext }: { onNext: () => void }) {
           className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
         />
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{currencySymbol()}</span>
           <input
             type="number"
             value={targetAmount}

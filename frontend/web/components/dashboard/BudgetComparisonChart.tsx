@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 interface BudgetData {
   category: string;
@@ -30,15 +31,15 @@ interface BudgetComparisonChartProps {
 // ── Formatters ────────────────────────────────────────────────────────────────
 
 const formatAxisTick = (value: number): string => {
-  if (value === 0) return "$0";
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
-  return `$${value}`;
+  if (value === 0) return `${currencySymbol()}0`;
+  if (value >= 1000) return `${currencySymbol()}${(value / 1000).toFixed(1)}k`;
+  return `${currencySymbol()}${value}`;
 };
 
 const formatCurrency = (value: number): string =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: userCurrency(),
     minimumFractionDigits: 0,
   }).format(value);
 
@@ -316,7 +317,7 @@ export function BudgetComparisonChart({
               />
             </div>
             <div className="flex justify-between mt-1">
-              <span className="text-[10px] text-gray-400">$0</span>
+              <span className="text-[10px] text-gray-400">{currencySymbol()}0</span>
               <span className="text-[10px] text-gray-400">{formatCurrency(totalBudget)}</span>
             </div>
 

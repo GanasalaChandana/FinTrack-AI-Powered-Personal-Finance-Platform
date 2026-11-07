@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import { Target, TrendingUp } from 'lucide-react';
+import { userCurrency } from "@/lib/userPrefs";
 
 // Map goal.color strings to safe inline CSS gradients (avoids Tailwind purge in prod)
 const GOAL_GRADIENT: Record<string, string> = {
@@ -34,7 +35,7 @@ interface GoalProgressChartProps {
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: userCurrency(),
     minimumFractionDigits: 0,
   }).format(value);
 };

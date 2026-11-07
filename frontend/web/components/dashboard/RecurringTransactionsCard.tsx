@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { RefreshCw, Zap, Calendar, TrendingDown, AlertCircle } from "lucide-react";
 import { Transaction } from "@/lib/api";
 import { detectRecurring, RecurringTransaction } from "@/lib/utils/recurringDetection";
+import { userCurrency } from "@/lib/userPrefs";
 
 interface Props {
   transactions: Transaction[];
@@ -12,7 +13,7 @@ interface Props {
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: userCurrency(),
     minimumFractionDigits: 2,
   }).format(amount);
 }

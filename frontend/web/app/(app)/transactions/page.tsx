@@ -21,6 +21,7 @@ import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
 import { TransactionModal, type ModalTransaction } from "@/components/modals/TransactionModal";
 import { exportCsv, exportPdf, exportXlsx, type ExportRow } from "@/lib/exportTransactions";
 import { errorMessage } from "@/lib/utils/errors";
+import { userCurrency } from "@/lib/userPrefs";
 
 /* =========================
    Types
@@ -113,7 +114,7 @@ const formatRelativeClientOnly = (iso: string) => {
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: userCurrency(),
     minimumFractionDigits: 2,
   }).format(Math.abs(value));
 

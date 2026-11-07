@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { BarChart3, CheckCircle, AlertCircle } from "lucide-react";
 import { Transaction, Budget } from "@/lib/api";
 import { forecastCurrentMonth } from "@/lib/utils/budgetForecast";
+import { currencySymbol } from "@/lib/userPrefs";
 
 interface Props {
   transactions: Transaction[];
@@ -56,7 +57,7 @@ export function BudgetForecastCard({ transactions, budgets }: Props) {
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
               <span>Projected spend</span>
               <span className={overallPct > 100 ? "text-red-500 font-semibold" : "text-gray-700 dark:text-gray-300"}>
-                ${forecast.projectedTotal.toFixed(0)} / ${forecast.budgetTotal.toFixed(0)}
+                {currencySymbol()}{forecast.projectedTotal.toFixed(0)} / {currencySymbol()}{forecast.budgetTotal.toFixed(0)}
               </span>
             </div>
             <div className="h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -81,8 +82,8 @@ export function BudgetForecastCard({ transactions, budgets }: Props) {
               <AlertCircle className="w-3.5 h-3.5" />
             )}
             {forecast.onTrack
-              ? `On track — projected $${Math.abs(forecast.surplus).toFixed(0)} surplus`
-              : `At risk — projected $${Math.abs(forecast.surplus).toFixed(0)} over budget`}
+              ? `On track — projected ${currencySymbol()}${Math.abs(forecast.surplus).toFixed(0)} surplus`
+              : `At risk — projected ${currencySymbol()}${Math.abs(forecast.surplus).toFixed(0)} over budget`}
           </div>
 
           {/* Categories at risk */}

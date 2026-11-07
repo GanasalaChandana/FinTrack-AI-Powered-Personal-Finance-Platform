@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Edit2, Trash2, Target, Calendar } from 'lucide-react';
 import { type Goal } from '@/lib/api';
+import { userCurrency } from "@/lib/userPrefs";
 
 interface GoalProgressCardProps {
   goal: Goal;
@@ -15,7 +16,7 @@ interface GoalProgressCardProps {
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: userCurrency(),
     minimumFractionDigits: 0,
   }).format(value);
 

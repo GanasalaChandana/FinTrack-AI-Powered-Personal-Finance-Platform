@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -129,7 +130,7 @@ interface AlertRule {
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("en-US", {
-    style: "currency", currency: "USD", minimumFractionDigits: 2,
+    style: "currency", currency: userCurrency(), minimumFractionDigits: 2,
   }).format(v);
 
 const timeAgo = (d: Date): string => {
@@ -373,7 +374,7 @@ const SEVERITY_CONFIG: Record<Severity, {
 // ── Default Alert Rules ───────────────────────────────────────────────────────
 
 const DEFAULT_RULES: AlertRule[] = [
-  { id: "large_txn",    name: "Large Transaction Alert",    description: "Alert when any transaction exceeds $500",         enabled: true,  threshold: 500 },
+  { id: "large_txn",    name: "Large Transaction Alert",    description: `Alert when any transaction exceeds ${currencySymbol()}500`,         enabled: true,  threshold: 500 },
   { id: "category",     name: "Category Concentration",     description: "Alert when one category exceeds 25% of spending", enabled: true,  threshold: 25 },
   { id: "recurring",    name: "Recurring Pattern Detection", description: "Detect merchants with 3+ transactions",          enabled: true,  threshold: 3 },
   { id: "income",       name: "Income Tracking",            description: "Notify when income is recorded",                 enabled: true },

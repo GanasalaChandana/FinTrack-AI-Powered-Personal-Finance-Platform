@@ -9,6 +9,7 @@ import {
   X, ChevronRight, Loader2, Store, Receipt,
 } from "lucide-react";
 import { transactionsAPI } from "@/lib/api";
+import { userCurrency } from "@/lib/userPrefs";
 
 interface NavItem {
   label: string;
@@ -64,7 +65,7 @@ const NAV_ITEMS: NavItem[] = [
 const formatAmount = (amount: number, type: string) => {
   const formatted = new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: userCurrency(),
     minimumFractionDigits: 0,
   }).format(Math.abs(amount));
   return type === "income" ? `+${formatted}` : `-${formatted}`;

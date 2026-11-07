@@ -4,6 +4,7 @@
 
 import type { Transaction as ApiTransaction } from "@/lib/api";
 import { detectRecurring } from "@/lib/utils/recurringDetection";
+import { currencySymbol } from "@/lib/userPrefs";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -86,7 +87,7 @@ export function generateInsights(transactions: ApiTransaction[]): SpendingInsigh
       insights.push({
         id: "mom-spike", type: "warning", priority: 1,
         title: `Spending Up ${pctChange.toFixed(0)}% This Month`,
-        message: `You've spent $${thisTotal.toFixed(2)} this month vs $${lastTotal.toFixed(2)} last month — a $${(thisTotal - lastTotal).toFixed(2)} increase.`,
+        message: `You've spent ${currencySymbol()}${thisTotal.toFixed(2)} this month vs ${currencySymbol()}${lastTotal.toFixed(2)} last month — a ${currencySymbol()}${(thisTotal - lastTotal).toFixed(2)} increase.`,
         impact: pctChange > 50 ? "high" : "medium",
         amount: thisTotal - lastTotal, actionable: true,
         actions: ["Review this month's new expenses", "Identify which category spiked", "Set a monthly spending cap"],
@@ -95,7 +96,7 @@ export function generateInsights(transactions: ApiTransaction[]): SpendingInsigh
       insights.push({
         id: "mom-drop", type: "success", priority: 4,
         title: `Great Job — Spending Down ${Math.abs(pctChange).toFixed(0)}%`,
-        message: `You spent $${(lastTotal - thisTotal).toFixed(2)} less this month than last month. Keep it up!`,
+        message: `You spent ${currencySymbol()}${(lastTotal - thisTotal).toFixed(2)} less this month than last month. Keep it up!`,
         impact: "low", amount: lastTotal - thisTotal, actionable: false,
       });
     }
@@ -116,7 +117,7 @@ export function generateInsights(transactions: ApiTransaction[]): SpendingInsigh
       insights.push({
         id: "top-category", type: "info", priority: 2,
         title: `${topCat} Dominates Your Spending`,
-        message: `${topCat} is ${pct.toFixed(0)}% of all expenses — $${topAmt.toFixed(2)} total.` +
+        message: `${topCat} is ${pct.toFixed(0)}% of all expenses — ${currencySymbol()}${topAmt.toFixed(2)} total.` +
           (fixed ? " It's mostly a fixed cost, so the time to act is at renewal or when you compare providers." : ""),
         impact: pct > 50 ? "high" : "medium",
         category: topCat, amount: topAmt, actionable: true,
@@ -141,7 +142,7 @@ export function generateInsights(transactions: ApiTransaction[]): SpendingInsigh
       insights.push({
         id: `cat-spike-${cat}`, type: "warning", priority: 2,
         title: `${cat} Spending Jumped ${(((amt - prev) / prev) * 100).toFixed(0)}%`,
-        message: `${cat} went from $${prev.toFixed(2)} to $${amt.toFixed(2)} this month.`,
+        message: `${cat} went from ${currencySymbol()}${prev.toFixed(2)} to ${currencySymbol()}${amt.toFixed(2)} this month.`,
         impact: "medium", category: cat, amount: amt - prev, actionable: true,
         actions: [`Review ${cat} transactions`, "Set a budget alert", "Find substitutes"],
       });
@@ -155,7 +156,7 @@ export function generateInsights(transactions: ApiTransaction[]): SpendingInsigh
     insights.push({
       id: "impulse", type: "warning", priority: 2,
       title: "Micro-Spending Adding Up",
-      message: `${small.length} transactions under $${THRESHOLDS.microSpendMax} totalled $${smallTotal.toFixed(2)}. Small buys compound fast.`,
+      message: `${small.length} transactions under ${currencySymbol()}${THRESHOLDS.microSpendMax} totalled ${currencySymbol()}${smallTotal.toFixed(2)}. Small buys compound fast.`,
       impact: "medium", amount: smallTotal, actionable: true,
       actions: ["Apply the 24-hour rule before small purchases", "Set a daily cash allowance", "Delete shopping apps"],
       // 30% of the monthly average, per year (smallTotal spans the whole history)
@@ -169,7 +170,7 @@ export function generateInsights(transactions: ApiTransaction[]): SpendingInsigh
     insights.push({
       id: "subscriptions", type: "tip", priority: 3,
       title: `${subs.count} Subscription${subs.count === 1 ? "" : "s"} Detected`,
-      message: `${subs.names.slice(0, 3).join(", ")}${subs.count > 3 ? "…" : ""} cost $${subs.monthly.toFixed(2)}/month — $${(subs.monthly * 12).toFixed(2)}/year.`,
+      message: `${subs.names.slice(0, 3).join(", ")}${subs.count > 3 ? "…" : ""} cost ${currencySymbol()}${subs.monthly.toFixed(2)}/month — ${currencySymbol()}${(subs.monthly * 12).toFixed(2)}/year.`,
       impact: "medium", amount: subs.monthly, actionable: true,
       actions: ["List every active subscription", "Cancel unused services", "Switch to annual billing (saves ~20%)"],
       savingsEstimate: subs.monthly * 0.25 * 12, // cut 25%
@@ -187,7 +188,7 @@ export function generateInsights(transactions: ApiTransaction[]): SpendingInsigh
     insights.push({
       id: "weekend", type: "tip", priority: 4,
       title: "Weekend Spending Pattern",
-      message: `${wkPct.toFixed(0)}% of spending ($${weekend.toFixed(2)}) happens on weekends.`,
+      message: `${wkPct.toFixed(0)}% of spending (${currencySymbol()}${weekend.toFixed(2)}) happens on weekends.`,
       impact: "low", amount: weekend, actionable: true,
       actions: ["Plan weekend activities in advance", "Meal prep on Fridays", "Set a weekly fun budget"],
     });
@@ -235,7 +236,7 @@ export function generateInsights(transactions: ApiTransaction[]): SpendingInsigh
     insights.push({
       id: "best-day", type: "success", priority: 6,
       title: `${bestDay} Is Your Best Day`,
-      message: `Your average spend on ${bestDay} is only $${lowest.toFixed(2)} — your most controlled spending day.`,
+      message: `Your average spend on ${bestDay} is only ${currencySymbol()}${lowest.toFixed(2)} — your most controlled spending day.`,
       impact: "low", actionable: false,
     });
   }
@@ -277,7 +278,7 @@ export function generateActionPlan(transactions: ApiTransaction[]): ActionTip[] 
     tips.push({
       id: "top-cat-cut",
       title: `Trim ${c.name} by 15%`,
-      description: `You spend ~$${Math.round(c.monthlyAvg)}/month on ${c.name}. A 15% cut frees up $${saving}/year without a big lifestyle change.`,
+      description: `You spend ~${currencySymbol()}${Math.round(c.monthlyAvg)}/month on ${c.name}. A 15% cut frees up ${currencySymbol()}${saving}/year without a big lifestyle change.`,
       annualSavings: saving,
       category: c.name,
       iconType: "scissors",
@@ -295,7 +296,7 @@ export function generateActionPlan(transactions: ApiTransaction[]): ActionTip[] 
     tips.push({
       id: "second-cat-cut",
       title: `Find deals on ${c.name}`,
-      description: `${c.name} costs ~$${Math.round(c.monthlyAvg)}/month. Comparison-shopping or couponing 10% off saves $${saving}/year.`,
+      description: `${c.name} costs ~${currencySymbol()}${Math.round(c.monthlyAvg)}/month. Comparison-shopping or couponing 10% off saves ${currencySymbol()}${saving}/year.`,
       annualSavings: saving,
       category: c.name,
       iconType: "zap",
@@ -309,7 +310,7 @@ export function generateActionPlan(transactions: ApiTransaction[]): ActionTip[] 
     tips.push({
       id: "sub-audit",
       title: `Audit ${subs.count} subscription${subs.count !== 1 ? "s" : ""}`,
-      description: `Your subscriptions cost ~$${Math.round(subs.monthly)}/month. Cancelling even 1–2 unused ones saves $${saving}/year.`,
+      description: `Your subscriptions cost ~${currencySymbol()}${Math.round(subs.monthly)}/month. Cancelling even 1–2 unused ones saves ${currencySymbol()}${saving}/year.`,
       annualSavings: saving,
       iconType: "smartphone",
     });
@@ -323,7 +324,7 @@ export function generateActionPlan(transactions: ApiTransaction[]): ActionTip[] 
     tips.push({
       id: "impulse-cuts",
       title: "Apply the 24-hour rule",
-      description: `${micro.length} small purchases (<$25) add up to ~$${Math.round(monthlyMicro)}/month. Waiting 24 hours before buying cuts impulse spend by ~30% — saving $${saving}/year.`,
+      description: `${micro.length} small purchases (<${currencySymbol()}25) add up to ~${currencySymbol()}${Math.round(monthlyMicro)}/month. Waiting 24 hours before buying cuts impulse spend by ~30% — saving ${currencySymbol()}${saving}/year.`,
       annualSavings: saving,
       iconType: "coffee",
     });
@@ -341,7 +342,7 @@ export function generateActionPlan(transactions: ApiTransaction[]): ActionTip[] 
     tips.push({
       id: "weekend-plan",
       title: "Plan your weekends ahead",
-      description: `${Math.round(weekendPct)}% of spending happens on weekends. Pre-planning activities and meals can cut weekend spend 20% — saving ~$${saving}/year.`,
+      description: `${Math.round(weekendPct)}% of spending happens on weekends. Pre-planning activities and meals can cut weekend spend 20% — saving ~${currencySymbol()}${saving}/year.`,
       annualSavings: saving,
       iconType: "calendar",
     });

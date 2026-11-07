@@ -8,11 +8,12 @@ import {
 } from "recharts";
 import { BarChart3, TrendingUp, ShoppingBag, Calendar, DollarSign, Loader2, ArrowUpRight, Trophy, Search } from "lucide-react";
 import { transactionsAPI, type Transaction } from "@/lib/api";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 0 }).format(v);
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -169,10 +170,10 @@ function getCategoryTrends(transactions: Transaction[]) {
 function getSizeDistribution(transactions: Transaction[]) {
   const expenses = transactions.filter(isExpense);
   const buckets = [
-    { label: "Small", desc: "< $20",       min: 0,   max: 20,   color: "#10b981", count: 0, total: 0 },
-    { label: "Medium", desc: "$20–$100",   min: 20,  max: 100,  color: "#3b82f6", count: 0, total: 0 },
-    { label: "Large",  desc: "$100–$500",  min: 100, max: 500,  color: "#f59e0b", count: 0, total: 0 },
-    { label: "Major",  desc: "> $500",     min: 500, max: Infinity, color: "#ef4444", count: 0, total: 0 },
+    { label: "Small", desc: `< ${currencySymbol()}20`,       min: 0,   max: 20,   color: "#10b981", count: 0, total: 0 },
+    { label: "Medium", desc: `${currencySymbol()}20–${currencySymbol()}100`,   min: 20,  max: 100,  color: "#3b82f6", count: 0, total: 0 },
+    { label: "Large",  desc: `${currencySymbol()}100–${currencySymbol()}500`,  min: 100, max: 500,  color: "#f59e0b", count: 0, total: 0 },
+    { label: "Major",  desc: `> ${currencySymbol()}500`,     min: 500, max: Infinity, color: "#ef4444", count: 0, total: 0 },
   ];
   expenses.forEach((t) => {
     const abs = Math.abs(t.amount);
@@ -386,7 +387,7 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label: "Total Merchants",  value: allMerchants.length,               color: "text-indigo-600 dark:text-indigo-400" },
-                { label: "Total Spent",      value: `$${(allMerchants.reduce((s, m) => s + m.total, 0) / 1000).toFixed(1)}k`, color: "text-red-500 dark:text-red-400" },
+                { label: "Total Spent",      value: `${currencySymbol()}${(allMerchants.reduce((s, m) => s + m.total, 0) / 1000).toFixed(1)}k`, color: "text-red-500 dark:text-red-400" },
                 { label: "Total Visits",     value: allMerchants.reduce((s, m) => s + m.count, 0), color: "text-emerald-600 dark:text-emerald-400" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
@@ -533,7 +534,7 @@ export default function AnalyticsPage() {
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={topMerchants} layout="vertical" margin={{ left: 0, right: 16 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-                <XAxis type="number" tickFormatter={(v) => `$${v >= 1000 ? (v / 1000).toFixed(1) + "k" : v}`}
+                <XAxis type="number" tickFormatter={(v) => `${currencySymbol()}${v >= 1000 ? (v / 1000).toFixed(1) + "k" : v}`}
                   tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 11, fill: "#6b7280" }}
                   axisLine={false} tickLine={false} />
@@ -560,7 +561,7 @@ export default function AnalyticsPage() {
               <BarChart data={dayOfWeek} margin={{ top: 4, right: 8, bottom: 0, left: -10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis dataKey="day" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={(v) => `$${v >= 1000 ? (v / 1000).toFixed(1) + "k" : v}`}
+                <YAxis tickFormatter={(v) => `${currencySymbol()}${v >= 1000 ? (v / 1000).toFixed(1) + "k" : v}`}
                   tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CurrencyTooltip />} />
                 <Bar dataKey="total" name="Total Spent" radius={[6, 6, 0, 0]}>
@@ -607,7 +608,7 @@ export default function AnalyticsPage() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={(v) => `$${v >= 1000 ? (v / 1000).toFixed(1) + "k" : v}`}
+                <YAxis tickFormatter={(v) => `${currencySymbol()}${v >= 1000 ? (v / 1000).toFixed(1) + "k" : v}`}
                   tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CurrencyTooltip />} />
                 <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} iconType="circle" />

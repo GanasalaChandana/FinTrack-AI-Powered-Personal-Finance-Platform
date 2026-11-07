@@ -6,6 +6,7 @@ import { type LucideIcon, User, Lock, Globe, Tag, Download, Trash2, Save, Eye, E
 import { apiRequest, getUser, removeToken, type Transaction } from '@/lib/api';
 import { errorMessage } from "@/lib/utils/errors";
 import { CategoryModelCard } from '@/components/CategoryModelCard';
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 /* ===================== Types ===================== */
 type TabKey = 'profile' | 'security' | 'preferences' | 'categories' | 'notifications';
@@ -160,7 +161,7 @@ export default function SettingsContent() {
     try { return JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}'); } catch { return {}; }
   });
   const mergedPrefs: Preferences = Object.assign(
-    { currency: 'USD', dateFormat: 'MM/DD/YYYY' as const, language: 'en', theme: 'system' as const },
+    { currency: userCurrency(), dateFormat: 'MM/DD/YYYY' as const, language: 'en', theme: 'system' as const },
     prefs
   );
 
@@ -477,6 +478,7 @@ export default function SettingsContent() {
                   { code: 'JPY', label: '¥ — Japanese Yen'   },
                 ].map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
               </select>
+              <p className="text-xs text-gray-400 mt-1">Changes how amounts are shown. Amounts aren&apos;t converted between currencies.</p>
             </div>
 
             {/* Date Format */}
@@ -602,7 +604,7 @@ export default function SettingsContent() {
                   Large Transaction Threshold
                 </label>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">$</span>
+                  <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">{currencySymbol()}</span>
                   <input
                     type="number"
                     min={1}

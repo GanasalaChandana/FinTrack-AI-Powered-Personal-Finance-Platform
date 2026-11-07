@@ -5,6 +5,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { X, Upload, FileText, AlertCircle, Download, CheckCircle, ChevronRight, ChevronLeft, Loader2, Sparkles } from "lucide-react";
 import { errorMessage } from "@/lib/utils/errors";
+import { currencySymbol } from "@/lib/userPrefs";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public types (unchanged — dashboard passes these)
@@ -554,7 +555,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                           <td className="px-3 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap font-mono">{row.date}</td>
                           <td className="px-3 py-2 text-gray-800 dark:text-gray-200 max-w-[140px] truncate">{row.merchant || row.description}</td>
                           <td className={`px-3 py-2 font-semibold whitespace-nowrap ${row.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
-                            {row.type === "income" ? "+" : "-"}${row.amount.toFixed(2)}
+                            {row.type === "income" ? "+" : "-"}{currencySymbol()}{row.amount.toFixed(2)}
                           </td>
                           <td className="px-3 py-2">
                             <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${

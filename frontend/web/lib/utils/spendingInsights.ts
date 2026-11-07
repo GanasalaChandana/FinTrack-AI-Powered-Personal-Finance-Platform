@@ -2,6 +2,7 @@
 // Natural-language AI spending insights — pure JS, no API calls
 
 import { Transaction } from "@/lib/api";
+import { userCurrency } from "@/lib/userPrefs";
 
 export type InsightCategory =
   | "merchant"
@@ -33,7 +34,7 @@ export interface SpendingInsight {
 function fmt(n: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: userCurrency(),
     minimumFractionDigits: 2,
   }).format(n);
 }

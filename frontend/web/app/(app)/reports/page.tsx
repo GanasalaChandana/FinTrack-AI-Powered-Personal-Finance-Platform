@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 
 import { PageHeader, Section, PageContent } from "@/components/layouts/PageHeader";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -55,7 +56,7 @@ interface CategoryDetail {
 // ── Utils ─────────────────────────────────────────────────────────────────────
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 2 }).format(v);
 
 const fmtPct = (v: number) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`;
 
@@ -629,7 +630,7 @@ const EnhancedFinancialReports: React.FC = () => {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `$${v}`} />
+                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `${currencySymbol()}${v}`} />
                 <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number) => fmt(v)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Area type="monotone" dataKey="income" stroke="#10b981" fill="url(#gIncome)" strokeWidth={2.5} />
@@ -782,7 +783,7 @@ const EnhancedFinancialReports: React.FC = () => {
                 <BarChart data={bars} barCategoryGap="25%">
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={(v: number) => `${currencySymbol()}${(v / 1000).toFixed(0)}k`} />
                   <Tooltip content={WaterfallTooltip} />
                   <Bar dataKey="base" stackId="wf" fill="transparent" />
                   <Bar dataKey="value" stackId="wf" radius={[4, 4, 0, 0]} name="Amount">
@@ -929,7 +930,7 @@ const EnhancedFinancialReports: React.FC = () => {
         <>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis dataKey="label" {...axisProps} />
-          <YAxis {...axisProps} tickFormatter={(v) => `$${Math.round(Number(v)).toLocaleString()}`} width={70} />
+          <YAxis {...axisProps} tickFormatter={(v) => `${currencySymbol()}${Math.round(Number(v)).toLocaleString()}`} width={70} />
           <Tooltip formatter={(v) => fmt(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
           <Legend />
         </>
@@ -1106,7 +1107,7 @@ const EnhancedFinancialReports: React.FC = () => {
             <LineChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-              <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `$${v}`} />
+              <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `${currencySymbol()}${v}`} />
               <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number) => fmt(v)} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               {categoryKeys.map((key, i) => (
@@ -1177,7 +1178,7 @@ const EnhancedFinancialReports: React.FC = () => {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `$${v}`} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `${currencySymbol()}${v}`} />
                   <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number) => fmt(v)} />
                   <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="4 4" />
                   <Area type="monotone" dataKey="cumulative" stroke="#10b981" fill="url(#gCumSavings)" strokeWidth={2.5} name="Cumulative Savings" />
@@ -1269,7 +1270,7 @@ const EnhancedFinancialReports: React.FC = () => {
                   <BarChart data={yoyData.months} barGap={3} barCategoryGap="28%">
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                     <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `$${v}`} />
+                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `${currencySymbol()}${v}`} />
                     <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number) => fmt(v)} />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
                     <Bar dataKey="thisYearExp" fill="#6366f1" name={`${yoyData.currentYear}`} radius={[4, 4, 0, 0]} />
@@ -1318,7 +1319,7 @@ const EnhancedFinancialReports: React.FC = () => {
             <BarChart data={comparisonData} barGap={4} barCategoryGap="30%">
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-              <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `$${v}`} />
+              <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `${currencySymbol()}${v}`} />
               <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number) => fmt(v)} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar dataKey="current" fill="#6366f1" name="Current Period" radius={[6, 6, 0, 0]} />
@@ -1341,7 +1342,7 @@ const EnhancedFinancialReports: React.FC = () => {
               <BarChart data={dowData} barCategoryGap="35%">
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="day" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `$${v}`} />
+                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `${currencySymbol()}${v}`} />
                 <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number) => [fmt(v), "Avg spend"]} />
                 <Bar dataKey="amount" radius={[8, 8, 0, 0]} name="Avg spend">
                   {dowData.map((entry, i) => (
@@ -1382,7 +1383,7 @@ const EnhancedFinancialReports: React.FC = () => {
             <LineChart data={forecastData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-              <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `$${v}`} />
+              <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={v => `${currencySymbol()}${v}`} />
               <Tooltip contentStyle={CHART_TOOLTIP_STYLE}
                 formatter={(v) => (v != null && v !== undefined) ? fmt(Number(v)) : "—"} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -1727,7 +1728,7 @@ const EnhancedFinancialReports: React.FC = () => {
                 <BarChart data={monthly} barCategoryGap="28%">
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={(v) => `${currencySymbol()}${(v / 1000).toFixed(0)}k`} />
                   <Tooltip
                     contentStyle={CHART_TOOLTIP_STYLE}
                     formatter={(v: number) => [fmt(v), "Income"]}
@@ -1852,7 +1853,7 @@ const EnhancedFinancialReports: React.FC = () => {
             <BarChart data={historyData} barCategoryGap="30%" barGap={4}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
               <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} tickLine={false} />
-              <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+              <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} tickFormatter={v => `${currencySymbol()}${(v/1000).toFixed(0)}k`} />
               <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number) => fmt(v)} />
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 16 }} />
               <Bar dataKey="budget" name="Budget" fill="#e0e7ff" radius={[4, 4, 0, 0]} />
@@ -1919,7 +1920,7 @@ const EnhancedFinancialReports: React.FC = () => {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} tickLine={false} />
-              <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+              <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} tickFormatter={v => `${currencySymbol()}${(v/1000).toFixed(0)}k`} />
               <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number) => fmt(v)} />
               <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="4 2" />
               <Area type="monotone" dataKey="savings" stroke="#6366f1" strokeWidth={2.5} fill="url(#savGrad)" name="Savings" dot={{ r: 4, fill: "#6366f1" }} />
@@ -1981,7 +1982,7 @@ const EnhancedFinancialReports: React.FC = () => {
           <Receipt className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
-              {currentYear} Tax Year — ${fmt(totalDeductible)} marked deductible
+              {currentYear} Tax Year — {currencySymbol()}{fmt(totalDeductible)} marked deductible
             </p>
             <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
               Mark transactions below as tax-deductible. All selections are saved locally and can be exported.
@@ -1992,7 +1993,7 @@ const EnhancedFinancialReports: React.FC = () => {
             onClick={() => {
               const rows = deductible.map((t) => {
                 const entry = taxStore.getEntry(t.id!);
-                return `${t.date.slice(0,10)},${t.merchant || t.description},$${Math.abs(t.amount).toFixed(2)},${entry?.taxCategory ?? ""},${entry?.note ?? ""}`;
+                return `${t.date.slice(0,10)},${t.merchant || t.description},${currencySymbol()}${Math.abs(t.amount).toFixed(2)},${entry?.taxCategory ?? ""},${entry?.note ?? ""}`;
               }).join("\n");
               const csv = `Date,Merchant,Amount,Tax Category,Note\n${rows}`;
               const blob = new Blob([csv], { type: "text/csv" });
@@ -2026,7 +2027,7 @@ const EnhancedFinancialReports: React.FC = () => {
                   {meta.label}
                 </span>
                 <span className="text-sm font-extrabold text-gray-900 dark:text-gray-100">
-                  {amt > 0 ? `$${amt.toFixed(0)}` : "—"}
+                  {amt > 0 ? `${currencySymbol()}${amt.toFixed(0)}` : "—"}
                 </span>
               </button>
             );

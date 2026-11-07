@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Target, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";
+import { userCurrency } from "@/lib/userPrefs";
 
 interface Goal {
   id: string;
@@ -20,7 +21,7 @@ interface Goal {
 }
 
 const fmt = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), maximumFractionDigits: 0 }).format(n);
 
 function daysUntil(deadline: string): number {
   const today = new Date();

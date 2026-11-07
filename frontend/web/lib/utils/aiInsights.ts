@@ -1,3 +1,4 @@
+import { currencySymbol } from "@/lib/userPrefs";
 // lib/utils/aiInsights.ts
 
 export interface Transaction {
@@ -61,7 +62,7 @@ export const generateAIInsights = (
       id: `anomaly-${index}`,
       type: 'warning',
       title: `Unusual ${anomaly.transaction.category} Spending`,
-      message: `${anomaly.transaction.description} ($${anomaly.transaction.amount.toFixed(2)}) is ${pct}% above your $${anomaly.expectedAmount.toFixed(0)} average for this category.${tip ? ` ${tip}` : ''}`,
+      message: `${anomaly.transaction.description} (${currencySymbol()}${anomaly.transaction.amount.toFixed(2)}) is ${pct}% above your ${currencySymbol()}${anomaly.expectedAmount.toFixed(0)} average for this category.${tip ? ` ${tip}` : ''}`,
       impact: anomaly.severity,
       category: anomaly.transaction.category,
       amount: anomaly.transaction.amount,
@@ -80,7 +81,7 @@ export const generateAIInsights = (
         id: `trend-${index}`,
         type: 'warning',
         title: `${trend.category} Up ${Math.round(trend.percentageChange)}% vs Last Period`,
-        message: `Your ${trend.category} spending increased by ${Math.round(trend.percentageChange)}% compared to last period (avg $${trend.averageAmount.toFixed(2)}/transaction).${tip ? ` ${tip}` : ''}`,
+        message: `Your ${trend.category} spending increased by ${Math.round(trend.percentageChange)}% compared to last period (avg ${currencySymbol()}${trend.averageAmount.toFixed(2)}/transaction).${tip ? ` ${tip}` : ''}`,
         impact: trend.percentageChange > 50 ? 'high' : 'medium',
         category: trend.category,
         amount: trend.averageAmount,
@@ -110,7 +111,7 @@ export const generateAIInsights = (
       id: 'recurring-found',
       type: 'info',
       title: `${recurring.length} Recurring Transaction${recurring.length === 1 ? '' : 's'} Detected`,
-      message: `Found ${recurring.length} likely subscription or recurring payments totalling $${recurringTotal.toFixed(2)}/month. Review for any unused services.`,
+      message: `Found ${recurring.length} likely subscription or recurring payments totalling ${currencySymbol()}${recurringTotal.toFixed(2)}/month. Review for any unused services.`,
       impact: 'low',
       actionable: true,
       actions: ['Review recurring', 'Cancel unused subscriptions'],
@@ -142,7 +143,7 @@ export const generateAIInsights = (
         id: `top-category-${index}`,
         type: 'info',
         title: `${cat.category} Is ${cat.percentage.toFixed(0)}% of Your Spending`,
-        message: `${cat.category} accounts for ${cat.percentage.toFixed(0)}% of all expenses ($${cat.amount.toFixed(2)}) across ${cat.count} transaction${cat.count === 1 ? '' : 's'}.${tip ? ` ${tip}` : ''}`,
+        message: `${cat.category} accounts for ${cat.percentage.toFixed(0)}% of all expenses (${currencySymbol()}${cat.amount.toFixed(2)}) across ${cat.count} transaction${cat.count === 1 ? '' : 's'}.${tip ? ` ${tip}` : ''}`,
         impact: 'medium',
         category: cat.category,
         amount: cat.amount,
@@ -161,8 +162,8 @@ export const generateAIInsights = (
     insights.push({
       id: 'impulse-buying',
       type: 'warning',
-      title: `${impulseTransactions.length} Small Purchases Totalling $${totalImpulse.toFixed(2)}`,
-      message: `${impulseTransactions.length} transactions under $50 average $${avgImpulse.toFixed(2)} each — they add up to $${totalImpulse.toFixed(2)} total. Apply the 24-hour rule before small purchases.`,
+      title: `${impulseTransactions.length} Small Purchases Totalling ${currencySymbol()}${totalImpulse.toFixed(2)}`,
+      message: `${impulseTransactions.length} transactions under ${currencySymbol()}50 average ${currencySymbol()}${avgImpulse.toFixed(2)} each — they add up to ${currencySymbol()}${totalImpulse.toFixed(2)} total. Apply the 24-hour rule before small purchases.`,
       impact: 'medium',
       amount: totalImpulse,
       actionable: true,
@@ -178,7 +179,7 @@ export const generateAIInsights = (
       id: 'best-day',
       type: 'success',
       title: 'Your Best Spending Day',
-      message: `${bestDay.day} is your most controlled spending day with average of $${bestDay.average.toFixed(2)}.`,
+      message: `${bestDay.day} is your most controlled spending day with average of ${currencySymbol()}${bestDay.average.toFixed(2)}.`,
       impact: 'low',
       actionable: false,
       priority: 5,
@@ -196,7 +197,7 @@ export const generateAIInsights = (
       id: 'subscription-audit',
       type: 'tip',
       title: 'Time for Subscription Audit',
-      message: `You have ${subscriptionCategories.length} subscriptions costing $${total.toFixed(2)}/month. Review for unused services.`,
+      message: `You have ${subscriptionCategories.length} subscriptions costing ${currencySymbol()}${total.toFixed(2)}/month. Review for unused services.`,
       impact: 'medium',
       amount: total,
       actionable: true,
@@ -420,7 +421,7 @@ function getCategoryTip(category: string): string {
   if (cat.includes('health') || cat.includes('medical'))
     return 'Check if your insurance covers any of these expenses.';
   if (cat.includes('coffee') || cat.includes('cafe'))
-    return 'Brewing at home 3 days a week can save $50–100/month.';
+    return `Brewing at home 3 days a week can save ${currencySymbol()}50–100/month.`;
   return '';
 }
 

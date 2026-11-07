@@ -1,3 +1,4 @@
+import { currencySymbol } from "@/lib/userPrefs";
 // lib/utils/nlSearch.ts
 // Natural-language query parser for transaction search.
 // Runs 100% client-side — no API needed.
@@ -222,9 +223,9 @@ function buildDescription(filter: NLFilter): string {
   if (filter.categories.length)  parts.push(`in ${filter.categories.join(", ")}`);
   if (filter.merchants.length)   parts.push(`from ${filter.merchants.join(", ")}`);
   if (filter.minAmount != null && filter.maxAmount != null)
-    parts.push(`between $${filter.minAmount.toFixed(0)}–$${filter.maxAmount.toFixed(0)}`);
-  else if (filter.minAmount != null) parts.push(`over $${filter.minAmount.toFixed(0)}`);
-  else if (filter.maxAmount != null) parts.push(`under $${filter.maxAmount.toFixed(0)}`);
+    parts.push(`between ${currencySymbol()}${filter.minAmount.toFixed(0)}–${currencySymbol()}${filter.maxAmount.toFixed(0)}`);
+  else if (filter.minAmount != null) parts.push(`over ${currencySymbol()}${filter.minAmount.toFixed(0)}`);
+  else if (filter.maxAmount != null) parts.push(`under ${currencySymbol()}${filter.maxAmount.toFixed(0)}`);
   if (filter.dateFrom && filter.dateTo) {
     // Use timezone-safe display (no new Date() conversion)
     parts.push(`· ${displayDate(filter.dateFrom)} – ${displayDate(filter.dateTo)}`);

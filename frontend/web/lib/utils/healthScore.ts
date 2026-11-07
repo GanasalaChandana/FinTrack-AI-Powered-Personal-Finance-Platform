@@ -1,3 +1,5 @@
+import { currencySymbol } from "@/lib/userPrefs";
+
 // lib/utils/healthScore.ts
 
 export interface FinancialData {
@@ -341,7 +343,7 @@ function generateRecommendations(
   // Emergency fund recommendations
   if (components.emergencyFund.status === 'poor' || components.emergencyFund.status === 'fair') {
     recommendations.push('Build emergency fund to cover 3-6 months of expenses');
-    recommendations.push('Start with a goal of $1,000 for immediate emergencies');
+    recommendations.push(`Start with a goal of ${currencySymbol()}1,000 for immediate emergencies`);
   }
 
   // Budget recommendations

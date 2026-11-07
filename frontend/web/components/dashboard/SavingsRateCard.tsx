@@ -6,6 +6,7 @@ import {
 } from "recharts";
 import { TrendingUp, TrendingDown, Minus, PiggyBank } from "lucide-react";
 import type { Transaction } from "@/lib/api";
+import { userCurrency } from "@/lib/userPrefs";
 
 interface SavingsRateCardProps {
   transactions: Transaction[];
@@ -36,7 +37,7 @@ function getMonthlyRates(transactions: Transaction[]): Array<{ month: string; ra
 }
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 0 }).format(v);
 
 export function SavingsRateCard({ transactions }: SavingsRateCardProps) {
   const monthlyData = useMemo(() => getMonthlyRates(transactions), [transactions]);

@@ -5,6 +5,7 @@ import { Brain, Loader2, Sparkles, AlertTriangle, CheckCircle, Info, Lightbulb, 
 import { transactionsAPI, type Transaction as ApiTransaction } from "@/lib/api";
 import { generateInsights, generateActionPlan, type SpendingInsight } from "@/lib/utils/insightsEngine";
 import { errorMessage } from "@/lib/utils/errors";
+import { currencySymbol } from "@/lib/userPrefs";
 
 // ── Design maps ───────────────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ function SavingsProjection({ insights }: { insights: SpendingInsight[] }) {
         <p className="text-xs font-bold uppercase tracking-widest opacity-80">Potential Annual Savings</p>
       </div>
       <p className="text-4xl font-black tracking-tight">
-        ${total.toFixed(0)}
+        {currencySymbol()}{total.toFixed(0)}
         <span className="text-lg font-semibold opacity-70">/yr</span>
       </p>
       <p className="text-sm opacity-70 mt-1">
@@ -124,7 +125,7 @@ function ActionPlanSection({ transactions }: { transactions: ApiTransaction[] })
           </div>
           <div className="text-right flex-shrink-0">
             <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">Potential savings</p>
-            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">${totalSavings.toLocaleString()}</p>
+            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{currencySymbol()}{totalSavings.toLocaleString()}</p>
             <p className="text-[10px] text-gray-400 dark:text-gray-500">/year if all done</p>
           </div>
         </div>
@@ -178,7 +179,7 @@ function ActionPlanSection({ transactions }: { transactions: ApiTransaction[] })
                     </p>
                     <span className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-full text-[10px] font-extrabold flex items-center gap-1 flex-shrink-0">
                       <TrendingUp className="w-3 h-3" />
-                      ${tip.annualSavings.toLocaleString()}/yr
+                      {currencySymbol()}{tip.annualSavings.toLocaleString()}/yr
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">{tip.description}</p>
@@ -214,7 +215,7 @@ function ActionPlanSection({ transactions }: { transactions: ApiTransaction[] })
           <div className="mt-4 flex items-center gap-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl px-4 py-3">
             <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
             <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-              All actions complete! Keep it up — you&apos;re on track to save ${totalSavings.toLocaleString()}/year. 🎉
+              All actions complete! Keep it up — you&apos;re on track to save {currencySymbol()}{totalSavings.toLocaleString()}/year. 🎉
             </p>
           </div>
         )}
@@ -384,13 +385,13 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
                         )}
                         {insight.amount != null && (
                           <span className={`px-3 py-1 rounded-full text-xs font-extrabold ${st.labelBg}`}>
-                            ${insight.amount.toFixed(2)}
+                            {currencySymbol()}{insight.amount.toFixed(2)}
                           </span>
                         )}
                         {insight.savingsEstimate != null && insight.savingsEstimate > 0 && (
                           <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-extrabold flex items-center gap-1">
                             <TrendingUp className="w-3 h-3" />
-                            Save ~${insight.savingsEstimate.toFixed(0)}/yr
+                            Save ~{currencySymbol()}{insight.savingsEstimate.toFixed(0)}/yr
                           </span>
                         )}
                       </div>

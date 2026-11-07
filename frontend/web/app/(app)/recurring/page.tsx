@@ -6,6 +6,7 @@ import { authAPI, removeToken, transactionsAPI, type Transaction as ApiTransacti
 import { RecurringTransactionsDashboard } from "@/components/RecurringTransactionsDashboard";
 import type { RecurringRuleDraft } from "@/lib/utils/recurringDetector";
 import { errorMessage } from "@/lib/utils/errors";
+import { userCurrency } from "@/lib/userPrefs";
 
 // ── API helpers ────────────────────────────────────────────────────────────────
 
@@ -131,7 +132,7 @@ function mapFrequency(freq: string): "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" {
 }
 
 function fmt(n: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency() }).format(n);
 }
 
 function daysUntil(dateStr: string): number {

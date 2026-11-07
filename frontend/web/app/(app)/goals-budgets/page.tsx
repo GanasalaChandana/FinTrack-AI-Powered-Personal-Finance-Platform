@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 
 import { useToast } from "@/components/ui/Toast";
 import { PageHeader, Section, PageContent } from "@/components/layouts/PageHeader";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 
 
@@ -88,7 +89,7 @@ const getLocalYearMonth = (): string => {
 // ── Utility helpers ────────────────────────────────────────────────────────────
 
 const fmt = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), maximumFractionDigits: 0 }).format(n);
 
 const daysUntil = (deadline: string): number => {
   const today = new Date();
@@ -398,7 +399,7 @@ function ContributeModal({ goal, onSave, onClose }: ContributeModalProps) {
                 onClick={() => setAmount(String(v))}
                 className="flex-1 border border-indigo-200 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 rounded-lg py-1.5 text-xs hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition"
               >
-                +${v}
+                +{currencySymbol()}{v}
               </button>
             ))}
             {remaining > 0 && (
@@ -779,7 +780,7 @@ function WizardModal5030({ onApply, onClose }: { onApply: (b: AppliedBudget[]) =
           <div>
             <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Monthly Take-Home Income</label>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">$</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">{currencySymbol()}</span>
               <input
                 type="number" min="0" value={income}
                 onChange={e => setIncome(e.target.value)}
@@ -816,7 +817,7 @@ function WizardModal5030({ onApply, onClose }: { onApply: (b: AppliedBudget[]) =
                         <div key={cat} className="flex items-center gap-3">
                           <span className="text-xs text-gray-600 dark:text-gray-400 w-36 shrink-0 truncate">{cat}</span>
                           <div className="relative flex-1">
-                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{currencySymbol()}</span>
                             <input
                               type="number" min="0" step="5"
                               value={alloc[cat] ?? ""}

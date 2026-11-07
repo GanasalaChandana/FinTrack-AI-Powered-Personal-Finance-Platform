@@ -2,6 +2,7 @@
 
 import { apiRequest, transactionsAPI, type Transaction } from "@/lib/api";
 import { escapeHtml } from "@/lib/exportTransactions";
+import { userCurrency } from "@/lib/userPrefs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -154,7 +155,7 @@ function pct(change: number, base: number): number {
 }
 
 const _fmt = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency() }).format(v);
 
 function getCategoryColor(name: string): string {
   return CATEGORY_COLORS[name.toLowerCase()] ?? "#6366f1";

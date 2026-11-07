@@ -10,6 +10,7 @@ import { ReceiptScanner, type ScannedTransaction } from "@/components/ReceiptSca
 import { transactionsAPI, isAuthenticated as checkAuth } from "@/lib/api";
 import type { ParsedReceipt } from "@/lib/utils/ocrParser";
 import { errorMessage } from "@/lib/utils/errors";
+import { userCurrency } from "@/lib/userPrefs";
 
 // ── Saved transaction info shown after a successful save ──────────────────────
 interface SavedTx {
@@ -94,7 +95,7 @@ export default function ReceiptsPage() {
   }
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+    new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency() }).format(n);
 
   return (
     <div className="min-h-screen bg-slate-50">

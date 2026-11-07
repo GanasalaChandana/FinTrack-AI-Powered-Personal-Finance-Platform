@@ -9,14 +9,15 @@ import { Store, Search, TrendingUp, TrendingDown, Minus, X, BarChart3, DollarSig
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 2 }).format(v);
 
 const fmtShort = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 0 }).format(v);
 
 type DayRange = 30 | 90 | 180 | 365 | 0;
 
@@ -208,7 +209,7 @@ function MerchantModal({
               <ResponsiveContainer width="100%" height={150}>
                 <BarChart data={merchant.monthlyData} barCategoryGap="30%" margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                  <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${currencySymbol()}${v}`} />
                   <Tooltip
                     formatter={(v: number) => [fmt(v), "Spent"]}
                     contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }}
@@ -431,7 +432,7 @@ export default function MerchantsPage() {
                     }}
                   >
                     <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                    <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${currencySymbol()}${v}`} />
                     <Tooltip
                       formatter={(v: number) => [fmt(v), "Total Spent"]}
                       contentStyle={{ borderRadius: 12, border: "1px solid #e5e7eb", fontSize: 12 }}

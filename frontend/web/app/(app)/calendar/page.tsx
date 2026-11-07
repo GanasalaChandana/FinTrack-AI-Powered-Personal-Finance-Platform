@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { transactionsAPI, type Transaction } from "@/lib/api";
 import { detectRecurring } from "@/lib/utils/recurringDetection";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -18,11 +19,11 @@ const MONTH_NAMES = [
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 0 }).format(v);
 
 // Short form ($5.2K) for the narrow day cells on phones
 const fmtCompact = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), notation: "compact", maximumFractionDigits: 1 }).format(v);
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
@@ -333,7 +334,7 @@ export default function CalendarPage() {
               {yearHeatmap.cells.map((cell, idx) => (
                 <div
                   key={idx}
-                  title={cell.date ? `${cell.date}: ${cell.expenses > 0 ? `$${cell.expenses.toFixed(0)}` : "No spend"}` : ""}
+                  title={cell.date ? `${cell.date}: ${cell.expenses > 0 ? `${currencySymbol()}${cell.expenses.toFixed(0)}` : "No spend"}` : ""}
                   className="w-[10px] h-[10px] rounded-[2px] cursor-default"
                   style={{
                     backgroundColor: !cell.date
@@ -365,7 +366,7 @@ export default function CalendarPage() {
               ))}
               <span>More</span>
               <span className="ml-4 text-gray-400 dark:text-gray-500">
-                Max single day: ${yearHeatmap.maxExp > 1 ? yearHeatmap.maxExp.toFixed(0) : "0"}
+                Max single day: {currencySymbol()}{yearHeatmap.maxExp > 1 ? yearHeatmap.maxExp.toFixed(0) : "0"}
               </span>
             </div>
           </div>

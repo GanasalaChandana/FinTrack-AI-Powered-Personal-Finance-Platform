@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 interface SpendingData {
   month: string;
@@ -26,7 +27,7 @@ interface SpendingTrendChartProps {
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: userCurrency(),
     minimumFractionDigits: 0,
   }).format(value);
 };
@@ -84,7 +85,7 @@ export function SpendingTrendChart({ data }: SpendingTrendChartProps) {
           <YAxis
             stroke="#9ca3af"
             style={{ fontSize: '12px', fill: '#9ca3af' }}
-            tickFormatter={(value) => `$${value / 1000}k`}
+            tickFormatter={(value) => `${currencySymbol()}${value / 1000}k`}
           />
           <Tooltip
             contentStyle={{

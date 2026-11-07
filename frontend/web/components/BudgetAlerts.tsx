@@ -7,6 +7,7 @@ import { AlertTriangle, XCircle } from "lucide-react";
 import { alertService, type BudgetAlert } from "@/lib/api/services/alert.service";
 import { isAuthenticated as hasSession } from "@/lib/api";
 import { isPublicPath } from "@/lib/publicRoutes";
+import { currencySymbol } from "@/lib/userPrefs";
 
 // 🛡️ Helper to check public/auth routes
 function isPublicRoute(path: string | null): boolean {
@@ -89,7 +90,7 @@ export function BudgetAlerts() {
                   {getAlertMessage(alert)}
                 </p>
                 <p className="mt-1 text-xs text-gray-400">
-                  ${alert.currentSpent.toFixed(2)} / $
+                  {currencySymbol()}{alert.currentSpent.toFixed(2)} / {currencySymbol()}
                   {alert.budgetAmount.toFixed(2)}
                 </p>
               </div>

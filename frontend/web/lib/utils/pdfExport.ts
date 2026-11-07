@@ -3,6 +3,7 @@
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { userCurrency } from "@/lib/userPrefs";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -36,7 +37,7 @@ interface ExportOptions {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const fmt = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(n);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 2 }).format(n);
 
 const isIncome = (t: Transaction) =>
   t.type?.toLowerCase() === "income";

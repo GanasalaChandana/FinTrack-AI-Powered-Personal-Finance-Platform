@@ -7,6 +7,7 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import { TrendingUp, TrendingDown, Plus, Trash2, Edit2, Check, X, Wallet, CreditCard, Home, Car, Briefcase, PiggyBank, DollarSign, Building, BarChart3, Flag, Sparkles } from "lucide-react";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -68,7 +69,7 @@ const ASSET_COLORS: Record<AssetType, string> = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 0 }).format(v);
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -143,7 +144,7 @@ function ItemRow({ id, name, value, type, Icon, colorClass, onDelete, onEdit }: 
           placeholder="Name"
         />
         <div className="relative">
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{currencySymbol()}</span>
           <input
             type="number"
             step="0.01"
@@ -230,7 +231,7 @@ function AddForm({ types, label, accent, onAdd }: AddFormProps) {
           placeholder={`${label} name (e.g. Checking Account)`}
         />
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{currencySymbol()}</span>
           <input
             type="number"
             step="0.01"
@@ -498,7 +499,7 @@ export default function NetWorthPage() {
               <LineChart data={fullChartData} margin={{ top: 4, right: 16, bottom: 0, left: -10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={(v) => `$${Math.abs(v) >= 1000 ? (v / 1000).toFixed(0) + "k" : v}`}
+                <YAxis tickFormatter={(v) => `${currencySymbol()}${Math.abs(v) >= 1000 ? (v / 1000).toFixed(0) + "k" : v}`}
                   tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
                 <Tooltip content={<NWTooltip />} />
                 <ReferenceLine y={0} stroke="#e5e7eb" strokeDasharray="4 4" />
@@ -568,7 +569,7 @@ export default function NetWorthPage() {
           {(target === null || editingTarget) && (
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">{currencySymbol()}</span>
                 <input
                   type="number"
                   value={targetInput}

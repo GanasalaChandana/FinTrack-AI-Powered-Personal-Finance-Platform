@@ -3,6 +3,7 @@
 import React from 'react';
 import { LucideIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
+import { currencySymbol } from "@/lib/userPrefs";
 
 interface StatCardProps {
   title: string;
@@ -40,7 +41,7 @@ const SparkTooltip = ({ active, payload }: ChartTooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 text-[10px] font-bold px-2 py-1 rounded-sm shadow-lg pointer-events-none">
-      ${Number(payload[0].value).toLocaleString()}
+      {currencySymbol()}{Number(payload[0].value).toLocaleString()}
     </div>
   );
 };

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { ShieldAlert, CheckCircle, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { userCurrency } from "@/lib/userPrefs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -70,7 +71,7 @@ function getLevel(pct: number): AlertLevel {
 function formatCurrency(v: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: userCurrency(),
     minimumFractionDigits: 0,
   }).format(v);
 }

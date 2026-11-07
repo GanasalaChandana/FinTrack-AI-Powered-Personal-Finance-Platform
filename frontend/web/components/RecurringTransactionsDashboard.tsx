@@ -12,6 +12,7 @@ import {
   type Transaction,
   type RecurringTransaction,
 } from "@/lib/utils/recurringDetector";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ interface RecurringTransactionsDashboardProps {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 2 }).format(v);
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -214,7 +215,7 @@ export function RecurringTransactionsDashboard({
             icon: RefreshCw, iconBg: "bg-indigo-50", iconText: "text-indigo-600", valueCls: "text-gray-900",
           },
           {
-            label: "Monthly Cost", sub: `$${annualExpenses.toFixed(0)}/year`,
+            label: "Monthly Cost", sub: `${currencySymbol()}${annualExpenses.toFixed(0)}/year`,
             value: fmt(monthlyExpenses),
             icon: DollarSign, iconBg: "bg-violet-50", iconText: "text-violet-600", valueCls: "text-gray-900",
           },

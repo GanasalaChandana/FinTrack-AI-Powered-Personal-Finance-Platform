@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, DollarSign, Calendar, Tag, FileText, CreditCard, TrendingUp, TrendingDown, Sparkles, Loader2, Clock, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { getExpenseCategories, getIncomeCategories } from "@/lib/utils/categories";
+import { currencySymbol } from "@/lib/userPrefs";
 
 /** Where a suggested category came from (see the backend's CategoryRuleService) */
 type SuggestionSource = "learned" | "model" | "keywords";
@@ -292,7 +293,7 @@ export function TransactionModal({ isOpen, onClose, onSave, transaction, mode = 
                 Amount
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">{currencySymbol()}</span>
                 <input
                   type="number"
                   step="0.01"

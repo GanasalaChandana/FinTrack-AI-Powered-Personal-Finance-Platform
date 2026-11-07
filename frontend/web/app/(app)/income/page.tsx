@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { TrendingUp, DollarSign, Loader2, ArrowUpRight } from "lucide-react";
 import { transactionsAPI, type Transaction } from "@/lib/api";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -25,7 +26,7 @@ const SOURCE_COLORS: Record<string, string> = {
 const COLOR_FALLBACK = ["#6366f1","#10b981","#f59e0b","#ec4899","#8b5cf6","#06b6d4","#84cc16","#ef4444"];
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 0 }).format(v);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -260,7 +261,7 @@ export default function IncomePage() {
             <BarChart data={monthlyData} barCategoryGap="30%">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
               <XAxis dataKey="label" stroke="#9ca3af" fontSize={12} tickLine={false} />
-              <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+              <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} tickFormatter={v => `${currencySymbol()}${(v/1000).toFixed(0)}k`} />
               <Tooltip content={<CurrencyTooltip />} />
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 16 }} />
               {sources.map((src, i) => (
@@ -284,7 +285,7 @@ export default function IncomePage() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="label" stroke="#9ca3af" fontSize={12} tickLine={false} />
-              <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+              <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} tickFormatter={v => `${currencySymbol()}${(v/1000).toFixed(0)}k`} />
               <Tooltip content={<CurrencyTooltip />} />
               <Area type="monotone" dataKey="total" name="Total Income" stroke="#10b981" strokeWidth={2.5} fill="url(#incGrad)" dot={{ r: 4, fill: "#10b981" }} activeDot={{ r: 6 }} />
             </AreaChart>

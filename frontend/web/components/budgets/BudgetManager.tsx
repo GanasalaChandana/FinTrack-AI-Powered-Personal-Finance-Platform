@@ -5,6 +5,7 @@ import {
   Plus, X, Edit2, Trash2, AlertTriangle, TrendingUp,
   Wallet, PiggyBank, Loader2, Sparkles, Calendar, Shield,
 } from "lucide-react";
+import { userCurrency } from "@/lib/userPrefs";
 
 
 export interface Budget {
@@ -49,7 +50,7 @@ const PRESET_CATEGORIES = [
 ];
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency", currency: "USD", minimumFractionDigits: 2,
+  style: "currency", currency: userCurrency(), minimumFractionDigits: 2,
 });
 const fmt = (v: number) => currencyFormatter.format(v);
 

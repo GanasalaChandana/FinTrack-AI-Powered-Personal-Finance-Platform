@@ -9,6 +9,7 @@
 import { useState, useMemo } from "react";
 import { X, Sparkles, TrendingUp, Check, Loader2, Info } from "lucide-react";
 import type { Transaction } from "@/lib/api";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 // ── Per-category visual metadata ─────────────────────────────────────────────
 
@@ -56,7 +57,7 @@ interface Props {
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("en-US", {
-    style: "currency", currency: "USD", minimumFractionDigits: 0,
+    style: "currency", currency: userCurrency(), minimumFractionDigits: 0,
   }).format(v);
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -267,7 +268,7 @@ export function SmartBudgetSuggestionsModal({
                       className="flex items-center gap-1 flex-shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <span className="text-xs text-gray-400">$</span>
+                      <span className="text-xs text-gray-400">{currencySymbol()}</span>
                       <input
                         type="number"
                         min="1"

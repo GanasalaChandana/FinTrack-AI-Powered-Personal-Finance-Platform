@@ -7,6 +7,7 @@
 import { useMemo } from "react";
 import { Sun, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Transaction } from "@/lib/api";
+import { userCurrency } from "@/lib/userPrefs";
 
 interface Props {
   transactions: Transaction[];
@@ -14,7 +15,7 @@ interface Props {
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("en-US", {
-    style: "currency", currency: "USD", minimumFractionDigits: 0,
+    style: "currency", currency: userCurrency(), minimumFractionDigits: 0,
   }).format(v);
 
 function localDateStr(d = new Date()) {

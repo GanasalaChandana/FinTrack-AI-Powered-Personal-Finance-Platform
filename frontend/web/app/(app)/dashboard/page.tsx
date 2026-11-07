@@ -35,6 +35,7 @@ import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { OnboardingWizard, shouldShowOnboarding } from "@/components/OnboardingWizard";
 import { getUser, isAuthenticated as checkAuth, transactionsAPI, budgetsAPI, goalsAPI, authAPI, type Budget, type Transaction, type Goal } from "@/lib/api";
 import { errorMessage } from "@/lib/utils/errors";
+import { userCurrency } from "@/lib/userPrefs";
 
 // Note: Toast is now provided by ToastProvider in app layout
 
@@ -78,7 +79,7 @@ function SkeletonChart() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(value);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 0 }).format(value);
 
 const safePercentChange = (current: number, previous: number): number | null => {
   if (previous === 0 || isNaN(previous) || isNaN(current)) return null;

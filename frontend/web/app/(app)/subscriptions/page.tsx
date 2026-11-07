@@ -12,14 +12,15 @@ import {
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 import { detectRecurring, type RecurringTransaction } from "@/lib/utils/recurringDetection";
 import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 2 }).format(v);
 
 const fmtShort = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 0 }).format(v);
 
 function daysUntil(dateStr: string): number {
   const target = new Date(`${dateStr}T00:00:00`);
@@ -346,7 +347,7 @@ export default function SubscriptionsPage() {
                 <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={chartData} barCategoryGap="30%" margin={{ top: 4, right: 0, bottom: 0, left: -20 }}>
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                    <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${currencySymbol()}${v}`} />
                     <Tooltip
                       formatter={(v: number) => [fmt(v), "Monthly"]}
                       contentStyle={{ borderRadius: 12, border: "1px solid #e5e7eb", fontSize: 12 }}

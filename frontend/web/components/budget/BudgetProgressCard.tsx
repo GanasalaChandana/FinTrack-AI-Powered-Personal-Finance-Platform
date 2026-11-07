@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Edit2, Trash2, AlertCircle } from 'lucide-react';
 import { type Budget } from '@/lib/api';
+import { userCurrency } from "@/lib/userPrefs";
 
 interface BudgetProgressCardProps {
   budget: Budget;
@@ -38,7 +39,7 @@ const getCategoryEmoji = (category: string): string => {
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: userCurrency(),
     minimumFractionDigits: 0,
   }).format(value);
 

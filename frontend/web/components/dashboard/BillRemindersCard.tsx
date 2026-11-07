@@ -5,6 +5,7 @@ import { Bell, ExternalLink, AlertCircle, Clock, CheckCircle2 } from "lucide-rea
 import Link from "next/link";
 import { type Transaction } from "@/lib/api";
 import { detectRecurring } from "@/lib/utils/recurringDetection";
+import { userCurrency } from "@/lib/userPrefs";
 
 interface Props {
   transactions: Transaction[];
@@ -23,7 +24,7 @@ function daysUntil(dateStr: string): number {
 function formatCurrency(v: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: userCurrency(),
     minimumFractionDigits: 0,
   }).format(v);
 }

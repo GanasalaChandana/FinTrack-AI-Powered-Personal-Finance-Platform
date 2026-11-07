@@ -6,6 +6,7 @@ import {
   Edit2, Save, ScanLine, RotateCcw,
 } from "lucide-react";
 import { parseReceiptImage, type ParsedReceipt } from "@/lib/utils/ocrParser";
+import { currencySymbol } from "@/lib/userPrefs";
 
 /** The receipt as the user edits it before saving */
 export interface ScannedTransaction {
@@ -266,7 +267,7 @@ export function ReceiptScanner({ onReceiptParsed, onSaveTransaction }: ReceiptSc
                   ))}
                   <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-600">
                     <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Total</span>
-                    <span className="text-xl font-extrabold text-gray-900 dark:text-gray-100">${parsedData.total.toFixed(2)}</span>
+                    <span className="text-xl font-extrabold text-gray-900 dark:text-gray-100">{currencySymbol()}{parsedData.total.toFixed(2)}</span>
                   </div>
 
                   {parsedData.items.length > 0 && (
@@ -278,7 +279,7 @@ export function ReceiptScanner({ onReceiptParsed, onSaveTransaction }: ReceiptSc
                         {parsedData.items.map((item, i) => (
                           <div key={i} className="flex justify-between text-sm text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 rounded-xl px-3 py-2">
                             <span>{item.quantity}× {item.name}</span>
-                            <span className="font-semibold text-gray-800 dark:text-gray-100">${item.price.toFixed(2)}</span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-100">{currencySymbol()}{item.price.toFixed(2)}</span>
                           </div>
                         ))}
                       </div>

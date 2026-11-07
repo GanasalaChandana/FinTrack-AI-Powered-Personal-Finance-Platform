@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { CalendarDays } from "lucide-react";
 import { Transaction } from "@/lib/api";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 interface Props {
   transactions: Transaction[];
@@ -18,7 +19,7 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("en-US", {
-    style: "currency", currency: "USD", minimumFractionDigits: 0,
+    style: "currency", currency: userCurrency(), minimumFractionDigits: 0,
   }).format(v);
 
 function CustomTooltip({ active, payload, label }: ChartTooltipProps) {
@@ -118,7 +119,7 @@ export function SpendingByDayCard({ transactions }: Props) {
                 tick={{ fontSize: 10, fill: "#9ca3af" }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v) => `$${v}`}
+                tickFormatter={(v) => `${currencySymbol()}${v}`}
               />
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="avg" radius={[6, 6, 0, 0]}>
@@ -161,7 +162,7 @@ export function SpendingByDayCard({ transactions }: Props) {
                     ? "text-orange-500"
                     : "text-gray-600 dark:text-gray-300"
                 }`}>
-                  {d.avg > 0 ? `$${d.avg.toFixed(0)}` : "—"}
+                  {d.avg > 0 ? `${currencySymbol()}${d.avg.toFixed(0)}` : "—"}
                 </span>
               </div>
             ))}

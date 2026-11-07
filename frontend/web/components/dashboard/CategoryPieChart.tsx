@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { userCurrency } from "@/lib/userPrefs";
 
 interface CategoryData {
   name: string;
@@ -15,7 +16,7 @@ interface CategoryPieChartProps {
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: userCurrency(),
     minimumFractionDigits: 0,
   }).format(value);
 };

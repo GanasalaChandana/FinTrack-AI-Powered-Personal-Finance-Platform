@@ -5,6 +5,7 @@ import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { CreditCard, Plus, Trash2, TrendingDown, DollarSign, Calendar, Zap } from "lucide-react";
+import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -30,7 +31,7 @@ function saveDebts(debts: Debt[]) {
 }
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(Math.abs(v));
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 0 }).format(Math.abs(v));
 
 // ─── Payoff calculator ─────────────────────────────────────────────────────────
 
@@ -414,7 +415,7 @@ export default function DebtPayoffPage() {
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                       <XAxis dataKey="month" stroke="#9ca3af" fontSize={11} tickLine={false} label={{ value: "Months", position: "insideBottom", offset: -5, fontSize: 11, fill: "#9ca3af" }} />
-                      <YAxis stroke="#9ca3af" fontSize={11} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                      <YAxis stroke="#9ca3af" fontSize={11} tickLine={false} tickFormatter={v => `${currencySymbol()}${(v/1000).toFixed(0)}k`} />
                       <Tooltip
                         contentStyle={{ backgroundColor: "white", border: "1px solid #e5e7eb", borderRadius: 12, fontSize: 12 }}
                         formatter={(v: number) => [fmt(v), "Remaining Debt"]}
@@ -472,7 +473,7 @@ export default function DebtPayoffPage() {
                         />
                         <YAxis
                           stroke="#9ca3af" fontSize={11} tickLine={false}
-                          tickFormatter={v => `$${(v / 1000).toFixed(0)}k`}
+                          tickFormatter={v => `${currencySymbol()}${(v / 1000).toFixed(0)}k`}
                         />
                         <Tooltip
                           contentStyle={{ backgroundColor: "white", border: "1px solid #e5e7eb", borderRadius: 12, fontSize: 12 }}

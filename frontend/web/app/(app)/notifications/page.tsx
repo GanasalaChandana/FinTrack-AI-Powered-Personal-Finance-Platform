@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
+import { userCurrency } from "@/lib/userPrefs";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ interface SmartNotification {
 // ── Formatters ────────────────────────────────────────────────────────────────
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 2 }).format(v);
 
 const timeAgo = (d: Date): string => {
   const diff = Date.now() - d.getTime();

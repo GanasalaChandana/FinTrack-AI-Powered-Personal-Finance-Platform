@@ -22,4 +22,7 @@ public class LoginRequest {
 
     /** False: the session ends when the browser closes. Null/true: stay signed in (30 days). */
     private Boolean rememberMe;
+
+    /** Code from the authenticator app (or a backup code), when two-factor sign-in is on */
+    private String twoFactorCode;
 }

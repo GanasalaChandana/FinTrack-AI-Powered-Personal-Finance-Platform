@@ -39,6 +39,7 @@ public class AuthService {
     private final PasswordEncoder        passwordEncoder;
     private final JwtUtil                jwtUtil;
     private final DemoService            demoService;
+    private final com.fintrack.auth.twofactor.TwoFactorService twoFactorService;
 
     // ── register ──────────────────────────────────────────────────────────────
 
@@ -79,6 +80,11 @@ public class AuthService {
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Invalid credentials");
+        }
+        if (user.isTotpEnabled()) {
+            String code = request.getTwoFactorCode();
+            if (code == null || code.isBlank()) throw new com.fintrack.auth.twofactor.TwoFactorRequiredException();
+            if (!twoFactorService.verify(user, code)) throw new com.fintrack.auth.twofactor.InvalidTwoFactorCodeException();
         }
 
         log.info("User logged in: {}", user.getEmail());

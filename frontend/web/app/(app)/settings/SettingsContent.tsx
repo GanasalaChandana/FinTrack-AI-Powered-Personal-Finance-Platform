@@ -8,6 +8,7 @@ import { errorMessage } from "@/lib/utils/errors";
 import { CategoryModelCard } from '@/components/CategoryModelCard';
 import { BankConnections } from '@/components/BankConnections';
 import { HouseholdSettings } from '@/components/HouseholdSettings';
+import { TwoFactorSettings } from '@/components/TwoFactorSettings';
 import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 
 /* ===================== Types ===================== */
@@ -506,6 +507,7 @@ export default function SettingsContent() {
             </div>
           </div>
         )}
+        {activeTab === 'security' && <TwoFactorSettings notify={(m, t) => showToast(m, t)} />}
 
         {/* ── PREFERENCES ── */}
         {activeTab === 'preferences' && (

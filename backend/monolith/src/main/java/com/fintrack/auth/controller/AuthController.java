@@ -120,6 +120,15 @@ public class AuthController {
             log.info("Login successful for: {}", request.getEmail());
             return authCookies.issue(response, !Boolean.FALSE.equals(request.getRememberMe()));
 
+        } catch (com.fintrack.auth.twofactor.TwoFactorRequiredException e) {
+            // Right password; the client asks for the app code and sends the login again with it
+            return ResponseEntity.ok(Map.of("twoFactorRequired", true));
+        } catch (com.fintrack.auth.twofactor.InvalidTwoFactorCodeException e) {
+            log.warn("Login failed from IP {} for {}: wrong two-factor code", ip, request.getEmail());
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid code", "twoFactorRequired", true,
+                                 "message", "That code didn't work. Enter the current code from your authenticator app, or a backup code."));
         } catch (Exception e) {
             log.warn("Login failed from IP {} for {}: {}", ip, request.getEmail(), e.getMessage());
             // Note: do NOT reset on failure — the failed attempt was already consumed above

@@ -60,6 +60,9 @@ function AuthPageContent() {
   const [wakingUp, setWakingUp] = useState(false);
   const isSubmitting = useRef(false);
   const [rememberMe, setRememberMe] = useState(true);
+  // Two-factor sign-in: after the password checks out, the code from the authenticator app
+  const [twoFactor, setTwoFactor] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const [googleLoaded, setGoogleLoaded] = useState(false);
   const googleInitialized = useRef(false);
@@ -316,6 +319,7 @@ function AuthPageContent() {
             email: formData.email.toLowerCase().trim(),
             password: formData.password,
             rememberMe, // unticked: signed out when the browser closes
+            ...(twoFactor ? { twoFactorCode: twoFactorCode.trim() } : {}),
           }
         : {
             firstName: formData.name.trim().split(' ')[0],
@@ -376,6 +380,11 @@ function AuthPageContent() {
 
       const data = await response.json();
 
+      if (data.twoFactorRequired) {
+        setTwoFactor(true); // ask for the code, then sign in again with it
+        return;
+      }
+
       // The session itself was set as HttpOnly cookies by the response
       if (data.user) {
         setUser(data.user, rememberMe);
@@ -401,6 +410,8 @@ function AuthPageContent() {
 
   const switchMode = (newMode: 'signin' | 'signup') => {
     setMode(newMode);
+    setTwoFactor(false);
+    setTwoFactorCode('');
     setError('');
     setFormData({
       name: '',
@@ -555,6 +566,36 @@ function AuthPageContent() {
               </div>
             )}
 
+            {twoFactor && mode === 'signin' ? (
+              <div>
+                <label htmlFor="two-factor-code" className="block text-sm font-semibold text-gray-300 mb-2">
+                  Authentication code
+                </label>
+                <div className="relative">
+                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input
+                    id="two-factor-code"
+                    type="text"
+                    inputMode="text"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    value={twoFactorCode}
+                    onChange={(e) => setTwoFactorCode(e.target.value)}
+                    className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-purple-500/20 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition text-white placeholder-gray-500 tracking-widest"
+                    placeholder="123456"
+                    maxLength={11}
+                    disabled={loading || wakingUp}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Enter the 6-digit code from your authenticator app, or one of your backup codes.{' '}
+                  <button type="button" className="text-purple-400 hover:text-purple-300"
+                    onClick={() => { setTwoFactor(false); setTwoFactorCode(''); setError(''); }}>
+                    Use a different account
+                  </button>
+                </p>
+              </div>
+            ) : (<>
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">
                 Email Address
@@ -604,6 +645,7 @@ function AuthPageContent() {
                 <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
               )}
             </div>
+            </>)}
 
             {mode === 'signup' && (
               <div>

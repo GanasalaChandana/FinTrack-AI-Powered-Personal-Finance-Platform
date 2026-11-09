@@ -66,6 +66,24 @@ public class User {
     @Builder.Default
     private int tokenVersion = 0;
 
+    // Two-factor sign-in (authenticator app); see TwoFactorService
+    @Column(name = "totp_enabled", nullable = false)
+    @Builder.Default
+    @JsonIgnore
+    private boolean totpEnabled = false;
+
+    @Column(name = "totp_secret", length = 255)
+    @JsonIgnore
+    private String totpSecret;
+
+    @Column(name = "totp_last_step")
+    @JsonIgnore
+    private Long totpLastStep;
+
+    @Column(name = "totp_backup_codes", length = 1000)
+    @JsonIgnore
+    private String totpBackupCodes;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -128,4 +128,62 @@ class NotificationEmailTest {
         emails.sendWeeklyDigestsNow();
         verify(email, never()).send(eq(address), anyString(), anyString());
     }
+
+    @Test
+    @DisplayName("unusual spending: far above the category's usual amount is flagged; normal amounts and switched-off users aren't")
+    void unusualSpending() throws Exception {
+        LocalDate d = LocalDate.now().minusDays(3);
+        tx("EXPENSE", 38, "Dining", d);
+        tx("EXPENSE", 42, "Dining", d);
+        tx("EXPENSE", 40, "Dining", d);
+        String body = "{\"description\":\"Dinner\",\"merchant\":\"Bistro\",\"amount\":%s,\"type\":\"EXPENSE\",\"category\":\"Dining\",\"date\":\"" + LocalDate.now() + "\"}";
+
+        mockMvc.perform(post("/api/transactions").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                .content(body.formatted("55"))).andExpect(status().isCreated());   // a bit more than usual: fine
+        mockMvc.perform(post("/api/transactions").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                .content(body.formatted("160"))).andExpect(status().isCreated());  // ~3.6x the usual
+        verify(email, timeout(3000).times(1)).send(eq(address), contains("unusual spending in Dining"),
+                argThat(b -> b.contains("$160.00 at Bistro") && b.contains("your usual")));
+
+        // The large-transaction alert covers big ones: only one message, not two
+        prefs(s -> s.setLargeTransactionThreshold(new BigDecimal("200")));
+        mockMvc.perform(post("/api/transactions").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                .content(body.formatted("400"))).andExpect(status().isCreated());
+        verify(email, timeout(3000).times(1)).send(eq(address), contains("large transaction"), anyString());
+        verify(email, after(1000).times(1)).send(eq(address), contains("unusual spending"), anyString());
+
+        prefs(s -> { s.setUnusualSpending(false); s.setLargeTransactionThreshold(new BigDecimal("100000")); });
+        mockMvc.perform(post("/api/transactions").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                .content(body.formatted("170"))).andExpect(status().isCreated());
+        verify(email, after(1000).times(1)).send(eq(address), contains("unusual spending"), anyString());
+    }
+
+    @Test
+    @DisplayName("goal milestones: each sent once, a jump sends only the highest, and the switch turns them off")
+    void goalMilestones() throws Exception {
+        String goal = "{\"name\":\"Trip\",\"category\":\"Travel\",\"target\":1000,\"current\":300,\"deadline\":\"2027-06-01\"}";
+        var created = mockMvc.perform(post("/api/goals").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                .content(goal)).andExpect(status().is2xxSuccessful()).andReturn();
+        String id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id").toString();
+        String contribute = "/api/goals/" + id + "/contribute";
+
+        // Created at 30 %: no "25 %" message for money that was already there
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(contribute)
+                .header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON).content("{\"amount\":100}")).andExpect(status().isOk()); // 40 %
+        verify(email, after(800).never()).send(eq(address), contains("Trip"), anyString());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(contribute)
+                .header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON).content("{\"amount\":400}")).andExpect(status().isOk()); // 80 %: past 50 and 75
+        verify(email, timeout(3000).times(1)).send(eq(address), contains("Trip: 75% saved"), contains("$800.00 of $1,000.00"));
+        verify(email, never()).send(eq(address), contains("Trip: 50%"), anyString());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(contribute)
+                .header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON).content("{\"amount\":10}")).andExpect(status().isOk()); // still 75
+        verify(email, after(800).times(1)).send(eq(address), contains("Trip"), anyString());
+
+        prefs(s -> s.setGoalMilestones(false));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(contribute)
+                .header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON).content("{\"amount\":500}")).andExpect(status().isOk()); // 100 %
+        verify(email, after(1000).times(1)).send(eq(address), contains("Trip"), anyString());
+    }
 }

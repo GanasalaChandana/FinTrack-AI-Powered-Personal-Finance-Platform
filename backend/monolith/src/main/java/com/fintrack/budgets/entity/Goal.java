@@ -60,6 +60,22 @@ public class Goal {
     @Builder.Default
     private Boolean achieved = false;
 
+    /** Highest milestone (25/50/75/100) the owner was notified about; each is sent once */
+    @Column(name = "milestone_notified", nullable = false)
+    @Builder.Default
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private int milestoneNotified = 0;
+
+    /** The highest milestone reached now: 0, 25, 50, 75 or 100. */
+    public int currentMilestone() {
+        if (targetAmount == null || targetAmount.signum() <= 0 || currentAmount == null) return 0;
+        java.math.BigDecimal pct = currentAmount.multiply(java.math.BigDecimal.valueOf(100));
+        for (int m : new int[]{100, 75, 50, 25}) {
+            if (pct.compareTo(targetAmount.multiply(java.math.BigDecimal.valueOf(m))) >= 0) return m;
+        }
+        return 0;
+    }
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

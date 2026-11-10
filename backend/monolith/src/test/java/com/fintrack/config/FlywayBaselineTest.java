@@ -45,7 +45,7 @@ class FlywayBaselineTest {
         // If V1 disagreed with the entities, this Spring context would not have started
         // (ddl-auto=validate), so reaching here already proves the match.
         MigrationInfo current = flyway.info().current();
-        assertEquals("14", current.getVersion().getVersion()); // latest migration (V14 push notifications)
+        assertEquals("15", current.getVersion().getVersion()); // latest migration (V15 goal milestones)
         assertTrue(current.getState().isApplied());
         assertEquals("SQL", current.getType().name());
     }

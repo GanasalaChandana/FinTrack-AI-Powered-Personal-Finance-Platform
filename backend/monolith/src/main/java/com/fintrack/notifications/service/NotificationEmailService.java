@@ -85,6 +85,50 @@ public class NotificationEmailService {
                         "/transactions", null));
     }
 
+    /**
+     * A new expense far above what the user usually spends in that category: at least 2.5x
+     * the 90-day average, and at least 20 more, with 3+ earlier expenses to compare with.
+     * Not sent when the large-transaction alert already covered it.
+     */
+    @Async(AsyncConfig.MAIL_EXECUTOR)
+    public void unusualSpending(String userId, Long transactionId, String merchant, BigDecimal amount, String category, LocalDate date) {
+        if (userId == null || amount == null || category == null || category.isBlank()) return;
+        BigDecimal spent = amount.abs();
+        LocalDate day = date == null ? LocalDate.now() : date;
+        List<BigDecimal> earlier = transactions.findByUserIdAndDateBetween(userId, day.minusDays(90), day).stream()
+                .filter(t -> isType(t, "EXPENSE") && category.equalsIgnoreCase(t.getCategory())
+                        && (transactionId == null || !transactionId.equals(t.getId())))
+                .map(t -> t.getAmount().abs()).toList();
+        if (earlier.size() < 3) return;
+        BigDecimal avg = earlier.stream().reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(earlier.size()), 2, RoundingMode.HALF_UP);
+        if (avg.signum() <= 0 || spent.compareTo(avg.multiply(new BigDecimal("2.5"))) < 0
+                || spent.subtract(avg).compareTo(BigDecimal.valueOf(20)) < 0) return;
+        String cur = currency(userId);
+        BigDecimal times = spent.divide(avg, 1, RoundingMode.HALF_UP);
+        String where = merchant == null || merchant.isBlank() ? "" : " at " + merchant;
+        String text = money(spent, cur) + where + " is " + times + "× your usual " + money(avg, cur) + " for " + category + ".";
+        Predicate<NotificationSettings> wanted = s -> s.isUnusualSpending()
+                && !(s.isTransactionAlertsEnabled() && spent.compareTo(s.getLargeTransactionThreshold()) >= 0);
+        send(userId, wanted, "FinTrack: unusual spending in " + category,
+                text + "\n\nIf this wasn't you, check your account. Review it: " + appUrl + "/transactions");
+        pushIf(userId, wanted, new com.fintrack.push.WebPushService.Message("Unusual spending: " + category, text, "/transactions", null));
+    }
+
+    /** A savings goal reached 25, 50, 75 or 100 %. */
+    @Async(AsyncConfig.MAIL_EXECUTOR)
+    public void goalMilestone(String userId, String goalName, int percent, BigDecimal current, BigDecimal target) {
+        String cur = currency(userId);
+        String title = percent >= 100 ? "Goal reached: " + goalName + " 🎉" : goalName + ": " + percent + "% saved";
+        String text = percent >= 100
+                ? "You saved the full " + money(target, cur) + " for " + goalName + ". Well done!"
+                : "You've saved " + money(current, cur) + " of " + money(target, cur) + " for " + goalName + ". Keep going!";
+        send(userId, NotificationSettings::isGoalMilestones, "FinTrack: " + title,
+                text + "\n\nSee your goals: " + appUrl + "/goals-budgets");
+        pushIf(userId, NotificationSettings::isGoalMilestones,
+                new com.fintrack.push.WebPushService.Message(title, text, "/goals-budgets", "goal-" + goalName));
+    }
+
     /** Push to the user's devices when that kind of alert is on (independent of the email switch). */
     private void pushIf(String userId, Predicate<NotificationSettings> wanted, com.fintrack.push.WebPushService.Message m) {
         if (userId == null) return;

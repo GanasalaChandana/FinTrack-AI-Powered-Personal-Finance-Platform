@@ -21,6 +21,17 @@ import java.util.stream.Collectors;
 public class GoalService {
 
     private final GoalRepository goalRepository;
+    private final com.fintrack.notifications.service.NotificationEmailService notifications;
+
+    /** After a goal's progress changed: tell its owner about a newly reached milestone, once. */
+    private void milestoneCheck(Goal goal) {
+        int m = goal.currentMilestone();
+        if (m > goal.getMilestoneNotified()) {
+            goal.setMilestoneNotified(m);
+            goalRepository.save(goal);
+            notifications.goalMilestone(goal.getUserId(), goal.getName(), m, goal.getCurrentAmount(), goal.getTargetAmount());
+        }
+    }
 
     public List<GoalDTO> getAllGoalsByUserId(String userId) {
         log.info("Fetching all goals for user: {}", userId);
@@ -52,6 +63,7 @@ public class GoalService {
                         goalDTO.getMonthlyContribution() != null ? goalDTO.getMonthlyContribution() : BigDecimal.ZERO)
                 .build();
 
+        goal.setMilestoneNotified(goal.currentMilestone()); // a goal created half-funded isn't a milestone
         Goal savedGoal = goalRepository.save(goal);
         return convertToDTO(savedGoal);
     }
@@ -88,6 +100,7 @@ public class GoalService {
         }
 
         Goal updatedGoal = goalRepository.save(goal);
+        milestoneCheck(updatedGoal);
         return convertToDTO(updatedGoal);
     }
 
@@ -105,6 +118,7 @@ public class GoalService {
         }
 
         Goal updatedGoal = goalRepository.save(goal);
+        milestoneCheck(updatedGoal);
         return convertToDTO(updatedGoal);
     }
 

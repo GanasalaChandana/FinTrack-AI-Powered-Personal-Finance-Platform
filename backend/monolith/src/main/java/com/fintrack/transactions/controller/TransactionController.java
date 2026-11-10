@@ -164,8 +164,9 @@ public class TransactionController {
         TransactionResponse created = transactionService.createTransaction(request, userId);
         // Large-transaction email (only for single entries here, not for CSV imports)
         if ("EXPENSE".equalsIgnoreCase(created.getType())) {
-            notificationEmails.largeTransaction(userId, created.getMerchant() != null ? created.getMerchant() : created.getDescription(),
-                    created.getAmount(), created.getCategory());
+            String who = created.getMerchant() != null ? created.getMerchant() : created.getDescription();
+            notificationEmails.largeTransaction(userId, who, created.getAmount(), created.getCategory());
+            notificationEmails.unusualSpending(userId, created.getId(), who, created.getAmount(), created.getCategory(), created.getDate());
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }

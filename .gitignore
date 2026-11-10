@@ -23,5 +23,6 @@ logs/
 
 # Claude AI session data (local only)
 .claude/
-dashboard.png
-dashboard_files/
+# a stray saved web page at the repo root (not the screenshots in docs/)
+/dashboard.png
+/dashboard_files/

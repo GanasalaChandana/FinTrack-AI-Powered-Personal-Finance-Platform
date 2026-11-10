@@ -1,5 +1,6 @@
 // lib/api.ts - Updated for monolith (single backend on port 8080)
 import { clearLocalUserData } from "@/lib/userData";
+import { unsubscribeLocally } from "@/lib/push";
 
 // =====================
 // Types
@@ -179,6 +180,7 @@ export function removeToken(): void {
   localStorage.removeItem("isDemo");
   localStorage.removeItem(SESSION_ONLY_KEY);
   clearLocalUserData(); // debts, net worth, ... are on the server; don't leave them for the next person
+  unsubscribeLocally(); // and stop this device getting the previous user's alerts
 }
 
 export function getUser(): User | null {

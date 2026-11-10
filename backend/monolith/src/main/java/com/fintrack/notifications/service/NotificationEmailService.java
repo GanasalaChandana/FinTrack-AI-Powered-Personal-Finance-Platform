@@ -43,11 +43,14 @@ public class NotificationEmailService {
     private final TransactionRepository transactions;
     private final BudgetRepository budgets;
     private final String appUrl;
+    private final com.fintrack.push.WebPushService push;
 
     public NotificationEmailService(EmailService email, UserRepository users,
                                     NotificationSettingsRepository settings,
                                     TransactionRepository transactions, BudgetRepository budgets,
-                                    @Value("${app.base-url:https://fintrack-liart.vercel.app}") String appUrl) {
+                                    @Value("${app.base-url:https://fintrack-liart.vercel.app}") String appUrl,
+                                    com.fintrack.push.WebPushService push) {
+        this.push = push;
         this.email = email;
         this.users = users;
         this.settings = settings;
@@ -62,6 +65,8 @@ public class NotificationEmailService {
     public void budgetAlert(String userId, String title, String message) {
         send(userId, NotificationSettings::isBudgetAlertsEnabled, "FinTrack: " + title,
                 message + "\n\nSee your budgets: " + appUrl + "/goals-budgets?tab=budgets");
+        pushIf(userId, NotificationSettings::isBudgetAlertsEnabled,
+                new com.fintrack.push.WebPushService.Message(title, message, "/goals-budgets?tab=budgets", "budget-" + title));
     }
 
     /** A single expense at or above the user's large-transaction threshold. */
@@ -74,6 +79,22 @@ public class NotificationEmailService {
                 "A transaction of " + money(amount, currency(userId)) + " at " + (merchant == null ? "an unknown merchant" : merchant)
                         + (category == null ? "" : " (" + category + ")") + " was just recorded.\n\n"
                         + "If this wasn't you, check your account. Review it: " + appUrl + "/transactions");
+        pushIf(userId, s -> s.isTransactionAlertsEnabled() && amount.abs().compareTo(s.getLargeTransactionThreshold()) >= 0,
+                new com.fintrack.push.WebPushService.Message("Large transaction: " + money(amount, currency(userId)),
+                        (merchant == null ? "An unknown merchant" : merchant) + (category == null ? "" : " · " + category),
+                        "/transactions", null));
+    }
+
+    /** Push to the user's devices when that kind of alert is on (independent of the email switch). */
+    private void pushIf(String userId, Predicate<NotificationSettings> wanted, com.fintrack.push.WebPushService.Message m) {
+        if (userId == null) return;
+        try {
+            NotificationSettings s = settings.findById(userId)
+                    .orElseGet(() -> NotificationSettings.builder().userId(userId).build());
+            if (wanted.test(s)) push.sendNow(userId, m);
+        } catch (Exception e) {
+            log.warn("Push alert for {} failed: {}", userId, e.getMessage());
+        }
     }
 
     // ── Scheduled summaries ──────────────────────────────────────────────────

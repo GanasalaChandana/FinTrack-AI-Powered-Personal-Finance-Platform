@@ -27,14 +27,17 @@ export function PWAProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Register service worker
+    // (If the page already finished loading, the "load" event won't fire again.)
     if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
+      const register = () => {
         navigator.serviceWorker
           .register("/sw.js", { scope: "/" })
           .catch((err) => {
             console.warn("[SW] registration failed:", err);
           });
-      });
+      };
+      if (document.readyState === "complete") register();
+      else window.addEventListener("load", register, { once: true });
     }
 
     // Detect already-installed (standalone mode)

@@ -54,6 +54,7 @@ public class AccountDeletionService {
     private final SpendingSummaryCacheRepository spendingSummaryCacheRepository;
     private final TransactionAggregateRepository transactionAggregateRepository;
     private final com.fintrack.userdata.UserDataRepository userDataRepository;
+    private final com.fintrack.push.PushSubscriptionRepository pushSubscriptionRepository;
 
     @Transactional
     public void deleteAccount(UUID userId) {
@@ -77,6 +78,7 @@ public class AccountDeletionService {
         spendingSummaryCacheRepository.deleteAllByUserIdForAccountDeletion(userId);
         transactionAggregateRepository.deleteAllByUserIdForAccountDeletion(userId);
         userDataRepository.deleteAllByUserId(id); // debts, net worth, custom categories, ...
+        pushSubscriptionRepository.deleteAllByUserId(id); // stop notifications to their devices
 
         refreshTokenRepository.deleteAllByUserId(userId); // FK to users — must go before the user
         userRepository.deleteById(userId);

@@ -9,6 +9,7 @@ import { CategoryModelCard } from '@/components/CategoryModelCard';
 import { BankConnections } from '@/components/BankConnections';
 import { HouseholdSettings } from '@/components/HouseholdSettings';
 import { TwoFactorSettings } from '@/components/TwoFactorSettings';
+import { PushNotificationsCard } from '@/components/PushNotificationsCard';
 import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 import { setSynced } from "@/lib/userData";
 
@@ -578,6 +579,7 @@ export default function SettingsContent() {
         )}
 
         {/* ── NOTIFICATIONS ── */}
+        {activeTab === 'notifications' && <PushNotificationsCard notify={(m, t) => showToast(m, t)} />}
         {activeTab === 'notifications' && (
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 space-y-6">
             <div>

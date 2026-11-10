@@ -98,7 +98,7 @@ export default function LandingPage() {
   ];
 
   const stats = [
-    { value: "174",    label: "Backend tests, 0 failures" },
+    { value: "176",    label: "Backend tests, 0 failures" },
     { value: "4",      label: "Built-in insight engines" },
     { value: "0",      label: "Third-party AI calls" },
     { value: "HS256",  label: "JWT + refresh rotation" },
@@ -466,7 +466,7 @@ export default function LandingPage() {
                   "Two-factor sign-in (TOTP) with one-time backup codes",
                   "Refresh token rotation — replay detected → all sessions revoked",
                   "IP sliding window rate limiting (5 req/15 min, no Redis)",
-                  "174 backend + 36 browser tests — 0 failures",
+                  "176 backend + 36 browser tests — 0 failures",
                 ].map((item)=>(
                   <div key={item} style={{display:"flex",alignItems:"flex-start",gap:12}}>
                     <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(16,185,129,0.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
@@ -482,7 +482,7 @@ export default function LandingPage() {
                 {icon:Shield,   label:"JWT + BCrypt",         sub:"HS256 signed, BCrypt hashed",      color:"#6366f1"},
                 {icon:Lock,     label:"Token Rotation",        sub:"SHA-256 + replay detection",        color:"#10b981"},
                 {icon:Activity, label:"Rate Limiting",         sub:"5 req/15 min · no Redis",           color:"#f59e0b"},
-                {icon:FileText, label:"52 Tests",              sub:"JUnit 5 + Mockito + @WebMvcTest",   color:"#3b82f6"},
+                {icon:FileText, label:"176 Tests",              sub:"JUnit 5 + Mockito + @WebMvcTest",   color:"#3b82f6"},
               ].map((s)=>(
                 <div key={s.label} className="stat-card card-hover" style={{textAlign:"left"}}>
                   <div style={{width:40,height:40,borderRadius:10,background:`${s.color}15`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14}}>

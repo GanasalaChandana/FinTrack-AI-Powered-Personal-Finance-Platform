@@ -4,8 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { withCurrency } from "@/lib/userPrefs";
-import { Bell, Mail, LogOut, Menu, X, Check, AlertTriangle, Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor, BarChart3, Wallet, Search, Calendar, CreditCard, LayoutDashboard, ArrowLeftRight, Target, ChevronLeft, ChevronRight, PiggyBank, DollarSign, Settings, Download, Store } from "lucide-react";
+import { Bell, Mail, LogOut, Menu, X, Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor, BarChart3, Wallet, Search, Calendar, CreditCard, LayoutDashboard, ArrowLeftRight, Target, ChevronLeft, ChevronRight, PiggyBank, DollarSign, Settings, Download, Store } from "lucide-react";
 import { usePWA } from "@/components/providers/PWAProvider";
 import { authAPI, isAuthenticated as hasSession, removeToken } from "@/lib/api";
 import { useThemePreference } from "@/lib/hooks/useThemePreference";
@@ -101,19 +100,6 @@ function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean 
   );
 }
 
-// ── Dropdown popup (alerts / notifications) ───────────────────────────────────
-
-function Popup({ children, width = 360 }: { children: React.ReactNode; width?: number }) {
-  return (
-    <div
-      className="absolute bottom-full left-0 mb-2 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden z-[60]"
-      style={{ width }}
-    >
-      {children}
-    </div>
-  );
-}
-
 // ── Bottom action button ──────────────────────────────────────────────────────
 
 function BottomBtn({
@@ -172,15 +158,13 @@ export default function Navigation() {
   const [budgetAlerts, setBudgetAlerts] = useState(0);
   const [isPaletteOpen,setIsPaletteOpen]= useState(false);
 
-  const [isAlertsOpen,         setIsAlertsOpen]         = useState(false);
-  const [alerts,               setAlerts]               = useState<Alert[]>([]);
+  const [,                     setAlerts]               = useState<Alert[]>([]);
   const [alertsUnread,         setAlertsUnread]         = useState(0);
   const alertsRef = useRef<HTMLDivElement>(null);
   // Menu scroll position, kept so the mobile drawer reopens where it was left
   const navScrollTop = useRef(0);
 
-  const [isNotifsOpen,         setIsNotifsOpen]         = useState(false);
-  const [notifs,               setNotifs]               = useState<Notification[]>([]);
+  const [,                     setNotifs]               = useState<Notification[]>([]);
   const [notifsUnread,         setNotifsUnread]         = useState(0);
   const notifsRef = useRef<HTMLDivElement>(null);
 
@@ -294,15 +278,6 @@ export default function Navigation() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on mount / route change only; the loader is recreated every render
   }, [pathname]);
 
-  // close dropdowns on outside click
-  useEffect(() => {
-    const fn = (e: MouseEvent) => {
-      if (alertsRef.current && !alertsRef.current.contains(e.target as Node)) setIsAlertsOpen(false);
-      if (notifsRef.current  && !notifsRef.current.contains(e.target as Node))  setIsNotifsOpen(false);
-    };
-    document.addEventListener('mousedown', fn);
-    return () => document.removeEventListener('mousedown', fn);
-  }, []);
 
   // close mobile drawer on route change
   useEffect(() => setMobileOpen(false), [pathname]);
@@ -365,52 +340,6 @@ export default function Navigation() {
     } catch { pollFailures.current++; }
   };
 
-  const markAlertRead = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!hasSession()) return;
-    const res = await fetch(`${API_BASE_URL}/api/alerts/${id}/acknowledge`, {
-      method: 'POST', headers: { 'X-Requested-With': 'fintrack' }, credentials: 'same-origin',
-    });
-    if (res.ok) { setAlerts(a => a.map(x => x.id === id ? { ...x, read: true } : x)); setAlertsUnread(n => Math.max(0, n - 1)); }
-  };
-
-  const dismissAlert = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!hasSession()) return;
-    const res = await fetch(`${API_BASE_URL}/api/alerts/${id}`, {
-      method: 'DELETE', headers: { 'X-Requested-With': 'fintrack' }, credentials: 'same-origin',
-    });
-    if (res.ok) {
-      const d = alerts.find(a => a.id === id);
-      setAlerts(a => a.filter(x => x.id !== id));
-      if (d && !d.read) setAlertsUnread(n => Math.max(0, n - 1));
-    }
-  };
-
-  const markNotifRead = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!hasSession()) return;
-    const u = JSON.parse(localStorage.getItem('user') || '{}'); if (!u.id) return;
-    const res = await fetch(`${API_BASE_URL}/api/notifications/${id}/read?userId=${u.id}`, {
-      method: 'PATCH', headers: { 'X-Requested-With': 'fintrack' }, credentials: 'same-origin',
-    });
-    if (res.ok) { setNotifs(n => n.map(x => x.id === id ? { ...x, read: true } : x)); setNotifsUnread(n => Math.max(0, n - 1)); }
-  };
-
-  const dismissNotif = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!hasSession()) return;
-    const u = JSON.parse(localStorage.getItem('user') || '{}'); if (!u.id) return;
-    const res = await fetch(`${API_BASE_URL}/api/notifications/${id}?userId=${u.id}`, {
-      method: 'DELETE', headers: { 'X-Requested-With': 'fintrack' }, credentials: 'same-origin',
-    });
-    if (res.ok) {
-      const d = notifs.find(n => n.id === id);
-      setNotifs(n => n.filter(x => x.id !== id));
-      if (d && !d.read) setNotifsUnread(n => Math.max(0, n - 1));
-    }
-  };
-
   const logout = () => {
     // Revokes the session on the server too (the token stops working everywhere),
     // then clears it locally; don't wait for the server before leaving the page.
@@ -418,17 +347,6 @@ export default function Navigation() {
     setHasToken(false); setAlerts([]); setNotifs([]);
     setAlertsUnread(0); setNotifsUnread(0);
     router.push('/login?mode=signin');
-  };
-
-  const alertPriColor = (p: string) =>
-    p === 'urgent' ? 'text-red-500' : p === 'high' ? 'text-orange-500' : p === 'medium' ? 'text-yellow-500' : 'text-blue-500';
-  const alertEmoji   = (t: string) => ({ expense_limit: '💸', budget_limit: '💰', achievement: '🎉', unusual_activity: '🔍' }[t] ?? '🚨');
-  const notifEmoji   = (t: string) => ({ welcome: '👋', alert: '⚠️', info: 'ℹ️', success: '✅', warning: '⚠️' }[t?.toLowerCase()] ?? '📬');
-  const timeAgo      = (d: string) => {
-    const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
-    if (m < 1) return 'just now'; if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
   };
 
   // ── early returns ─────────────────────────────────────────────────────────
@@ -556,41 +474,8 @@ export default function Navigation() {
           <BottomBtn
             icon={Bell} label="Alerts" badge={alertsUnread} badgeColor="bg-red-500"
             collapsed={collapsed && !onClose}
-            onClick={() => { setIsAlertsOpen(o => !o); setIsNotifsOpen(false); }}
+            onClick={() => { router.push('/alerts'); onClose?.(); }}
           />
-          {isAlertsOpen && (
-            <Popup>
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-                <span className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <AlertTriangle className="w-3.5 h-3.5 text-red-500" /> Financial Alerts
-                </span>
-                <Link href="/alerts" onClick={() => setIsAlertsOpen(false)} className="text-xs text-indigo-500 hover:underline font-medium">View all</Link>
-              </div>
-              <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
-                {alerts.length === 0 ? (
-                  <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">
-                    <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" /> No alerts
-                  </div>
-                ) : alerts.map(a => (
-                  <div key={a.id} className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${!a.read ? 'bg-red-50/60 dark:bg-red-900/10' : ''}`}>
-                    <span className="text-base mt-0.5">{alertEmoji(a.type)}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{a.title}</p>
-                        <span className={`text-[10px] font-bold ${alertPriColor(a.priority)}`}>{a.priority.toUpperCase()}</span>
-                      </div>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2">{withCurrency(a.message)}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">{timeAgo(a.createdAt)}</p>
-                    </div>
-                    <div className="flex gap-1 shrink-0 mt-0.5">
-                      {!a.read && <button onClick={e => markAlertRead(a.id, e)} className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-colors" title="Mark read"><Check className="w-3 h-3" /></button>}
-                      <button onClick={e => dismissAlert(a.id, e)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors" title="Dismiss"><X className="w-3 h-3" /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Popup>
-          )}
         </div>
 
         {/* Notifications */}
@@ -598,36 +483,8 @@ export default function Navigation() {
           <BottomBtn
             icon={Mail} label="Notifications" badge={notifsUnread} badgeColor="bg-blue-500"
             collapsed={collapsed && !onClose}
-            onClick={() => { setIsNotifsOpen(o => !o); setIsAlertsOpen(false); }}
+            onClick={() => { router.push('/notifications'); onClose?.(); }}
           />
-          {isNotifsOpen && (
-            <Popup>
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</span>
-                <Link href="/notifications" onClick={() => setIsNotifsOpen(false)} className="text-xs text-indigo-500 hover:underline font-medium">View all</Link>
-              </div>
-              <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
-                {notifs.length === 0 ? (
-                  <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">
-                    <Mail className="w-8 h-8 mx-auto mb-2 opacity-30" /> No notifications
-                  </div>
-                ) : notifs.map(n => (
-                  <div key={n.id} className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${!n.read ? 'bg-blue-50/60 dark:bg-blue-900/10' : ''}`}>
-                    <span className="text-base mt-0.5">{notifEmoji(n.type)}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-900 dark:text-white truncate mb-0.5">{n.title}</p>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2">{n.message}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">{timeAgo(n.createdAt)}</p>
-                    </div>
-                    <div className="flex gap-1 shrink-0 mt-0.5">
-                      {!n.read && <button onClick={e => markNotifRead(n.id, e)} className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-colors" title="Mark read"><Check className="w-3 h-3" /></button>}
-                      <button onClick={e => dismissNotif(n.id, e)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors" title="Dismiss"><X className="w-3 h-3" /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Popup>
-          )}
         </div>
 
         {/* Theme */}

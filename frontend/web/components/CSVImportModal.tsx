@@ -1,6 +1,7 @@
 // components/CSVImportModal.tsx — Smart bank CSV importer
 // Step 1: Upload  →  Step 2: Map columns  →  Step 3: Preview & import
 "use client";
+import { downloadSampleCsv } from "@/lib/utils/sampleCsv";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { X, Upload, FileText, AlertCircle, Download, CheckCircle, ChevronRight, ChevronLeft, Loader2, Sparkles } from "lucide-react";
@@ -210,24 +211,6 @@ function applyMapping(rows: Record<string, string>[], map: ColumnMap): MappedRow
 // Sample CSV download
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SAMPLE_CSV = `Date,Merchant,Description,Amount,Type,Category
-2024-01-01,Employer Inc,Monthly Salary,5500,income,Salary
-2024-01-05,Whole Foods,Grocery Shopping,-145,expense,Food & Dining
-2024-01-08,Comcast,Internet Bill,-80,expense,Bills & Utilities
-2024-01-14,Netflix,Streaming Subscription,-15.99,expense,Entertainment
-2024-01-15,Shell,Gas Fill-up,-58,expense,Transportation
-2024-01-20,Starbucks,Morning Coffee,-22,expense,Food & Dining
-`;
-
-function downloadSampleCSV() {
-  const blob = new Blob([SAMPLE_CSV], { type: "text/csv" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = "fintrack-sample.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main component
@@ -455,7 +438,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
               </div>
 
               {/* Sample download */}
-              <button onClick={downloadSampleCSV}
+              <button onClick={downloadSampleCsv}
                       className="w-full flex items-center justify-center gap-2 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
                 <Download className="w-4 h-4" />
                 Download sample CSV to see the expected format

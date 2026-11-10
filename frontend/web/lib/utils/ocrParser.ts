@@ -72,14 +72,6 @@ const BOILERPLATE = [
 
 // Price patterns
 const PRICE_PATTERN = /\$?\s*(-?\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/;
-const TOTAL_PATTERNS = [
-  /total[:\s]+\$?\s*(-?\d+\.?\d*)/i,
-  /amount[:\s]+\$?\s*(-?\d+\.?\d*)/i,
-  /balance[:\s]+\$?\s*(-?\d+\.?\d*)/i,
-  /grand total[:\s]+\$?\s*(-?\d+\.?\d*)/i,
-  /refund[:\s]+\$?\s*(-?\d+\.?\d*)/i,
-  /return[:\s]+\$?\s*(-?\d+\.?\d*)/i,
-];
 
 // Date patterns
 const DATE_PATTERNS = [
@@ -88,41 +80,25 @@ const DATE_PATTERNS = [
   /([A-Za-z]{3,9}\s+\d{1,2},?\s+\d{2,4})/,
 ];
 
+/** Reads merchant, date, total, items and category out of a receipt's OCR text. */
+export function parseReceiptText(text: string): ParsedReceipt {
+  const lines = text.split('\n').filter((line) => line.trim().length > 0);
+  const merchant = extractMerchant(lines);
+  const date = extractDate(text);
+  const total = extractTotal(lines);
+  const items = extractItems(lines);
+  const category = determineCategory(merchant, items);
+  const confidence = calculateConfidence(merchant, date, total, items);
+  return { merchant, date, total, items, category, confidence };
+}
+
 export const parseReceiptImage = async (imageFile: File): Promise<ParsedReceipt> => {
   try {
     // Perform OCR
     const result = await Tesseract.recognize(imageFile, 'eng', {
     });
 
-    const text = result.data.text;
-    const lines = text.split('\n').filter((line) => line.trim().length > 0);
-
-    // Extract merchant
-    const merchant = extractMerchant(lines);
-
-    // Extract date
-    const date = extractDate(text);
-
-    // Extract total
-    const total = extractTotal(lines);
-
-    // Extract items
-    const items = extractItems(lines);
-
-    // Determine category
-    const category = determineCategory(merchant, items);
-
-    // Calculate confidence
-    const confidence = calculateConfidence(merchant, date, total, items);
-
-    return {
-      merchant,
-      date,
-      total,
-      items,
-      category,
-      confidence,
-    };
+    return parseReceiptText(result.data.text);
   } catch (error) {
     console.error('OCR parsing failed:', error);
     throw new Error('Failed to parse receipt. Please try again with a clearer image.');
@@ -280,22 +256,23 @@ function normalizeDate(raw: string): string {
 }
 
 function extractTotal(lines: string[]): number {
-  // Look for total in last 10 lines (search from the bottom up)
-  const relevantLines = lines.slice(-10);
-
-  for (const line of relevantLines) {
-    for (const pattern of TOTAL_PATTERNS) {
-      const match = line.match(pattern);
-      if (match) {
-        const amount = parseFloat(match[1].replace(/,/g, ''));
-        if (amount !== 0) {
-          return amount; // allow negative totals (refunds/returns)
-        }
+  // Read from the bottom up: the total is near the end, below the subtotal and tax.
+  // "Subtotal", "tax", "change" and "tendered" lines are skipped so they can't win.
+  const AMOUNT = /\$?\s*(-?\d{1,3}(?:,\d{3})+\.\d{2}|-?\d+\.\d{2})/;
+  const SKIP = /sub\s*-?\s*total|\btax\b|change|tender|saving|discount|points/i;
+  const relevant = lines.slice(-15).reverse();
+  for (const label of [/grand\s*total/i, /\btotal\b|amount\s*due|balance\s*due/i, /refund|return/i]) {
+    for (const line of relevant) {
+      if (!label.test(line) || SKIP.test(line)) continue;
+      const m = line.match(AMOUNT);
+      if (m) {
+        const amount = parseFloat(m[1].replace(/,/g, ''));
+        if (amount !== 0) return amount; // negative totals are refunds
       }
     }
   }
 
-  // Fallback: find largest absolute price in receipt
+  // Fallback: the largest amount on the receipt
   let maxPrice = 0;
   for (const line of lines) {
     const match = line.match(PRICE_PATTERN);
@@ -327,7 +304,7 @@ function extractItems(lines: string[]): ReceiptItem[] {
 
       if (name && price > 0 && price < 1000) {
         // Filter out likely totals/subtotals
-        if (!/total|tax|subtotal|balance/i.test(name)) {
+        if (!/total|tax|subtotal|balance|tend|change|visa|mastercard|amex|discover|debit|credit|cash|card|payment|auth/i.test(name)) {
           items.push({
             name: name.replace(/\d+\s*x\s*/i, '').trim(),
             quantity,

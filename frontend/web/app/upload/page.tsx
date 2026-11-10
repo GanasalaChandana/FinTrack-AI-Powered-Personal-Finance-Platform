@@ -1,4 +1,5 @@
 "use client";
+import { downloadSampleCsv } from "@/lib/utils/sampleCsv";
 
 import { authAPI, removeToken } from "@/lib/api";
 import React, { useState, useCallback } from "react";
@@ -28,22 +29,6 @@ interface UploadResult {
 
 /* ---------- Sample CSV template ---------- */
 
-const SAMPLE_CSV = `date,description,amount,category,type
-2025-01-15,Starbucks Coffee,5.80,Food & Dining,EXPENSE
-2025-01-14,Amazon Purchase,89.99,Shopping,EXPENSE
-2025-01-13,Salary,3500.00,Income,INCOME
-2025-01-12,Uber Ride,15.50,Transportation,EXPENSE
-2025-01-11,Netflix,15.99,Entertainment,EXPENSE`;
-
-function downloadSample() {
-  const blob = new Blob([SAMPLE_CSV], { type: "text/csv" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = "fintrack-sample.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 /* ---------- Component ---------- */
 
@@ -485,7 +470,7 @@ const CSVUploadSystem: React.FC = () => {
           <div className="mt-8 text-center">
             <p className="text-gray-600 mb-4">Need a sample CSV file?</p>
             <button
-              onClick={downloadSample}
+              onClick={downloadSampleCsv}
               className="inline-flex items-center gap-2 text-blue-600 font-semibold hover:text-blue-700 transition-colors"
             >
               <Download className="w-4 h-4" />

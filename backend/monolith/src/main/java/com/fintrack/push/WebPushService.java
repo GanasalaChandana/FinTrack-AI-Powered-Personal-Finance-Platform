@@ -133,7 +133,8 @@ public class WebPushService {
             if (code >= 200 && code < 300) return true;
             if (code == 404 || code == 410) {
                 subscriptions.delete(s); // the browser unsubscribed or the subscription expired
-                log.info("Removed expired push subscription {}", s.getId());
+                log.info("Removed expired push subscription {} (HTTP {} from {}: {})", s.getId(), code, endpoint.getHost(),
+                        res.body() == null ? "" : res.body().substring(0, Math.min(200, res.body().length())).replaceAll("\\s+", " "));
             } else {
                 log.warn("Push to subscription {} failed: HTTP {} {}", s.getId(), code,
                         res.body() == null ? "" : res.body().substring(0, Math.min(200, res.body().length())));

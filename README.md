@@ -12,7 +12,7 @@
 &nbsp;
 [![Next.js](https://img.shields.io/badge/Next.js%2016-TypeScript-black?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 &nbsp;
-[![Tests](https://img.shields.io/badge/Backend%20Tests-130%2B%20JUnit-22c55e?style=flat-square&logo=junit5)](https://github.com/GanasalaChandana/FinTrack-AI-Powered-Personal-Finance-Platform/actions)
+[![Tests](https://img.shields.io/badge/Tests-260%2B%20(JUnit%20%C2%B7%20Vitest%20%C2%B7%20Playwright)-22c55e?style=flat-square&logo=junit5)](https://github.com/GanasalaChandana/FinTrack-AI-Powered-Personal-Finance-Platform/actions)
 &nbsp;
 [![License: MIT](https://img.shields.io/badge/License-MIT-gray?style=flat-square)](LICENSE)
 
@@ -33,7 +33,11 @@
 - **Refresh token rotation with replay detection** — SHA-256 hashed, single-use; detecting a replayed token revokes ALL active sessions
 - **Fail-fast security config** — the server refuses to start without a strong `JWT_SECRET` (and rejects known public example secrets); `/actuator` exposes only `health`; errors return generic messages, never internals
 - **Ownership checks on user-scoped routes** — other users' resources return 403/404, and a `userId` supplied in a request body or query string is no longer trusted over the authenticated caller
-- **100+ backend tests and 20+ frontend unit tests** — Mockito service tests, `@WebMvcTest` controller slices, and `@SpringBootTest` integration tests on in-memory H2 covering the security fixes; Vitest tests for the forecasting, anomaly and custom-report logic
+- **Live bank connections (Plaid)** — Plaid Link with the OAuth redirect flow (Chase, Bank of America, Wells Fargo…), cursor-based `/transactions/sync`, access tokens AES-256-GCM encrypted at rest. A **public demo mode** puts visitors on Plaid's sandbox test banks while chosen accounts use production, and every connection remembers which environment it belongs to
+- **Two-factor sign-in (TOTP, RFC 6238)** — implemented from scratch (HMAC-SHA1, ±1 step drift, replay protection), one-time backup codes stored as SHA-256 hashes, and a lost-device recovery that only completes after a 3-day wait with an emailed cancel link
+- **Web Push with only the JDK** — message encryption (RFC 8291, `aes128gcm`) and VAPID signing (RFC 8292, ES256) written with `javax.crypto`, verified against independent implementations (Python `http_ece` and PyJWT) and accepted by Google's push service. Budget, unusual-spending and goal-milestone alerts reach phones and desktops
+- **Email that works on a free host** — Render's free tier blocks outgoing SMTP, so mail goes through Brevo's HTTPS API (SMTP still supported), with timeouts so a blocked mail server can't hang a request
+- **260+ automated tests** — 174 backend (Mockito unit, `@WebMvcTest` slices, `@SpringBootTest` integration on in-memory H2, fake Plaid / push servers on localhost), 52 Vitest unit tests and 36 Playwright end-to-end tests run on desktop and phone viewports in CI
 - **Versioned database migrations** — Flyway baselines the live database and owns schema changes going forward; a test checks the baseline against the JPA entities
 - **Safe to scale out** — every scheduled job takes a database lock (ShedLock), so with several instances each job runs once; recurring transactions and budget alerts carry unique keys, so a crash-and-retry can't create duplicates
 
@@ -41,10 +45,21 @@
 
 ## 📸 Screenshots
 
-| Dashboard + AI Insights | Smart Alerts | Reports & Forecast |
+**Desktop**
+
+| Dashboard + insights | Transactions | Monthly budgets |
 |:---:|:---:|:---:|
-| ![Dashboard](docs/dashboard.png) | ![Alerts](docs/alerts.png) | ![Reports](docs/reports.png) |
-| AI anomaly cards + burn rate forecast visible above the fold | 8 rule types with severity badges and actionable context | 6-month spending forecast with trend line |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Transactions](docs/screenshots/transactions.png) | ![Budgets](docs/screenshots/budgets.png) |
+| **Smart alerts** | **Reports & forecast** | **Bank connections (demo mode)** |
+| ![Alerts](docs/screenshots/alerts.png) | ![Reports](docs/screenshots/reports.png) | ![Bank connections](docs/screenshots/bank-connections.png) |
+| **Two-factor sign-in** | **Push notifications** | |
+| ![Two-factor](docs/screenshots/two-factor.png) | ![Push notifications](docs/screenshots/push-notifications.png) | |
+
+**Phone** (iPhone and Android; installable from the browser)
+
+| Dashboard | Transactions | Budgets | Bank accounts |
+|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/mobile-dashboard.png" width="200" alt="Dashboard on a phone"> | <img src="docs/screenshots/mobile-transactions.png" width="200" alt="Transactions on a phone"> | <img src="docs/screenshots/mobile-budgets.png" width="200" alt="Budgets on a phone"> | <img src="docs/screenshots/mobile-bank-connections.png" width="200" alt="Bank accounts on a phone"> |
 
 👉 **[Try the live demo → fintrack-liart.vercel.app](https://fintrack-liart.vercel.app)**
 
@@ -65,6 +80,9 @@
 - 📊 **Reports tab** — nine report views (overview, custom, trends, comparison, forecast, budget history, tax, income, savings) built from your real transactions; the **Custom** view generates a report from the metrics, range and grouping you pick
 - 🔔 **Alerts page** — smart rule-based alerts with severity badges; budget alerts are generated hourly by a background job
 - 📥 **Transactions → Import CSV** — bulk upload with auto-tagging and payment methods read from the file; an unusable file never wipes existing data, and you get a real import result back
+- 🏦 **Settings → Bank accounts → Connect a bank** — connect one of Plaid's test banks with `user_good` / `pass_good`; sample transactions import and categorise automatically
+- 🔐 **Settings → Security** — set up two-factor sign-in with any authenticator app
+- 📲 **Settings → Notifications** — turn on push notifications for this device and send yourself a test
 - 🧪 **Demo account** — try the app without signing up; the demo account is protected from deletion
 
 ---
@@ -83,7 +101,32 @@
 | 💳 | **Payment Methods** | Transactions carry a payment method, read from CSV imports and editable per transaction |
 | 🎯 | **Smart Categories (ML)** | New and imported transactions are categorised from your own history: a category you set for that merchant, else a **Naive Bayes classifier trained on your categorised transactions** (merchant and description words, amount size), else keyword rules. Settings shows its cross-validated accuracy against a majority-class baseline |
 | 🔐 | **Secure Auth** | Email/password and Google sign-in, JWT HS256, refresh token rotation, per-IP and per-account rate limiting, BCrypt hashing, case-insensitive unique emails |
+| 🏦 | **Bank Connections** | Plaid Link (incl. OAuth banks) → transactions sync every 6 hours; real banks for chosen accounts, Plaid's test banks for everyone else |
+| 📥 | **File Import** | CSV, OFX and QFX bank exports, with column mapping, preview and duplicate-safe import |
+| 🔑 | **Two-Factor Sign-In** | Authenticator-app codes (TOTP), 10 one-time backup codes, lost-device recovery with an emailed cancel link |
+| 📲 | **Push Notifications** | Budget, large-transaction, unusual-spending and goal-milestone alerts on phones and desktops (Web Push) |
+| ✉️ | **Email** | Password reset, household invites, budget alerts, weekly digest and monthly report |
+| 👪 | **Households** | Invite people by email to share budgets; everyone's spending counts, transactions stay private |
+| 🔁 | **Recurring Transactions** | Weekly / biweekly / monthly / quarterly / yearly rules that post themselves; pause and resume |
+| 📱 | **Installable App** | Works on iPhone, Android and desktop; add to the home screen for a full-screen app |
+| ☁️ | **Synced Settings** | Debts, net worth, categories, alert rules and preferences are saved to the account, not the browser |
 | 👤 | **Account Controls** | Change password (8+ characters), reset data, or delete your account and all of its data |
+
+---
+
+## 🔍 Engineering Decisions
+
+Choices that shaped the code, and why:
+
+| Decision | Why | Where |
+|---|---|---|
+| **Web Push written with `javax.crypto`** instead of a library | The Java libraries pull in Bouncy Castle and an HTTP client for ~150 lines of standard crypto. Writing it meant reading RFC 8291/8292 closely; correctness is checked against Python's `http_ece` and PyJWT, and by Google's push service accepting the messages | `backend/.../push/WebPushCrypto.java` |
+| **TOTP two-factor from the RFC**, not a library | Small, well-specified algorithm; the test suite uses the RFC 6238 test vector. Codes can't be replayed (the last used time step is stored), and recovery waits 3 days with an emailed cancel link so a stolen password alone can't remove 2FA | `backend/.../auth/twofactor/` |
+| **Two Plaid environments side by side** | Production connections are limited and paid; a public demo would use them up. Visitors get the sandbox, chosen accounts get production, and each stored connection keeps the environment it was made in so syncs never go to the wrong one | `backend/.../plaid/PlaidConfig.java` |
+| **Email over HTTPS (Brevo) with SMTP as a fallback** | Render's free tier blocks outgoing SMTP; the first sign was password-reset requests hanging until the proxy returned 502. Both paths now have 5-second timeouts | `backend/.../common/EmailService.java` |
+| **Rule-based analytics + a Naive Bayes categoriser, not an LLM** | Runs instantly and for free, gives explainable results ("550% above your $59 average"), and needs no user data sent to a third party | `frontend/web/lib/utils/aiInsights.ts`, `backend/.../CategoryClassifier.java` |
+| **Session cookies, not tokens in localStorage** | Page scripts can't read HttpOnly cookies, so an XSS bug can't steal a session; writes need an `X-Requested-With` header against CSRF | `backend/.../auth/security/AuthCookies.java` |
+| **Database locks on scheduled jobs (ShedLock)** | The free host may briefly run two instances during a deploy; each alert, digest and sync still runs once | `@SchedulerLock` on every `@Scheduled` job |
 
 ---
 
@@ -231,10 +274,11 @@ Output: "📊 Projected $3,855 vs $3,150 budget — $705 over.
 |---|---|
 | **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS, Recharts, React Hook Form, Tesseract.js |
 | **Backend** | Spring Boot 3.4, Java 17, Spring Security, Spring Data JPA, Maven |
-| **Database** | PostgreSQL with Flyway migrations (V1 baseline, V2 indexes + job locks); Hibernate only validates the schema (`ddl-auto=validate`) |
-| **Auth** | JWT HS256, Google sign-in, BCrypt, Refresh Token Rotation, per-IP + per-account Rate Limiting |
-| **Testing** | Backend: JUnit 5, Mockito, @WebMvcTest, MockMvc, @SpringBootTest + in-memory H2 (100+ tests). Frontend: Vitest unit tests (20+), Playwright smoke tests |
-| **DevOps** | GitHub Actions CI (4 jobs: backend tests, TypeScript, Vitest, Playwright), Docker Compose, Vercel (frontend), Render (backend + DB) |
+| **Database** | PostgreSQL (Supabase) with Flyway migrations V1–V16; Hibernate only validates the schema (`ddl-auto=validate`) |
+| **Auth** | JWT HS256 in HttpOnly cookies, Google sign-in, TOTP two-factor, BCrypt, Refresh Token Rotation, per-IP + per-account Rate Limiting |
+| **Integrations** | Plaid (bank data), Brevo (email over HTTPS), Web Push (RFC 8291 / 8292, no third-party library) |
+| **Testing** | Backend: JUnit 5, Mockito, @WebMvcTest, MockMvc, @SpringBootTest + in-memory H2 (174 tests). Frontend: Vitest (52 unit tests), Playwright (36 end-to-end tests on desktop and phone viewports) |
+| **DevOps** | GitHub Actions CI (backend tests, TypeScript, Vitest, Docker image, Playwright against the live site), Docker Compose, Vercel (frontend), Render (backend), Supabase (database), weekly AES-256 encrypted database backups, UptimeRobot monitoring |
 
 ---
 
@@ -400,7 +444,7 @@ cd frontend/web && npm test
 cd frontend/web && npm run test:e2e
 ```
 
-**Backend:** 110+ tests. Integration tests use an in-memory H2 database — no PostgreSQL required locally.
+**Backend:** 174 tests. Integration tests use an in-memory H2 database — no PostgreSQL required locally.
 
 | Area | Test classes | Coverage |
 |---|---|---|
@@ -409,9 +453,12 @@ cd frontend/web && npm run test:e2e
 | Reports | `ReportsIntegrationTest` | Reports built from real data, over-budget insights, other users' reports forbidden |
 | Auth & accounts | `RegistrationFlowTest`, `AccountManagementTest`, `DemoServiceTest` | Sign-up validation, case-insensitive email, password rules, full account deletion, demo account protection and re-seeding |
 | Security | `AuthControllerRateLimitTest`, `JwtUtilSecretValidationTest`, `ActuatorExposureTest`, `CorsTest`, `GlobalExceptionHandlerTest` | Spoofed-IP rate limiting and sign-up cap, weak/missing/public JWT secrets rejected, actuator exposure, CORS allow-list, correct status codes with generic error messages |
+| Bank connections | `PlaidIntegrationTest`, `PlaidLinkTokenTest` | Import, modify and remove via sync cursors, encrypted access tokens, login-required handling, ownership; what is sent to Plaid in sandbox, production and demo mode (fake Plaid on localhost) |
+| Two-factor & push | `TwoFactorTest`, `PushNotificationTest` | RFC 6238 test vector, code reuse refused, backup codes, recovery after the waiting period; push messages decrypted with the device's keys and VAPID signatures verified on a fake push service, expired devices removed |
+| Notifications & sharing | `NotificationEmailTest`, `HouseholdTest`, `UserDataTest` | Large-transaction, unusual-spending and goal-milestone alerts honour their switches; household invites and shared budgets; per-user synced data and its limits |
 | Database | `FlywayBaselineTest` | A fresh database built from `V1` passes Hibernate's strict schema validation against the entities; an existing database is baselined at V1 and the baseline script is not run against it |
 
-**Frontend:** 20+ Vitest unit tests for the pure logic in `lib/` — the custom-report builder (date windows, grouping, running balance, rounding), the month-end budget forecast (burn rate, at-risk categories, first-of-month edge case) and anomaly detection (thresholds, per-category history, minimum-data limits). Playwright specs in `frontend/web/tests/e2e` cover the main user flows against a live deployment.
+**Frontend:** 52 Vitest unit tests for the pure logic in `lib/` — the OFX/QFX parser (SGML and XML), the custom-report builder (date windows, grouping, running balance, rounding), the month-end budget forecast (burn rate, at-risk categories, first-of-month edge case) and anomaly detection (thresholds, per-category history, minimum-data limits). Playwright specs in `frontend/web/tests/e2e` cover the main user flows against a live deployment.
 
 ---
 

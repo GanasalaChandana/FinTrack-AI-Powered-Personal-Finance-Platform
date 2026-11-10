@@ -98,7 +98,7 @@ export default function LandingPage() {
   ];
 
   const stats = [
-    { value: "52",     label: "Backend tests, 0 failures" },
+    { value: "174",    label: "Backend tests, 0 failures" },
     { value: "4",      label: "Built-in insight engines" },
     { value: "0",      label: "Third-party AI calls" },
     { value: "HS256",  label: "JWT + refresh rotation" },
@@ -237,7 +237,7 @@ export default function LandingPage() {
           </p>
 
           <p className="fade-up" style={{fontSize:14,color:"#64748b",marginBottom:36,animationDelay:"0.25s"}}>
-            Spring Boot 3.2 · Next.js 14 · PostgreSQL · 100+ tests · JWT + rate limiting
+            Spring Boot 3.4 · Next.js 16 · PostgreSQL · 260+ tests · 2FA + rate limiting
           </p>
 
           <div className="fade-up" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",marginBottom:12,animationDelay:"0.3s"}}>
@@ -462,10 +462,11 @@ export default function LandingPage() {
               </p>
               <div style={{display:"flex",flexDirection:"column",gap:14}}>
                 {[
-                  "JWT HS256 + BCrypt password hashing",
+                  "JWT in HttpOnly cookies + BCrypt password hashing",
+                  "Two-factor sign-in (TOTP) with one-time backup codes",
                   "Refresh token rotation — replay detected → all sessions revoked",
                   "IP sliding window rate limiting (5 req/15 min, no Redis)",
-                  "52 backend tests — 0 failures",
+                  "174 backend + 36 browser tests — 0 failures",
                 ].map((item)=>(
                   <div key={item} style={{display:"flex",alignItems:"flex-start",gap:12}}>
                     <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(16,185,129,0.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
@@ -648,7 +649,7 @@ export default function LandingPage() {
           </div>
           <div style={{borderTop:"1px solid rgba(255,255,255,0.05)",paddingTop:24,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
             <p style={{fontSize:13,color:"#94a3b8"}}>© 2026 FinTrack. All rights reserved.</p>
-            <p style={{fontSize:13,color:"#94a3b8"}}>Spring Boot 3.2 · Next.js 14 · PostgreSQL · 100+ tests</p>
+            <p style={{fontSize:13,color:"#94a3b8"}}>Spring Boot 3.4 · Next.js 16 · PostgreSQL · 260+ tests</p>
           </div>
         </div>
       </footer>

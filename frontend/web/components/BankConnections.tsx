@@ -17,13 +17,15 @@ interface BankItem {
 /** Settings → Bank accounts: connect banks through Plaid and keep their transactions in sync. */
 export function BankConnections({ notify }: { notify: (msg: string, type?: "success" | "error") => void }) {
   const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [mode, setMode] = useState<"production" | "sandbox" | null>(null);
   const [items, setItems] = useState<BankItem[]>([]);
   const [busy, setBusy] = useState<string | null>(null); // "connect" or an item id
 
   const load = useCallback(async () => {
     try {
-      const s = await apiRequest<{ enabled: boolean }>("/api/plaid/status");
+      const s = await apiRequest<{ enabled: boolean; mode?: "production" | "sandbox" | null }>("/api/plaid/status");
       setEnabled(s.enabled);
+      setMode(s.mode ?? null);
       if (s.enabled) setItems(await apiRequest<BankItem[]>("/api/plaid/items"));
     } catch { setEnabled(false); }
   }, []);
@@ -104,6 +106,16 @@ export function BankConnections({ notify }: { notify: (msg: string, type?: "succ
         password; new transactions are categorised from your own history.
       </p>
 
+      {enabled && mode === "sandbox" && (
+        <div className="mb-4 rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+          <p className="font-semibold">Demo mode: Plaid&apos;s test banks</p>
+          <p className="mt-1">
+            Pick any bank and sign in with username <code className="font-mono font-semibold">user_good</code> and
+            password <code className="font-mono font-semibold">pass_good</code> (if asked for a code, use <code className="font-mono font-semibold">1234</code>).
+            Sample transactions are imported; no real bank is involved.
+          </p>
+        </div>
+      )}
       {enabled === null && <div className="flex items-center gap-2 text-sm text-gray-500"><Loader2 className="w-4 h-4 animate-spin" /> Loading…</div>}
       {enabled === false && (
         <p className="text-sm text-gray-600 dark:text-gray-300">

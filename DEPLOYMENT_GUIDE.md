@@ -49,6 +49,8 @@ Environment variables:
 | `PLAID_CLIENT_ID`, `PLAID_SECRET` | For bank connections | From [dashboard.plaid.com](https://dashboard.plaid.com) → Developers → Keys. Without them, Settings → Bank accounts says connections aren't set up |
 | `PLAID_REDIRECT_URI` | For Production | Where banks that sign in on their own website (OAuth: Chase, Bank of America, Wells Fargo, ...) send the user back: `https://<your-frontend>/plaid/oauth`. Add the same address in the Plaid dashboard under *Allowed redirect URIs*. Not needed in sandbox |
 | `PLAID_COUNTRY_CODES` | No | Comma-separated countries to offer banks from (default `US` in production, `US,CA,GB` in sandbox). Only use countries your Plaid account is approved for |
+| `PLAID_SANDBOX_SECRET` | For a public demo | With production keys: your **Sandbox** secret. Everyone not listed in `PLAID_PRODUCTION_EMAILS` then uses Plaid's test banks (`user_good` / `pass_good`), so visitors never use up real connections. Each connection keeps the mode it was made in |
+| `PLAID_PRODUCTION_EMAILS` | For a public demo | Comma-separated emails that get real banks when `PLAID_SANDBOX_SECRET` is set (e.g. your own) |
 | `PLAID_ENV` | No | `sandbox` (default, test banks: user `user_good`, password `pass_good`), `development` or `production` (needs Plaid's approval) |
 | `PLAID_TOKEN_KEY` | Recommended with Plaid | Any long random string; encrypts stored bank access tokens. Defaults to one derived from `JWT_SECRET` (changing either means banks must be reconnected) |
 | `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_HOST` | No | Outbound email (`MAIL_HOST` defaults to `smtp.gmail.com`) |

@@ -38,9 +38,13 @@ public class PlaidService {
     private final CategoryRuleService categories;
     private final String webhookUrl;
 
+    private final com.fintrack.auth.repository.UserRepository users;
+
     public PlaidService(PlaidConfig config, PlaidClient plaid, TokenCipher cipher, PlaidItemRepository items,
                         TransactionRepository transactions, CategoryRuleService categories,
-                        @Value("${plaid.webhook-url:}") String webhookUrl) {
+                        @Value("${plaid.webhook-url:}") String webhookUrl,
+                        com.fintrack.auth.repository.UserRepository users) {
+        this.users = users;
         this.config = config;
         this.plaid = plaid;
         this.cipher = cipher;
@@ -55,18 +59,39 @@ public class PlaidService {
 
     public boolean enabled() { return config.isEnabled(); }
 
-    public String linkToken(String userId) {
+    /** "production", "sandbox" (test banks) or null (not available), for this user. */
+    public String modeName(String userId) {
+        PlaidConfig.Mode m = config.modeFor(emailOf(userId));
+        return m == null ? null : m.env();
+    }
+
+    private String emailOf(String userId) {
+        try {
+            return users.findById(UUID.fromString(userId)).map(u -> u.getEmail()).orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private PlaidConfig.Mode modeForUser(String userId) {
         requireEnabled();
-        return plaid.createLinkToken(userId, webhookUrl);
+        PlaidConfig.Mode m = config.modeFor(emailOf(userId));
+        if (m == null) throw new BadRequestException("Bank connections aren't available for this account");
+        return m;
+    }
+
+    public String linkToken(String userId) {
+        return plaid.createLinkToken(modeForUser(userId), userId, webhookUrl);
     }
 
     /** Stores the connection and imports its transactions. */
     public SyncResult connect(String userId, String publicToken, String institutionName) {
-        requireEnabled();
+        PlaidConfig.Mode mode = modeForUser(userId);
         if (publicToken == null || publicToken.isBlank()) throw new BadRequestException("publicToken is required");
-        String[] tokens = plaid.exchangePublicToken(publicToken);
+        String[] tokens = plaid.exchangePublicToken(mode, publicToken);
         PlaidItem item = new PlaidItem();
         item.setUserId(userId);
+        item.setEnvironment(mode.env()); // later syncs must go to the same Plaid environment
         item.setItemId(tokens[1]);
         item.setAccessTokenEnc(cipher.encrypt(tokens[0]));
         item.setInstitutionName(institutionName == null || institutionName.isBlank() ? "Bank" : institutionName.trim());
@@ -91,7 +116,8 @@ public class PlaidService {
     public void disconnect(String userId, UUID id) {
         PlaidItem item = items.findByIdAndUserId(id, userId).orElseThrow(() -> new BadRequestException("Bank connection not found"));
         try {
-            if (config.isEnabled()) plaid.removeItem(cipher.decrypt(item.getAccessTokenEnc()));
+            PlaidConfig.Mode mode = config.modeNamed(item.getEnvironment());
+            if (mode != null) plaid.removeItem(mode, cipher.decrypt(item.getAccessTokenEnc()));
         } catch (Exception e) {
             log.warn("Plaid item/remove failed for {}: {}", item.getId(), e.getMessage()); // still forget it here
         }
@@ -123,12 +149,20 @@ public class PlaidService {
     }
 
     SyncResult sync(PlaidItem item) {
+        PlaidConfig.Mode mode = config.modeNamed(item.getEnvironment());
+        if (mode == null) {
+            // e.g. a test-bank connection after PLAID_SANDBOX_SECRET was removed
+            item.setStatus(PlaidItem.Status.ERROR);
+            item.setLastError("This connection's Plaid mode (" + item.getEnvironment() + ") isn't set up on the server");
+            items.save(item);
+            return new SyncResult(0, 0, 0);
+        }
         String accessToken = cipher.decrypt(item.getAccessTokenEnc());
         String cursor = item.getSyncCursor();
         int added = 0, modified = 0, removed = 0;
         try {
             for (int page = 0; page < MAX_PAGES; page++) {
-                JsonNode r = plaid.transactionsSync(accessToken, cursor);
+                JsonNode r = plaid.transactionsSync(mode, accessToken, cursor);
                 for (JsonNode t : r.path("added")) if (upsert(item.getUserId(), t, true)) added++;
                 for (JsonNode t : r.path("modified")) if (upsert(item.getUserId(), t, false)) modified++;
                 for (JsonNode t : r.path("removed")) {

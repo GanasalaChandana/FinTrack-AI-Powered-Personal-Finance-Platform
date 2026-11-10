@@ -33,47 +33,52 @@ public class PlaidClient {
         SimpleClientHttpRequestFactory f = new SimpleClientHttpRequestFactory();
         f.setConnectTimeout(10_000);
         f.setReadTimeout(30_000);
-        this.http = RestClient.builder().baseUrl(config.baseUrl()).requestFactory(f).build();
+        this.http = RestClient.builder().requestFactory(f).build(); // the URL depends on the mode
     }
 
+    /** In the configured environment (used by tests and single-mode setups). */
     public String createLinkToken(String userId, String webhookUrl) {
+        return createLinkToken(config.modeNamed(""), userId, webhookUrl);
+    }
+
+    public String createLinkToken(PlaidConfig.Mode mode, String userId, String webhookUrl) {
         Map<String, Object> body = new HashMap<>();
         body.put("client_name", "FinTrack");
         body.put("language", "en");
-        body.put("country_codes", config.countryCodes());
+        body.put("country_codes", mode.countryCodes());
         body.put("user", Map.of("client_user_id", userId));
         body.put("products", List.of("transactions"));
         body.put("transactions", Map.of("days_requested", 180));
         if (webhookUrl != null && !webhookUrl.isBlank()) body.put("webhook", webhookUrl);
         if (!config.redirectUri().isBlank()) body.put("redirect_uri", config.redirectUri()); // OAuth banks
-        return post("/link/token/create", body).path("link_token").asText();
+        return post(mode, "/link/token/create", body).path("link_token").asText();
     }
 
     /** Returns [access_token, item_id]. */
-    public String[] exchangePublicToken(String publicToken) {
-        JsonNode r = post("/item/public_token/exchange", Map.of("public_token", publicToken));
+    public String[] exchangePublicToken(PlaidConfig.Mode mode, String publicToken) {
+        JsonNode r = post(mode, "/item/public_token/exchange", Map.of("public_token", publicToken));
         return new String[] { r.path("access_token").asText(), r.path("item_id").asText() };
     }
 
     /** One page of /transactions/sync. */
-    public JsonNode transactionsSync(String accessToken, String cursor) {
+    public JsonNode transactionsSync(PlaidConfig.Mode mode, String accessToken, String cursor) {
         Map<String, Object> body = new HashMap<>();
         body.put("access_token", accessToken);
         body.put("count", 250);
         if (cursor != null && !cursor.isBlank()) body.put("cursor", cursor);
-        return post("/transactions/sync", body);
+        return post(mode, "/transactions/sync", body);
     }
 
-    public void removeItem(String accessToken) {
-        post("/item/remove", Map.of("access_token", accessToken));
+    public void removeItem(PlaidConfig.Mode mode, String accessToken) {
+        post(mode, "/item/remove", Map.of("access_token", accessToken));
     }
 
-    private JsonNode post(String path, Map<String, Object> body) {
+    private JsonNode post(PlaidConfig.Mode mode, String path, Map<String, Object> body) {
         Map<String, Object> withAuth = new HashMap<>(body);
         withAuth.put("client_id", config.clientId());
-        withAuth.put("secret", config.secret());
+        withAuth.put("secret", mode.secret());
         try {
-            String res = http.post().uri(path).contentType(MediaType.APPLICATION_JSON)
+            String res = http.post().uri(mode.baseUrl() + path).contentType(MediaType.APPLICATION_JSON)
                     .body(withAuth).retrieve().body(String.class);
             return json.readTree(res == null ? "{}" : res);
         } catch (RestClientResponseException e) {

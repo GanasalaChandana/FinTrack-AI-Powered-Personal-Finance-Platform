@@ -35,6 +35,10 @@ public class PlaidItem {
     @Column(name = "institution_name")
     private String institutionName;
 
+    /** Plaid environment it was made in ("sandbox" / "production"; "" = before modes existed) */
+    @Column(name = "environment", nullable = false, length = 20)
+    private String environment = "";
+
     @Column(name = "sync_cursor", columnDefinition = "TEXT")
     private String syncCursor;
 

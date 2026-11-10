@@ -17,10 +17,17 @@ public class PlaidController {
 
     private final PlaidService plaid;
 
-    /** Whether bank connections are available on this server. */
+    /**
+     * Whether bank connections are available, and in which mode for this user:
+     * "production" (real banks) or "sandbox" (Plaid's test banks, the public demo).
+     */
     @GetMapping("/status")
-    public Map<String, Object> status() {
-        return Map.of("enabled", plaid.enabled());
+    public Map<String, Object> status(@RequestHeader(value = "X-User-Id", required = false) String userId) {
+        String mode = plaid.enabled() && userId != null ? plaid.modeName(userId) : null;
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("enabled", mode != null);
+        out.put("mode", mode);
+        return out;
     }
 
     @PostMapping("/link-token")

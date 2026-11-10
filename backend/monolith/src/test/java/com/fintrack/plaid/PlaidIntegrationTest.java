@@ -57,8 +57,8 @@ class PlaidIntegrationTest {
     @DisplayName("connect imports transactions; a later sync applies modifications and removals without duplicates")
     void connectAndSync() throws Exception {
         String item = "item-" + UUID.randomUUID();
-        when(plaid.exchangePublicToken("public-123")).thenReturn(new String[] { "access-secret", item });
-        when(plaid.transactionsSync(eq("access-secret"), isNull())).thenReturn(page("""
+        when(plaid.exchangePublicToken(any(), eq("public-123"))).thenReturn(new String[] { "access-secret", item });
+        when(plaid.transactionsSync(any(), eq("access-secret"), isNull())).thenReturn(page("""
             {"added":[
                {"transaction_id":"t1","amount":12.5,"date":"2026-10-01","name":"UBER 123","merchant_name":"Uber","pending":false},
                {"transaction_id":"t2","amount":-2500,"date":"2026-10-02","name":"ACME PAYROLL","merchant_name":null,"pending":false}],
@@ -86,7 +86,7 @@ class PlaidIntegrationTest {
         // The user re-categorises t1; Plaid then modifies its amount and removes t2
         uber.setCategory("Work travel");
         transactions.save(uber);
-        when(plaid.transactionsSync("access-secret", "c1")).thenReturn(page("""
+        when(plaid.transactionsSync(any(), eq("access-secret"), eq("c1"))).thenReturn(page("""
             {"added":[{"transaction_id":"t1","amount":12.5,"date":"2026-10-01","name":"UBER 123","merchant_name":"Uber"}],
              "modified":[{"transaction_id":"t1","amount":14.0,"date":"2026-10-01","name":"UBER 123","merchant_name":"Uber"}],
              "removed":[{"transaction_id":"t2"}],"next_cursor":"c2","has_more":false}"""));
@@ -104,8 +104,8 @@ class PlaidIntegrationTest {
     @Test
     @DisplayName("a bank that needs a new sign-in is flagged; others can't see or touch the connection")
     void loginRequiredAndOwnership() throws Exception {
-        when(plaid.exchangePublicToken("p2")).thenReturn(new String[] { "a2", "item-" + UUID.randomUUID() });
-        when(plaid.transactionsSync(eq("a2"), any()))
+        when(plaid.exchangePublicToken(any(), eq("p2"))).thenReturn(new String[] { "a2", "item-" + UUID.randomUUID() });
+        when(plaid.transactionsSync(any(), eq("a2"), any()))
                 .thenThrow(new PlaidClient.PlaidException("ITEM_LOGIN_REQUIRED", "the login details of this item have changed"));
         mockMvc.perform(post("/api/plaid/connect").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"publicToken\":\"p2\"}")).andExpect(status().isCreated());
@@ -121,7 +121,7 @@ class PlaidIntegrationTest {
                 .andExpect(status().isBadRequest());
         mockMvc.perform(delete("/api/plaid/items/" + id).header("Authorization", bearer).header("X-Requested-With", "x"))
                 .andExpect(status().isNoContent());
-        verify(plaid).removeItem("a2");
+        verify(plaid).removeItem(any(), eq("a2"));
     }
 
     @Test

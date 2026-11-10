@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { GoogleCredentialResponse } from '@/types/google';
-import { setUser, authHeaders } from '@/lib/api';
+import { setUser, authHeaders, authAPI } from '@/lib/api';
 import { 
   Eye, 
   EyeOff, 
@@ -85,6 +85,8 @@ function AuthPageContent() {
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const [googleLoaded, setGoogleLoaded] = useState(false);
   const googleInitialized = useRef(false);
+  const [googleFailed, setGoogleFailed] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const lastGoogleCallTime = useRef(0);
   // Google is initialised once; it calls through this ref so it always runs the
   // current handler (not the first render's copy with stale state)
@@ -93,63 +95,59 @@ function AuthPageContent() {
   useEffect(() => { googleSignInRef.current = handleGoogleSignIn; });
   const backendAwake = useRef(false);
 
-  // Load Google OAuth Script
+  // Load Google's script, then wait until window.google is ready (the tag may already
+  // exist from an earlier visit while the script is still loading). Give up after 10 s
+  // and hide the Google section rather than leave an empty gap.
   useEffect(() => {
-    const loadGoogleScript = () => {
-      if (document.getElementById('google-oauth-script')) {
-        setGoogleLoaded(true);
-        return;
-      }
-
+    let cancelled = false;
+    let tries = 0;
+    const waitForGoogle = () => {
+      if (cancelled) return;
+      if (window.google?.accounts?.id) { setGoogleLoaded(true); return; }
+      if (++tries > 100) { setGoogleFailed(true); return; }
+      setTimeout(waitForGoogle, 100);
+    };
+    if (!document.getElementById('google-oauth-script')) {
       const script = document.createElement('script');
       script.id = 'google-oauth-script';
       script.src = 'https://accounts.google.com/gsi/client';
       script.async = true;
       script.defer = true;
-      script.onload = () => {
-        setGoogleLoaded(true);
-      };
-      script.onerror = () => {
-        setError('Failed to load Google Sign-In. Please refresh the page.');
-      };
+      script.onerror = () => { if (!cancelled) setGoogleFailed(true); };
       document.body.appendChild(script);
-    };
-
-    loadGoogleScript();
+    }
+    waitForGoogle();
+    return () => { cancelled = true; };
   }, []);
 
-  // Initialize Google Sign-In
+  // Initialize once, then (re)draw the button whenever the slot or the mode changes
   useEffect(() => {
-    if (!googleLoaded || !window.google || googleInitialized.current) return;
-
+    if (!googleLoaded || !window.google) return;
     const GOOGLE_CLIENT_ID = '833541687094-vheiq46pf2507ogunobbidu4ke23286d.apps.googleusercontent.com';
-
     try {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: (r: { credential: string }) => googleSignInRef.current(r),
-        auto_select: false,
-        cancel_on_tap_outside: false,
-        itp_support: true,
-      });
-
-      if (googleButtonRef.current) {
-        window.google.accounts.id.renderButton(
-          googleButtonRef.current,
-          {
-            theme: 'outline',
-            size: 'large',
-            text: mode === 'signin' ? 'signin_with' : 'signup_with',
-            shape: 'rectangular',
-            width: 320,
-            logo_alignment: 'left',
-          }
-        );
+      if (!googleInitialized.current) {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (r: { credential: string }) => googleSignInRef.current(r),
+          auto_select: false,
+          cancel_on_tap_outside: false,
+          itp_support: true,
+        });
+        googleInitialized.current = true;
       }
-      
-      googleInitialized.current = true;
+      const slot = googleButtonRef.current;
+      if (!slot) return;
+      slot.innerHTML = '';
+      window.google.accounts.id.renderButton(slot, {
+        theme: 'outline',
+        size: 'large',
+        text: mode === 'signin' ? 'signin_with' : 'signup_with',
+        shape: 'rectangular',
+        width: Math.min(320, slot.clientWidth || 320),
+        logo_alignment: 'left',
+      });
     } catch {
-      setError('Google Sign-In initialization failed. Please try manual login.');
+      setGoogleFailed(true);
     }
   }, [googleLoaded, mode]); // handler is read through googleSignInRef
 
@@ -514,28 +512,25 @@ function AuthPageContent() {
             </button>
           </div>
 
-          <div className="mb-6">
-            <div 
-              ref={googleButtonRef} 
-              className="w-full flex justify-center"
-              style={{ minHeight: '40px' }}
-            />
-            {!googleLoaded && (
-              <div className="flex items-center justify-center gap-2 py-3 text-gray-400">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Loading Google Sign-In...</span>
+          {!googleFailed && (
+            <>
+              <div className="mb-6">
+                <div ref={googleButtonRef} className="w-full flex justify-center" style={{ minHeight: '44px' }} />
+                {!googleLoaded && (
+                  <div className="flex items-center justify-center gap-2 -mt-10 py-3 text-gray-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Loading Google Sign-In...</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-purple-500/20"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-slate-800/50 text-gray-400">Or continue with email</span>
-            </div>
-          </div>
+              <div className="flex items-center gap-3 my-6 text-sm text-gray-400">
+                <div className="flex-1 border-t border-purple-500/20" />
+                <span>or continue with email</span>
+                <div className="flex-1 border-t border-purple-500/20" />
+              </div>
+            </>
+          )}
 
           {wakingUp && (
             <div className="mb-6 bg-blue-500/10 border border-blue-500/50 rounded-xl p-4 flex items-start gap-3">
@@ -741,6 +736,29 @@ function AuthPageContent() {
               )}
             </button>
           </div>
+
+          {mode === 'signin' && (
+            <button
+              type="button"
+              onClick={async () => {
+                setDemoLoading(true);
+                setError('');
+                try {
+                  await authAPI.demoLogin();
+                  router.push('/dashboard');
+                } catch {
+                  setError('The demo is unavailable right now. Try again in a moment.');
+                  setDemoLoading(false);
+                }
+              }}
+              disabled={demoLoading || loading}
+              style={{ border: "1px solid rgba(168,85,247,0.45)" }}
+              className="w-full mt-3 py-3 rounded-xl font-semibold text-purple-200 hover:bg-purple-500/10 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {demoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              Try the demo (no sign-up)
+            </button>
+          )}
 
           {mode === 'signup' && (
             <p className="text-xs text-gray-500 text-center mt-4">

@@ -6,12 +6,16 @@
 
 import { useState, useEffect } from "react";
 import { X, Download, Smartphone, Share } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { usePWA } from "@/components/providers/PWAProvider";
+
+const AUTH_PAGES = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 const DISMISSED_KEY = "fintrack-pwa-banner-dismissed";
 
 export function PWAInstallBanner() {
   const { isInstallable, isInstalled, promptInstall } = usePWA();
+  const pathname = usePathname();
   const [dismissed, setDismissed]   = useState(true); // start hidden — hydrate below
   const [isIOS, setIsIOS]           = useState(false);
   const [showIOSTip, setShowIOSTip] = useState(false);
@@ -56,7 +60,7 @@ export function PWAInstallBanner() {
   };
 
   // Nothing to show
-  if (isInstalled) return null;
+  if (isInstalled || AUTH_PAGES.some((p) => pathname?.startsWith(p))) return null;
 
   // ── iOS tip ────────────────────────────────────────────────────────────────
   if (isIOS && showIOSTip) {

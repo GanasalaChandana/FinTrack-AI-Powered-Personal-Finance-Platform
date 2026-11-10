@@ -182,7 +182,7 @@ const CSVUploadSystem: React.FC = () => {
     <div className="space-y-6">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Upload Your Transactions</h2>
-        <p className="text-gray-600">Import CSV files from your bank or financial institution</p>
+        <p className="text-gray-600">Import CSV, OFX or QFX files from your bank or financial institution</p>
       </div>
 
       {error && (

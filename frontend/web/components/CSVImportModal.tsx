@@ -6,6 +6,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { X, Upload, FileText, AlertCircle, Download, CheckCircle, ChevronRight, ChevronLeft, Loader2, Sparkles } from "lucide-react";
 import { errorMessage } from "@/lib/utils/errors";
 import { currencySymbol } from "@/lib/userPrefs";
+import { looksLikeOfx, parseOfx } from "@/lib/utils/ofxParser";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public types (unchanged — dashboard passes these)
@@ -285,15 +286,16 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
 
   const handleFile = useCallback(async (file: File) => {
     setError(null);
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      setError("Please upload a .csv file."); return;
+    if (!/\.(csv|ofx|qfx)$/i.test(file.name)) {
+      setError("Please upload a .csv, .ofx or .qfx file."); return;
     }
     if (file.size / 1024 / 1024 > maxFileSize) {
       setError(`File must be under ${maxFileSize} MB.`); return;
     }
     try {
       const text   = await file.text();
-      const result = parseCSVRobust(text);
+      // OFX/QFX (the "Quicken" / "Money" download most banks offer) or CSV
+      const result = looksLikeOfx(file.name, text) ? parseOfx(text) : parseCSVRobust(text);
       const detectedMap = autoDetectMapping(result.headers);
       setParsed(result);
       setColMap(detectedMap);
@@ -425,10 +427,10 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                   <FileText className="w-7 h-7 text-indigo-500" />
                 </div>
                 <p className="font-semibold text-gray-800 dark:text-gray-200 mb-1">
-                  {dragActive ? "Drop your CSV here" : "Drag & drop your bank CSV"}
+                  {dragActive ? "Drop your file here" : "Drag & drop your bank CSV, OFX or QFX"}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">or click to browse · max {maxFileSize} MB</p>
-                <input ref={fileRef} type="file" accept=".csv" className="hidden"
+                <input ref={fileRef} type="file" accept=".csv,.ofx,.qfx" className="hidden"
                        onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
               </div>
 

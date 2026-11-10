@@ -612,7 +612,7 @@ export default function DashboardPage() {
                       icon={<Upload className="w-4 h-4" />}
                       onClick={() => setShowCsvModal(true)}
                     >
-                      Import CSV
+                      Import file
                     </Button>
                   </div>
                 </div>
@@ -678,7 +678,7 @@ export default function DashboardPage() {
                   <>
                     <EmptyStatCard title="Total Income"   description="No income recorded yet"          action={handleAddTransaction}                          actionLabel="Add income" />
                     <EmptyStatCard title="Total Expenses" description="No expenses recorded yet"        action={handleAddTransaction}                          actionLabel="Add expense" />
-                    <EmptyStatCard title="Net Savings"    description="Add transactions to see savings" action={() => setShowCsvModal(true)}                   actionLabel="Import CSV" />
+                    <EmptyStatCard title="Net Savings"    description="Add transactions to see savings" action={() => setShowCsvModal(true)}                   actionLabel="Import a bank file" />
                     <EmptyStatCard title="Net Worth"      description="Set goals to track net worth"    action={() => router.push("/goals-budgets?tab=goals")} actionLabel="Create a goal" />
                   </>
                 )}
@@ -814,7 +814,7 @@ export default function DashboardPage() {
               <Grid columns={4} gap="md">
                 {[
                   { icon: DollarSign, label: "Add Transaction", action: handleAddTransaction },
-                  { icon: Upload,     label: "Import CSV",       action: () => setShowCsvModal(true) },
+                  { icon: Upload,     label: "Import file",      action: () => setShowCsvModal(true) },
                   { icon: Wallet,     label: "Set Budget",       action: () => router.push("/goals-budgets?tab=budgets") },
                   { icon: BarChart3,  label: "View Reports",     action: () => router.push("/reports") },
                   { icon: Camera,     label: "Scan Receipt",     action: () => router.push("/receipts") },

@@ -97,6 +97,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     resolvedUserId[0] = userId;
                 }
 
+                if (DemoGuard.isDemo(userEmail) && DemoGuard.blocked(request.getMethod(), requestPath)) {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"message\":\"" + DemoGuard.MESSAGE + "\"}");
+                    return;
+                }
+
                 // Build a minimal UserDetails from JWT claims — no DB needed
                 List<SimpleGrantedAuthority> authorities =
                         List.of(new SimpleGrantedAuthority("ROLE_USER"));

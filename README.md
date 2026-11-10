@@ -15,7 +15,7 @@
 [![Tests](https://img.shields.io/badge/Tests-260%2B%20(JUnit%20%C2%B7%20Vitest%20%C2%B7%20Playwright)-22c55e?style=flat-square&logo=junit5)](https://github.com/GanasalaChandana/FinTrack-AI-Powered-Personal-Finance-Platform/actions)
 &nbsp;
 [![DB Backup](https://img.shields.io/github/actions/workflow/status/GanasalaChandana/FinTrack-AI-Powered-Personal-Finance-Platform/db-backup.yml?branch=main&style=flat-square&label=Weekly%20DB%20backup&logo=postgresql)](https://github.com/GanasalaChandana/FinTrack-AI-Powered-Personal-Finance-Platform/actions/workflows/db-backup.yml)
-
+&nbsp;
 [![License: MIT](https://img.shields.io/badge/License-MIT-gray?style=flat-square)](LICENSE)
 
 </div>

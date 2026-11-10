@@ -6,6 +6,7 @@ import {
 } from "recharts";
 import { CreditCard, Plus, Trash2, TrendingDown, DollarSign, Calendar, Zap } from "lucide-react";
 import { userCurrency, currencySymbol } from "@/lib/userPrefs";
+import { setSynced } from "@/lib/userData";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -27,7 +28,7 @@ function loadDebts(): Debt[] {
   try { return JSON.parse(localStorage.getItem(LOCAL_KEY) ?? "[]"); } catch { return []; }
 }
 function saveDebts(debts: Debt[]) {
-  try { localStorage.setItem(LOCAL_KEY, JSON.stringify(debts)); } catch {}
+  try { setSynced(LOCAL_KEY, JSON.stringify(debts)); } catch {}
 }
 
 const fmt = (v: number) =>

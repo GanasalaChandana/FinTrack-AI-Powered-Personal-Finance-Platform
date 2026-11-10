@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { isAuthenticated as hasSession } from "@/lib/api";
+import { pullUserData } from "@/lib/userData";
 import { DemoBanner } from "@/components/dashboard/DemoBanner";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
@@ -21,11 +22,15 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       if (!token) {
         const next = pathname && pathname !== "/" ? `?next=${encodeURIComponent(pathname + window.location.search)}` : "";
         router.replace(`/login${next}`);
+        setIsChecking(false);
       } else {
-        setIsAuthenticated(true);
+        // Load the user's saved data (debts, net worth, categories, ...) before pages read it;
+        // don't wait more than a few seconds if the server is slow to wake up
+        void Promise.race([pullUserData(), new Promise((r) => setTimeout(r, 5000))]).finally(() => {
+          setIsAuthenticated(true);
+          setIsChecking(false);
+        });
       }
-
-      setIsChecking(false);
     };
 
     // Small delay to ensure storage is ready after navigation

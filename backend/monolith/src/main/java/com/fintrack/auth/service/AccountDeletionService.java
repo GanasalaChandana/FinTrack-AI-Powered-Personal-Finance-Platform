@@ -53,6 +53,7 @@ public class AccountDeletionService {
     private final ScheduledReportRepository scheduledReportRepository;
     private final SpendingSummaryCacheRepository spendingSummaryCacheRepository;
     private final TransactionAggregateRepository transactionAggregateRepository;
+    private final com.fintrack.userdata.UserDataRepository userDataRepository;
 
     @Transactional
     public void deleteAccount(UUID userId) {
@@ -75,6 +76,7 @@ public class AccountDeletionService {
         scheduledReportRepository.deleteAllByUserIdForAccountDeletion(userId);
         spendingSummaryCacheRepository.deleteAllByUserIdForAccountDeletion(userId);
         transactionAggregateRepository.deleteAllByUserIdForAccountDeletion(userId);
+        userDataRepository.deleteAllByUserId(id); // debts, net worth, custom categories, ...
 
         refreshTokenRepository.deleteAllByUserId(userId); // FK to users — must go before the user
         userRepository.deleteById(userId);

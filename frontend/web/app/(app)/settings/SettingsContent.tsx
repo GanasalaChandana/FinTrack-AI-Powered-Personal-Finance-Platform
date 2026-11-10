@@ -10,6 +10,7 @@ import { BankConnections } from '@/components/BankConnections';
 import { HouseholdSettings } from '@/components/HouseholdSettings';
 import { TwoFactorSettings } from '@/components/TwoFactorSettings';
 import { userCurrency, currencySymbol } from "@/lib/userPrefs";
+import { setSynced } from "@/lib/userData";
 
 /* ===================== Types ===================== */
 type TabKey = 'profile' | 'security' | 'preferences' | 'categories' | 'notifications' | 'banks' | 'household';
@@ -200,7 +201,7 @@ export default function SettingsContent() {
   );
 
   const handlePrefsSave = () => {
-    try { localStorage.setItem(PREFS_KEY, JSON.stringify(mergedPrefs)); } catch { }
+    try { setSynced(PREFS_KEY, JSON.stringify(mergedPrefs)); } catch { }
     syncCurrency(mergedPrefs.currency);
     // Apply theme immediately
     const root = document.documentElement;
@@ -267,7 +268,7 @@ export default function SettingsContent() {
 
   const persistCats = (cats: Category[]) => {
     setCategories(cats);
-    try { localStorage.setItem(CATS_KEY, JSON.stringify(cats)); } catch { }
+    try { setSynced(CATS_KEY, JSON.stringify(cats)); } catch { }
   };
 
   const handleAddCategory = () => {
@@ -303,7 +304,9 @@ export default function SettingsContent() {
         : [];
 
       if (exportType === 'json') {
-        const exportData = { exportedAt: new Date().toISOString(), userId: currentUser.id, transactions: owned };
+        // Plus debts, net worth, custom categories and the other data saved with the account
+        const saved = await apiRequest<Record<string, unknown>>('/api/user-data').catch(() => ({}));
+        const exportData = { exportedAt: new Date().toISOString(), userId: currentUser.id, transactions: owned, savedData: saved };
         const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

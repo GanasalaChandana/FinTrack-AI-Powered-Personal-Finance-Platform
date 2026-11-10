@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { PageHeader, Section, PageContent } from "@/components/layouts/PageHeader";
 import { userCurrency, currencySymbol, dateLocale } from "@/lib/userPrefs";
+import { setSynced } from "@/lib/userData";
 
 
 
@@ -109,7 +110,7 @@ function logContribution(goalId: string, amount: number) {
     const key  = CONTRIB_PREFIX + goalId;
     const prev = JSON.parse(localStorage.getItem(key) ?? "[]") as ContribEntry[];
     prev.push({ date: new Date().toISOString().slice(0, 10), amount });
-    localStorage.setItem(key, JSON.stringify(prev.slice(-24))); // keep ~2 years
+    setSynced(key, JSON.stringify(prev.slice(-24))); // keep ~2 years
   } catch {}
 }
 
@@ -130,7 +131,7 @@ function loadRolloverStore(): RolloverStore | null {
 }
 
 function saveRolloverStore(store: RolloverStore) {
-  try { localStorage.setItem(ROLLOVER_KEY, JSON.stringify(store)); } catch {}
+  try { setSynced(ROLLOVER_KEY, JSON.stringify(store)); } catch {}
 }
 
 // ── Goal Form Modal ────────────────────────────────────────────────────────────

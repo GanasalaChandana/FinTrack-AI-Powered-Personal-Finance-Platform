@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { TrendingUp, TrendingDown, Plus, Trash2, Edit2, Check, X, Wallet, CreditCard, Home, Car, Briefcase, PiggyBank, DollarSign, Building, BarChart3, Flag, Sparkles } from "lucide-react";
 import { userCurrency, currencySymbol, dateLocale } from "@/lib/userPrefs";
+import { setSynced, removeSynced } from "@/lib/userData";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ function loadData(): NetWorthData {
 }
 
 function saveData(data: NetWorthData) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  setSynced(STORAGE_KEY, JSON.stringify(data));
 }
 
 function takeSnapshot(data: NetWorthData): NetWorthData {
@@ -579,7 +580,7 @@ export default function NetWorthPage() {
                       const v = parseFloat(targetInput);
                       if (!isNaN(v) && v > 0) {
                         setTarget(v);
-                        localStorage.setItem(NW_TARGET_KEY, String(v));
+                        setSynced(NW_TARGET_KEY, String(v));
                         setEditingTarget(false);
                       }
                     }
@@ -593,7 +594,7 @@ export default function NetWorthPage() {
                   const v = parseFloat(targetInput);
                   if (!isNaN(v) && v > 0) {
                     setTarget(v);
-                    localStorage.setItem(NW_TARGET_KEY, String(v));
+                    setSynced(NW_TARGET_KEY, String(v));
                     setEditingTarget(false);
                   }
                 }}
@@ -605,7 +606,7 @@ export default function NetWorthPage() {
                 <button
                   onClick={() => {
                     setTarget(null);
-                    localStorage.removeItem(NW_TARGET_KEY);
+                    removeSynced(NW_TARGET_KEY);
                     setTargetInput("");
                     setEditingTarget(false);
                   }}

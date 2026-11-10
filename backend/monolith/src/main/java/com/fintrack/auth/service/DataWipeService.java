@@ -28,12 +28,14 @@ public class DataWipeService {
     private final TransactionRepository transactionRepository;
     private final BudgetRepository      budgetRepository;
     private final GoalRepository        goalRepository;
+    private final com.fintrack.userdata.UserDataRepository userDataRepository;
 
     @Transactional
     public void wipeAllUserData(String userId) {
         transactionRepository.deleteAllByUserId(userId);
         budgetRepository.deleteAllByUserId(userId);
         goalRepository.deleteAllByUserId(userId);
+        userDataRepository.deleteAllByUserId(userId); // debts, net worth, categories, ...
         log.info("All data wiped for user {}", userId);
     }
 }

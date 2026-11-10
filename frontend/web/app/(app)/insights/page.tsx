@@ -6,6 +6,7 @@ import { transactionsAPI, type Transaction as ApiTransaction } from "@/lib/api";
 import { generateInsights, generateActionPlan, type SpendingInsight } from "@/lib/utils/insightsEngine";
 import { errorMessage } from "@/lib/utils/errors";
 import { currencySymbol } from "@/lib/userPrefs";
+import { setSynced } from "@/lib/userData";
 
 // ── Design maps ───────────────────────────────────────────────────────────────
 
@@ -76,7 +77,7 @@ function loadPlanDone(): Set<string> {
   } catch { return new Set(); }
 }
 function savePlanDone(ids: Set<string>) {
-  try { localStorage.setItem(PLAN_DONE_KEY, JSON.stringify([...ids])); } catch {}
+  try { setSynced(PLAN_DONE_KEY, JSON.stringify([...ids])); } catch {}
 }
 
 const ICON_MAP = {
@@ -237,7 +238,7 @@ function loadDismissed(): Set<string> {
 }
 
 function saveDismissed(ids: Set<string>) {
-  try { localStorage.setItem(DISMISSED_KEY, JSON.stringify([...ids])); } catch { }
+  try { setSynced(DISMISSED_KEY, JSON.stringify([...ids])); } catch { }
 }
 
 function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] }) {

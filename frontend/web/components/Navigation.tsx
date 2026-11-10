@@ -37,7 +37,6 @@ const NAV_TOOLS = [
   { href: "/debt",           label: "Debt Payoff",     icon: CreditCard },
   { href: "/analytics",      label: "Analytics",       icon: BarChart3 },
   { href: "/net-worth",      label: "Net Worth",       icon: Wallet },
-  { href: "/subscriptions",  label: "Subscriptions",   icon: RefreshCw },
   { href: "/merchants",      label: "Merchants",       icon: Store },
   { href: "/recurring",      label: "Recurring",       icon: RefreshCw },
   { href: "/health",         label: "Health Score",    icon: Activity },

@@ -52,7 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Net Worth", href: "/net-worth", icon: <Wallet className="w-4 h-4" />, keywords: ["assets", "liabilities", "wealth"] },
   { label: "Health Score", href: "/health", icon: <Activity className="w-4 h-4" />, keywords: ["financial health", "score"] },
   { label: "AI Insights", href: "/insights", icon: <Brain className="w-4 h-4" />, keywords: ["ai", "anomaly", "smart"] },
-  { label: "Subscriptions", href: "/subscriptions", icon: <RefreshCw className="w-4 h-4" />, keywords: ["subscriptions", "netflix", "spotify", "cancel", "recurring charges"] },
+  { label: "Subscriptions", href: "/recurring?tab=subscriptions", icon: <RefreshCw className="w-4 h-4" />, keywords: ["subscriptions", "netflix", "spotify", "cancel", "recurring charges"] },
   { label: "Merchants", href: "/merchants", icon: <Store className="w-4 h-4" />, keywords: ["merchants", "stores", "payees", "where i spend"] },
   { label: "Recurring", href: "/recurring", icon: <RefreshCw className="w-4 h-4" />, keywords: ["recurring", "bills"] },
   { label: "Receipt Scanner", href: "/receipts", icon: <Camera className="w-4 h-4" />, keywords: ["scan", "ocr", "photo"] },

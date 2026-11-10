@@ -20,7 +20,7 @@ const fmt = (v: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 2 }).format(v);
 
 const fmtShort = (v: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 0 }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: userCurrency(), minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 function daysUntil(dateStr: string): number {
   const target = new Date(`${dateStr}T00:00:00`);

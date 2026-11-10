@@ -207,7 +207,8 @@ export function RecurringTransactionsDashboard({
     <div className="space-y-6">
 
       {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {/* 4 across only on wide screens; on phones/tablets the icon sits above the text so amounts fit */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           {
             label: "Recurring Detected", sub: `${visible.length} pattern${visible.length !== 1 ? "s" : ""}`,
@@ -215,7 +216,7 @@ export function RecurringTransactionsDashboard({
             icon: RefreshCw, iconBg: "bg-indigo-50", iconText: "text-indigo-600", valueCls: "text-gray-900",
           },
           {
-            label: "Monthly Cost", sub: `${currencySymbol()}${annualExpenses.toFixed(0)}/year`,
+            label: "Monthly Cost", sub: `${currencySymbol()}${Math.round(annualExpenses).toLocaleString("en-US")}/year`,
             value: fmt(monthlyExpenses),
             icon: DollarSign, iconBg: "bg-violet-50", iconText: "text-violet-600", valueCls: "text-gray-900",
           },
@@ -232,14 +233,14 @@ export function RecurringTransactionsDashboard({
           },
         ].map((card) => (
           <div key={card.label}
-            className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+            className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-5 flex flex-col items-start gap-3 xl:flex-row xl:items-center xl:gap-4 hover:shadow-md transition-shadow">
             <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${card.iconBg}`}>
               <card.icon className={`w-5 h-5 ${card.iconText}`} />
             </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider leading-tight truncate">{card.label}</p>
-              <p className="text-xs text-gray-400">{card.sub}</p>
-              <p className={`text-2xl font-extrabold tracking-tight mt-0.5 ${card.valueCls}`}>{card.value}</p>
+            <div className="min-w-0 w-full">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider leading-tight">{card.label}</p>
+              <p className="text-xs text-gray-400 break-words">{card.sub}</p>
+              <p className={`text-xl sm:text-2xl font-extrabold tracking-tight mt-0.5 break-words ${card.valueCls}`}>{card.value}</p>
             </div>
           </div>
         ))}

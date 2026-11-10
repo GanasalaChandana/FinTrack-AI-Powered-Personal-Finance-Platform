@@ -537,6 +537,7 @@ export default function AnalyticsPage() {
                 <XAxis type="number" tickFormatter={(v) => `${currencySymbol()}${v >= 1000 ? (v / 1000).toFixed(1) + "k" : v}`}
                   tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 11, fill: "#6b7280" }}
+                  tickFormatter={(v: string) => (v.length > 16 ? `${v.slice(0, 15)}…` : v)}
                   axisLine={false} tickLine={false} />
                 <Tooltip content={<CurrencyTooltip />} />
                 <Bar dataKey="total" name="Total Spent" radius={[0, 6, 6, 0]}>

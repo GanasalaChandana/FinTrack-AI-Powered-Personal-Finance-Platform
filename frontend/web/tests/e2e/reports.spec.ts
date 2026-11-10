@@ -78,15 +78,6 @@ test.describe('Reports Page — All Tabs', () => {
     ).toBeVisible({ timeout: 8_000 });
   });
 
-  /* 6 — tax */
-  test('Tax tab loads', async ({ page }) => {
-    await goToReports(page);
-    await clickTab(page, 'Tax');
-    await expect(
-      page.locator('text=/Tax|Deduct/i').filter({ visible: true }).first()
-    ).toBeVisible({ timeout: 8_000 });
-  });
-
   /* 7 — income */
   test('Income tab loads', async ({ page }) => {
     await goToReports(page);

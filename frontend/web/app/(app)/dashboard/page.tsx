@@ -273,6 +273,10 @@ export default function DashboardPage() {
   const [showOnboarding, setShowOnboarding]               = useState(false);
   const [showResetConfirm, setShowResetConfirm]           = useState(false);
   const [isResetting, setIsResetting]                     = useState(false);
+  const [isDemoAccount, setIsDemoAccount]                 = useState(false);
+  useEffect(() => {
+    try { setIsDemoAccount(localStorage.getItem("isDemo") === "true"); } catch { /* ignore */ }
+  }, []);
 
   // ── Auth ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -449,7 +453,7 @@ export default function DashboardPage() {
     setIsResetting(true);
     try {
       await authAPI.resetData();
-      toast.success("Dashboard reset to demo data!");
+      toast.success(isDemoAccount ? "Demo data restored" : "All data cleared. Import a file or add transactions to start.");
       setShowResetConfirm(false);
       await fetchDashboardData();
     } catch {
@@ -491,13 +495,17 @@ export default function DashboardPage() {
                 <RotateCcw className="w-5 h-5 text-orange-500" />
               </div>
               <h2 className="text-base font-bold text-neutral-900 dark:text-neutral-50">
-                Reset to Demo Data?
+                {isDemoAccount ? "Reset the demo data?" : "Clear all your data?"}
               </h2>
             </div>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-5 leading-relaxed">
-              This will <span className="font-semibold text-red-500">permanently delete</span> all your
-              current transactions, budgets, and goals — then replace them with realistic demo data.
-              This cannot be undone.
+              {isDemoAccount ? (
+                <>This puts the demo account back to its sample transactions, budgets and goals.</>
+              ) : (
+                <>This will <span className="font-semibold text-red-500">permanently delete</span> all your
+                transactions, budgets, goals and alerts. Your settings, debts and net worth stay.
+                This cannot be undone.</>
+              )}
             </p>
             <div className="flex gap-3">
               <Button
@@ -567,9 +575,9 @@ export default function DashboardPage() {
                   size="md"
                   icon={<RotateCcw className="w-4 h-4 text-orange-500" />}
                   onClick={() => setShowResetConfirm(true)}
-                  title="Reset all data to demo dataset"
+                  title={isDemoAccount ? "Put the demo data back" : "Delete all transactions, budgets and goals"}
                 >
-                  <span className="text-orange-500 font-medium">Reset Data</span>
+                  <span className="text-orange-500 font-medium">{isDemoAccount ? "Reset Demo" : "Clear Data"}</span>
                 </Button>
                 <Button
                   variant="primary"

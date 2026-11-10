@@ -38,7 +38,6 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder        passwordEncoder;
     private final JwtUtil                jwtUtil;
-    private final DemoService            demoService;
     private final com.fintrack.auth.twofactor.TwoFactorService twoFactorService;
     private final com.fintrack.auth.twofactor.TwoFactorRecoveryService twoFactorRecovery;
 
@@ -63,8 +62,9 @@ public class AuthService {
         User saved = userRepository.save(user);
         log.info("New user registered: {}", saved.getEmail());
 
-        // Seed demo data so the dashboard is populated on first login
-        demoService.seedDemoData(saved.getId().toString());
+        // New accounts start empty: sample data mixed into a real account looks like the
+        // user's own money (alerts about "Property Mgmt" rent they never paid). Visitors
+        // who just want to look around use the separate demo account.
 
         return buildAuthResponse(saved);
     }

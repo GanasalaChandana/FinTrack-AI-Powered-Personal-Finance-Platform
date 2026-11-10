@@ -226,21 +226,21 @@ export function RecurringTransactionsDashboard({
             icon: Zap, iconBg: "bg-yellow-50", iconText: "text-yellow-600", valueCls: "text-gray-900",
           },
           {
-            label: "Potential Savings", sub: "If all cancelled/year",
+            label: "Potential Savings", sub: "Optional ones cancelled, per year",
             value: fmt(potentialSavings),
             icon: TrendingUp, iconBg: "bg-emerald-50", iconText: "text-emerald-600",
             valueCls: potentialSavings > 0 ? "text-emerald-600" : "text-gray-400",
           },
         ].map((card) => (
           <div key={card.label}
-            className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-5 flex flex-col items-start gap-3 xl:flex-row xl:items-center xl:gap-4 hover:shadow-md transition-shadow">
+            className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-5 flex flex-col items-start gap-3 hover:shadow-md transition-shadow">
             <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${card.iconBg}`}>
               <card.icon className={`w-5 h-5 ${card.iconText}`} />
             </div>
             <div className="min-w-0 w-full">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider leading-tight">{card.label}</p>
               <p className="text-xs text-gray-400 break-words">{card.sub}</p>
-              <p className={`text-xl sm:text-2xl font-extrabold tracking-tight mt-0.5 break-words ${card.valueCls}`}>{card.value}</p>
+              <p className={`text-xl sm:text-2xl font-extrabold tracking-tight mt-0.5 whitespace-nowrap ${card.valueCls}`}>{card.value}</p>
             </div>
           </div>
         ))}

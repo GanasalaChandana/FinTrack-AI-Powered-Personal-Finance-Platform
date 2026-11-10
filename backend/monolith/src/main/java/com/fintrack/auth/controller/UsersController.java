@@ -26,6 +26,7 @@ public class UsersController {
 
     private final UserService userService;
     private final DemoService demoService;
+    private final com.fintrack.auth.service.DataWipeService dataWipeService;
     private final JwtUtil jwtUtil;
     private final AccountDeletionService accountDeletionService;
     private final TokenRevocationService tokenRevocationService;
@@ -129,8 +130,8 @@ public class UsersController {
     }
 
     /**
-     * Reset the authenticated user's transactions, budgets, and goals
-     * to the standard demo dataset. Useful for portfolio demos.
+     * The shared demo account goes back to its sample data; a real account is emptied
+     * (transactions, budgets, goals, alerts) so it can start over with its own data.
      */
     @PostMapping("/reset-data")
     public ResponseEntity<Map<String, String>> resetData(Authentication authentication) {
@@ -138,8 +139,13 @@ public class UsersController {
         Optional<User> userOpt = userService.findByEmail(authentication.getName());
         if (userOpt.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
 
-        demoService.resetDataForUser(userOpt.get().getId().toString());
-        return ResponseEntity.ok(Map.of("message", "Data reset to demo dataset successfully"));
+        String userId = userOpt.get().getId().toString();
+        if (com.fintrack.auth.security.DemoGuard.isDemo(userOpt.get().getEmail())) {
+            demoService.resetDataForUser(userId);
+            return ResponseEntity.ok(Map.of("message", "Demo data restored"));
+        }
+        dataWipeService.wipeFinancialData(userId);
+        return ResponseEntity.ok(Map.of("message", "All transactions, budgets, goals and alerts cleared"));
     }
 
     @PostMapping("/change-password")

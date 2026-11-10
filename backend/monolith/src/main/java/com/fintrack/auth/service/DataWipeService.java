@@ -40,4 +40,14 @@ public class DataWipeService {
         alertRepository.deleteAllByUserId(userId); // old alerts would show stale dates and amounts
         log.info("All data wiped for user {}", userId);
     }
+
+    /** "Clear all data" for a real account: money records and alerts; settings, debts and net worth stay. */
+    @Transactional
+    public void wipeFinancialData(String userId) {
+        transactionRepository.deleteAllByUserId(userId);
+        budgetRepository.deleteAllByUserId(userId);
+        goalRepository.deleteAllByUserId(userId);
+        alertRepository.deleteAllByUserId(userId);
+        log.info("Transactions, budgets, goals and alerts cleared for user {}", userId);
+    }
 }

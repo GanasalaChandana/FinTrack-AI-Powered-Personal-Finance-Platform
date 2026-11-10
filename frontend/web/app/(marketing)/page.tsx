@@ -466,7 +466,7 @@ export default function LandingPage() {
                   "Two-factor sign-in (TOTP) with one-time backup codes",
                   "Refresh token rotation — replay detected → all sessions revoked",
                   "IP sliding window rate limiting (5 req/15 min, no Redis)",
-                  "176 backend + 36 browser tests — 0 failures",
+                  "176 backend + 35 browser tests — 0 failures",
                 ].map((item)=>(
                   <div key={item} style={{display:"flex",alignItems:"flex-start",gap:12}}>
                     <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(16,185,129,0.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>

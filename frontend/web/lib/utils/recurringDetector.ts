@@ -241,7 +241,8 @@ export function detectRecurringTransactions(
           }
         })()
       : 0;
-    const savings = lastTxn.type === 'EXPENSE' ? annualCost : undefined;
+    // Only optional spending counts as a saving: nobody "saves" by cancelling rent or electricity
+    const savings = lastTxn.type === 'EXPENSE' && !isEssential(lastTxn.category, lastTxn.description) ? annualCost : undefined;
 
     recurring.push({
       id: `recurring-${Date.now()}-${Math.random()}`,
@@ -264,6 +265,13 @@ export function detectRecurringTransactions(
   
   // Sort by confidence (highest first)
   return recurring.sort((a, b) => b.confidence - a.confidence);
+}
+
+/** Housing, utilities, insurance, health, loans and the like: recurring, but not something to cancel. */
+export function isEssential(category?: string | null, description?: string | null): boolean {
+  const c = (category ?? '').toLowerCase();
+  if (/housing|rent|mortgage|utilit|insurance|healthcare|medical|pharmacy|loan|debt|tax|childcare|education|tuition/.test(c)) return true;
+  return /\b(rent|mortgage|electric|water bill|gas bill|insurance|loan payment|tuition|property m(gm|anagement)|apartments?)\b/i.test(description ?? '');
 }
 
 // Create a recurring rule from detected pattern

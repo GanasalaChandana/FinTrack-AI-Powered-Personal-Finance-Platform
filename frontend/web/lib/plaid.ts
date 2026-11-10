@@ -20,7 +20,32 @@ declare global { interface Window { Plaid?: PlaidLink } }
 
 const PLAID_SCRIPT = "https://cdn.plaid.com/link/v2/stable/link-initialize.js";
 
+/** Marks the page while Link is open, so overlays like the install banner can step aside. */
+function tracked(Plaid: PlaidLink): PlaidLink {
+  const setOpen = (open: boolean) => {
+    if (open) document.documentElement.dataset.plaidOpen = "1";
+    else delete document.documentElement.dataset.plaidOpen;
+  };
+  return {
+    create: (o) => {
+      const handler = Plaid.create({
+        ...o,
+        onSuccess: (t, m) => { setOpen(false); o.onSuccess(t, m); },
+        onExit: (e) => { setOpen(false); o.onExit?.(e); },
+      });
+      return {
+        open: () => { setOpen(true); handler.open(); },
+        destroy: () => { setOpen(false); handler.destroy(); },
+      };
+    },
+  };
+}
+
 export function loadPlaid(): Promise<PlaidLink> {
+  return loadScript().then(tracked);
+}
+
+function loadScript(): Promise<PlaidLink> {
   if (window.Plaid) return Promise.resolve(window.Plaid);
   return new Promise((resolve, reject) => {
     const s = document.createElement("script");

@@ -66,6 +66,7 @@ export function PWAInstallBanner() {
   if (isIOS && showIOSTip) {
     return (
       <div
+        className="pwa-install-banner"
         style={{
           position: "fixed",
           bottom: "16px",
@@ -108,6 +109,7 @@ export function PWAInstallBanner() {
 
   return (
     <div
+      className="pwa-install-banner"
       style={{
         position: "fixed",
         bottom: "16px",

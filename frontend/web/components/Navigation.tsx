@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { withCurrency } from "@/lib/userPrefs";
 import { Bell, Mail, LogOut, Menu, X, Check, AlertTriangle, Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor, BarChart3, Wallet, Search, Calendar, CreditCard, LayoutDashboard, ArrowLeftRight, Target, ChevronLeft, ChevronRight, PiggyBank, DollarSign, Settings, Download, Store } from "lucide-react";
 import { usePWA } from "@/components/providers/PWAProvider";
 import { authAPI, isAuthenticated as hasSession, removeToken } from "@/lib/api";
@@ -578,7 +579,7 @@ export default function Navigation() {
                         <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{a.title}</p>
                         <span className={`text-[10px] font-bold ${alertPriColor(a.priority)}`}>{a.priority.toUpperCase()}</span>
                       </div>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2">{a.message}</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2">{withCurrency(a.message)}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5">{timeAgo(a.createdAt)}</p>
                     </div>
                     <div className="flex gap-1 shrink-0 mt-0.5">

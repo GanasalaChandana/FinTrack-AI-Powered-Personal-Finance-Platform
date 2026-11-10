@@ -8,7 +8,7 @@ import { Alert } from "@/components/ui/Alert";
 import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
 import { apiRequest, getUser, isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 import { setSynced } from "@/lib/userData";
-import { userCurrency } from "@/lib/userPrefs";
+import { userCurrency, withCurrency } from "@/lib/userPrefs";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -482,7 +482,7 @@ export default function AlertsPage() {
           type:      (ba.type?.toLowerCase() ?? "large_transaction") as AlertType,
           severity:  (ba.severity?.toLowerCase() ?? "low") as Severity,
           title:     ba.title,
-          message:   ba.message,
+          message:   withCurrency(ba.message),
           category:  ba.category ?? undefined,
           read:      ba.read || ba.status === "READ",
           createdAt: new Date(ba.createdAt ?? Date.now()),

@@ -29,6 +29,7 @@ public class DataWipeService {
     private final BudgetRepository      budgetRepository;
     private final GoalRepository        goalRepository;
     private final com.fintrack.userdata.UserDataRepository userDataRepository;
+    private final com.fintrack.alerts.repository.AlertRepository alertRepository;
 
     @Transactional
     public void wipeAllUserData(String userId) {
@@ -36,6 +37,7 @@ public class DataWipeService {
         budgetRepository.deleteAllByUserId(userId);
         goalRepository.deleteAllByUserId(userId);
         userDataRepository.deleteAllByUserId(userId); // debts, net worth, categories, ...
+        alertRepository.deleteAllByUserId(userId); // old alerts would show stale dates and amounts
         log.info("All data wiped for user {}", userId);
     }
 }

@@ -23,6 +23,15 @@ export function currencySymbol(): string {
   return part?.value ?? "$";
 }
 
+/**
+ * Adds the currency symbol to bare amounts like "1,400.00" in alert text. Older alerts
+ * were saved without one; amounts that already have a symbol are left alone.
+ */
+export function withCurrency(text: string): string {
+  const sym = currencySymbol();
+  return text.replace(/(^|[\s(])(\d{1,3}(?:,\d{3})*\.\d{2})(?![\d%])/g, (_, pre, n) => `${pre}${sym}${n}`);
+}
+
 export type DateFormat = "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
 
 function readDateFormat(): DateFormat {

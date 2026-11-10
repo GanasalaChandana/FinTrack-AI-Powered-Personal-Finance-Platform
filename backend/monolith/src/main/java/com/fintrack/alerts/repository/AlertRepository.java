@@ -2,6 +2,9 @@ package com.fintrack.alerts.repository;
 
 import com.fintrack.alerts.entity.Alert;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -29,4 +32,9 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.data.jpa.repository.Query("DELETE FROM Alert e WHERE e.userId = :userId")
     int deleteAllByUserIdForAccountDeletion(@org.springframework.data.repository.query.Param("userId") String userId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Alert a WHERE a.userId = :userId")
+    void deleteAllByUserId(String userId);
 }

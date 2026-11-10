@@ -1009,3 +1009,6 @@ button:not(:disabled):active {
     font-size: 16px !important;
   }
 }
+
+/* Keep the install banner out of the way while Plaid's bank window is open */
+html[data-plaid-open] .pwa-install-banner { display: none !important; }

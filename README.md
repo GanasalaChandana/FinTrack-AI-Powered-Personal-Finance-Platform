@@ -39,7 +39,7 @@
 - **Two-factor sign-in (TOTP, RFC 6238)** — implemented from scratch (HMAC-SHA1, ±1 step drift, replay protection), one-time backup codes stored as SHA-256 hashes, and a lost-device recovery that only completes after a 3-day wait with an emailed cancel link
 - **Web Push with only the JDK** — message encryption (RFC 8291, `aes128gcm`) and VAPID signing (RFC 8292, ES256) written with `javax.crypto`, verified against independent implementations (Python `http_ece` and PyJWT) and accepted by Google's push service. Budget, unusual-spending and goal-milestone alerts reach phones and desktops
 - **Email that works on a free host** — Render's free tier blocks outgoing SMTP, so mail goes through Brevo's HTTPS API (SMTP still supported), with timeouts so a blocked mail server can't hang a request
-- **260+ automated tests** — 176 backend (Mockito unit, `@WebMvcTest` slices, `@SpringBootTest` integration on in-memory H2, fake Plaid / push servers on localhost), 59 Vitest unit tests and 36 Playwright end-to-end tests run on desktop and phone viewports in CI
+- **260+ automated tests** — 176 backend (Mockito unit, `@WebMvcTest` slices, `@SpringBootTest` integration on in-memory H2, fake Plaid / push servers on localhost), 61 Vitest unit tests and 36 Playwright end-to-end tests run on desktop and phone viewports in CI
 - **Versioned database migrations** — Flyway baselines the live database and owns schema changes going forward; a test checks the baseline against the JPA entities
 - **Safe to scale out** — every scheduled job takes a database lock (ShedLock), so with several instances each job runs once; recurring transactions and budget alerts carry unique keys, so a crash-and-retry can't create duplicates
 
@@ -283,7 +283,7 @@ Output: "📊 Projected $3,855 vs $3,150 budget — $705 over.
 | **Database** | PostgreSQL (Supabase) with Flyway migrations V1–V16; Hibernate only validates the schema (`ddl-auto=validate`) |
 | **Auth** | JWT HS256 in HttpOnly cookies, Google sign-in, TOTP two-factor, BCrypt, Refresh Token Rotation, per-IP + per-account Rate Limiting |
 | **Integrations** | Plaid (bank data), Brevo (email over HTTPS), Web Push (RFC 8291 / 8292, no third-party library) |
-| **Testing** | Backend: JUnit 5, Mockito, @WebMvcTest, MockMvc, @SpringBootTest + in-memory H2 (176 tests). Frontend: Vitest (59 unit tests), Playwright (36 end-to-end tests on desktop and phone viewports) |
+| **Testing** | Backend: JUnit 5, Mockito, @WebMvcTest, MockMvc, @SpringBootTest + in-memory H2 (176 tests). Frontend: Vitest (61 unit tests), Playwright (36 end-to-end tests on desktop and phone viewports) |
 | **DevOps** | GitHub Actions CI (backend tests, TypeScript, Vitest, Docker image, Playwright against the live site), Docker Compose, Vercel (frontend), Render (backend), Supabase (database), weekly AES-256 encrypted database backups, UptimeRobot monitoring |
 
 ---
@@ -464,7 +464,7 @@ cd frontend/web && npm run test:e2e
 | Notifications & sharing | `NotificationEmailTest`, `HouseholdTest`, `UserDataTest` | Large-transaction, unusual-spending and goal-milestone alerts honour their switches; household invites and shared budgets; per-user synced data and its limits |
 | Database | `FlywayBaselineTest` | A fresh database built from `V1` passes Hibernate's strict schema validation against the entities; an existing database is baselined at V1 and the baseline script is not run against it |
 
-**Frontend:** 59 Vitest unit tests for the pure logic in `lib/` — the OFX/QFX parser (SGML and XML), the PDF statement reader (card vs. checking signs, statement year, card payments), the receipt-text reader (total vs. subtotal, payment lines), the custom-report builder (date windows, grouping, running balance, rounding), the month-end budget forecast (burn rate, at-risk categories, first-of-month edge case) and anomaly detection (thresholds, per-category history, minimum-data limits). Playwright specs in `frontend/web/tests/e2e` cover the main user flows against a live deployment.
+**Frontend:** 61 Vitest unit tests for the pure logic in `lib/` — per-category spending trends, the OFX/QFX parser (SGML and XML), the PDF statement reader (card vs. checking signs, statement year, card payments), the receipt-text reader (total vs. subtotal, payment lines), the custom-report builder (date windows, grouping, running balance, rounding), the month-end budget forecast (burn rate, at-risk categories, first-of-month edge case) and anomaly detection (thresholds, per-category history, minimum-data limits). Playwright specs in `frontend/web/tests/e2e` cover the main user flows against a live deployment.
 
 ---
 

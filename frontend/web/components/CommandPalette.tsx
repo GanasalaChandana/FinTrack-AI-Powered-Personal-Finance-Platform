@@ -6,7 +6,7 @@ import {
   Search, LayoutDashboard, ArrowRightLeft, Target, FileText,
   Camera, Activity, Brain, RefreshCw, BarChart3, Wallet,
   LogOut, Sun, Moon, Monitor, Calendar, CreditCard, TrendingUp,
-  X, ChevronRight, Loader2, Store, Receipt,
+  X, ChevronRight, Loader2, Store,
 } from "lucide-react";
 import { transactionsAPI } from "@/lib/api";
 import { userCurrency, dateLocale } from "@/lib/userPrefs";
@@ -54,7 +54,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: "AI Insights", href: "/insights", icon: <Brain className="w-4 h-4" />, keywords: ["ai", "anomaly", "smart"] },
   { label: "Subscriptions", href: "/subscriptions", icon: <RefreshCw className="w-4 h-4" />, keywords: ["subscriptions", "netflix", "spotify", "cancel", "recurring charges"] },
   { label: "Merchants", href: "/merchants", icon: <Store className="w-4 h-4" />, keywords: ["merchants", "stores", "payees", "where i spend"] },
-  { label: "Tax Report", href: "/reports", icon: <Receipt className="w-4 h-4" />, keywords: ["tax", "deductible", "tax year", "business expense"] },
   { label: "Recurring", href: "/recurring", icon: <RefreshCw className="w-4 h-4" />, keywords: ["recurring", "bills"] },
   { label: "Receipt Scanner", href: "/receipts", icon: <Camera className="w-4 h-4" />, keywords: ["scan", "ocr", "photo"] },
   { label: "Calendar", href: "/calendar", icon: <Calendar className="w-4 h-4" />, keywords: ["calendar", "bills", "schedule", "upcoming"] },

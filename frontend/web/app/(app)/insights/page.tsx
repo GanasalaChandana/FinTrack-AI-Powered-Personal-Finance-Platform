@@ -285,7 +285,7 @@ function AIInsightsDashboard({ transactions }: { transactions: ApiTransaction[] 
                 <Brain className="w-6 h-6 text-indigo-500" />
               </div>
               <div>
-                <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest">AI Analysis</p>
+                <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Analysis</p>
                 <p className="text-xl font-extrabold text-gray-900 dark:text-gray-100 leading-tight">
                   {active.length} insight{active.length !== 1 ? "s" : ""} found
                 </p>
@@ -518,7 +518,7 @@ export default function InsightsPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Sparkles className="w-4 h-4 text-indigo-500" />
-              <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">AI Powered</span>
+              <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">From your transactions</span>
             </div>
             <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Spending Insights</h1>
             <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">

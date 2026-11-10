@@ -105,7 +105,7 @@ export default function ReceiptsPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Sparkles className="w-4 h-4 text-indigo-500" />
-            <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">AI Powered</span>
+            <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Reads your receipt</span>
           </div>
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Receipt Scanner</h1>
           <p className="text-gray-400 text-sm mt-1">

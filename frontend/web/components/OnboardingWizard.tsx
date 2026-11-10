@@ -36,7 +36,7 @@ function StepWelcome({ onNext, onSkip, userName }: { onNext: () => void; onSkip:
           Welcome{userName ? `, ${userName}` : ""}! 🎉
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-          FinTrack is your AI-powered money dashboard. Let&apos;s take 60 seconds to personalise it for you.
+          FinTrack is your smart money dashboard. Let&apos;s take 60 seconds to personalise it for you.
         </p>
       </div>
 
@@ -403,7 +403,7 @@ function StepDone({ onComplete }: { onComplete: () => void }) {
       color: "#8b5cf6",
       bg: "rgba(139,92,246,0.1)",
       label: "Explore dashboard",
-      desc: "See your AI insights, spending charts, and budget overview",
+      desc: "See your insights, spending charts, and budget overview",
       onClick: () => { onComplete(); },
     },
   ];

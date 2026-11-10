@@ -1121,7 +1121,7 @@ export default function TransactionManager() {
                               {t.aiSuggested && (
                                 <div className="flex items-center gap-1 mt-0.5">
                                   <Sparkles className="w-3 h-3 text-purple-600" />
-                                  <span className="text-xs text-purple-600 font-medium">AI Suggested</span>
+                                  <span className="text-xs text-purple-600 font-medium">Auto-suggested</span>
                                 </div>
                               )}
                               {t.tags && t.tags.length > 0 && (

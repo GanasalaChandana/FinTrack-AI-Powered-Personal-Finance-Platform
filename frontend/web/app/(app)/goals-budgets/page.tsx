@@ -1455,7 +1455,7 @@ export default function GoalsBudgetsPage() {
                   className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-2 border-indigo-200 dark:border-indigo-700 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
                 >
                   <Sparkles className="w-4 h-4" />
-                  Suggest Budgets with AI
+                  Suggest from my spending
                 </button>
               </div>
 
@@ -1542,7 +1542,7 @@ export default function GoalsBudgetsPage() {
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">
                 This will permanently delete all <span className="font-semibold text-gray-700 dark:text-gray-200">{budgets.length} budget{budgets.length !== 1 ? "s" : ""}</span>.
-                Use <span className="font-semibold">&quot;Suggest Budgets with AI&quot;</span> or <span className="font-semibold">&quot;50/30/20 Wizard&quot;</span> to create your own. This cannot be undone.
+                Use <span className="font-semibold">&quot;Suggest from my spending&quot;</span> or <span className="font-semibold">&quot;50/30/20 Wizard&quot;</span> to create your own. This cannot be undone.
               </p>
               <div className="flex gap-3">
                 <button

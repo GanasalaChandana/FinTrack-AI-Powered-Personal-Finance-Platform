@@ -323,7 +323,7 @@ export function NextMonthPredictionCard({ transactions }: Props) {
             </span>
           </p>
           <p className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
-            AI-powered <Sparkles className="w-3 h-3 text-violet-400" />
+            Trend-based <Sparkles className="w-3 h-3 text-violet-400" />
           </p>
         </div>
       </div>

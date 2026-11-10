@@ -344,7 +344,7 @@ export function BudgetManager({ budgets, onAddBudget, onUpdateBudget, onDeleteBu
           <div className="text-5xl mb-3">💰</div>
           <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-1">No budgets yet</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
-            Set spending limits by category — manually or let AI suggest amounts based on your transactions.
+            Set spending limits by category — manually or get suggested amounts based on your transactions.
           </p>
         </div>
 

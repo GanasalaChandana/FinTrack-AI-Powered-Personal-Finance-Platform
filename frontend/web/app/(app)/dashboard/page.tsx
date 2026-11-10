@@ -705,7 +705,7 @@ export default function DashboardPage() {
                     <div className="p-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.2)' }}>
                       <Brain className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-sm font-extrabold text-white tracking-wide">AI INSIGHTS</span>
+                    <span className="text-sm font-extrabold text-white tracking-wide">SMART INSIGHTS</span>
                   </div>
                   <div className="w-px h-6 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.3)' }} />
                   <div className="min-w-0">
@@ -713,7 +713,7 @@ export default function DashboardPage() {
                       Real-time analysis of your spending patterns
                     </p>
                     <p className="text-xs mt-0.5" style={{ color: '#c7d2fe' }}>
-                      Anomaly detection · Budget forecasting · Next-month prediction — all client-side, zero latency
+                      Unusual spending · Budget forecast · Next-month estimate, worked out from your own transactions
                     </p>
                   </div>
                   <div className="ml-auto flex-shrink-0">
@@ -721,7 +721,7 @@ export default function DashboardPage() {
                       className="text-xs font-semibold text-white px-3 py-1 rounded-full"
                       style={{ background: 'rgba(255,255,255,0.2)' }}
                     >
-                      4 models active
+                      4 checks running
                     </span>
                   </div>
                 </div>
@@ -826,7 +826,7 @@ export default function DashboardPage() {
                   { icon: Wallet,     label: "Set Budget",       action: () => router.push("/goals-budgets?tab=budgets") },
                   { icon: BarChart3,  label: "View Reports",     action: () => router.push("/reports") },
                   { icon: Camera,     label: "Scan Receipt",     action: () => router.push("/receipts") },
-                  { icon: Brain,      label: "AI Insights",      action: () => router.push("/insights") },
+                  { icon: Brain,      label: "Insights",      action: () => router.push("/insights") },
                   { icon: Activity,   label: "Health Score",     action: () => router.push("/health") },
                   { icon: RefreshCw,  label: "Recurring",        action: () => router.push("/recurring") },
                 ].map(({ icon: Icon, label, action }) => (

@@ -77,7 +77,7 @@ export function SpendingInsightsCard({ transactions }: Props) {
           <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
             <Brain className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100">AI Spending Insights</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Spending Insights</h3>
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6">
           Add more transactions to generate personalized insights.
@@ -99,7 +99,7 @@ export function SpendingInsightsCard({ transactions }: Props) {
             <Brain className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">AI Spending Insights</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Spending Insights</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">{insights.length} insights generated</p>
           </div>
         </div>

@@ -11,7 +11,7 @@ import {
   TrendingUp, TrendingDown, Download, DollarSign, Target, Award,
   AlertCircle, ArrowUp, ArrowDown, Loader2, ChevronRight, Calendar,
   BarChart3, PieChart as PieChartIcon, Settings, X, Sparkles,
-  FileText, type LucideIcon, PiggyBank,
+  FileText, type LucideIcon, Activity, Store, PiggyBank,
 } from "lucide-react";
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 import { reportsService, type ReportsData, type ReportsRange, type CategoryBreakdown } from "@/lib/api/services/reports.service";
@@ -27,10 +27,12 @@ import { Alert } from "@/components/ui/Alert";
 import { PageHeader, Section, PageContent } from "@/components/layouts/PageHeader";
 import { userCurrency, currencySymbol } from "@/lib/userPrefs";
 import { categoryTrends } from "@/lib/utils/categoryTrends";
+import AnalyticsView from "@/components/reports/AnalyticsView";
+import MerchantsView from "@/components/reports/MerchantsView";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ReportTab = "overview" | "custom" | "trends" | "comparison" | "forecast" | "budget-history" | "income" | "savings";
+type ReportTab = "overview" | "analytics" | "merchants" | "custom" | "trends" | "comparison" | "forecast" | "budget-history" | "income" | "savings";
 type DateRange = "last-7-days" | "last-30-days" | "last-3-months" | "last-6-months" | "last-year" | "custom";
 type ChartType = "line" | "bar" | "area" | "pie";
 
@@ -176,6 +178,11 @@ const EnhancedFinancialReports: React.FC = () => {
   const [isAuth, setIsAuth] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [selectedReport, setSelectedReport] = useState<ReportTab>("overview");
+  // Open a tab from the link (?tab=merchants), e.g. the old /analytics and /merchants pages
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t) setSelectedReport(t as ReportTab);
+  }, []);
 
   // ── DEFAULT: "last-year" so all existing transactions are visible ──────────
   const [dateRange, setDateRange] = useState<DateRange>("last-year");
@@ -2091,6 +2098,8 @@ const EnhancedFinancialReports: React.FC = () => {
 
   const TABS = [
     { id: "overview",       label: "Overview",         icon: BarChart3 },
+    { id: "analytics",      label: "Analytics",        icon: Activity },
+    { id: "merchants",      label: "Merchants",        icon: Store },
     { id: "income",         label: "Income Analysis",  icon: TrendingUp },
     { id: "savings",        label: "Savings Rate",     icon: PiggyBank },
     { id: "custom",         label: "Custom Reports",   icon: Settings },
@@ -2169,6 +2178,8 @@ const EnhancedFinancialReports: React.FC = () => {
             {selectedReport === "trends"          && renderSpendingTrends()}
             {selectedReport === "comparison"      && renderComparison()}
             {selectedReport === "forecast"        && renderForecast()}
+            {selectedReport === "analytics"       && <AnalyticsView />}
+            {selectedReport === "merchants"       && <MerchantsView />}
             {selectedReport === "budget-history"  && renderBudgetHistory()}
           </div>
         </PageContent>

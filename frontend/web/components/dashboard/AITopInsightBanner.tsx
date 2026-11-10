@@ -42,7 +42,7 @@ export function AITopInsightBanner({ transactions }: Props) {
     : "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)";
 
   const Icon = isHigh ? AlertTriangle : isMedium ? TrendingUp : Info;
-  const label = isHigh ? "⚡ HIGH PRIORITY" : isMedium ? "⚠ AI INSIGHT" : "ℹ AI TIP";
+  const label = isHigh ? "⚡ HIGH PRIORITY" : isMedium ? "⚠ INSIGHT" : "ℹ TIP";
 
   const handleDismiss = () => {
     setDismissed(true);
@@ -67,12 +67,6 @@ export function AITopInsightBanner({ transactions }: Props) {
         <div className="flex items-center gap-2 mb-0.5">
           <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">
             {label}
-          </span>
-          <span
-            className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-full"
-            style={{ background: "rgba(255,255,255,0.2)" }}
-          >
-            AI
           </span>
         </div>
         <p className="text-sm font-semibold text-white leading-snug line-clamp-1">

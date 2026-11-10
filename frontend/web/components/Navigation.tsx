@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Bell, Mail, LogOut, Menu, X, Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor, BarChart3, Wallet, Search, Calendar, CreditCard, LayoutDashboard, ArrowLeftRight, Target, ChevronLeft, ChevronRight, PiggyBank, DollarSign, Settings, Download, Store } from "lucide-react";
+import { Bell, Mail, LogOut, Menu, X, Camera, Brain, RefreshCw, Activity, Sun, Moon, Monitor, BarChart3, Wallet, Search, Calendar, CreditCard, LayoutDashboard, ArrowLeftRight, Target, ChevronLeft, ChevronRight, PiggyBank, DollarSign, Settings, Download } from "lucide-react";
 import { usePWA } from "@/components/providers/PWAProvider";
 import { authAPI, isAuthenticated as hasSession, removeToken } from "@/lib/api";
 import { useThemePreference } from "@/lib/hooks/useThemePreference";
@@ -35,12 +35,10 @@ const NAV_MAIN = [
 const NAV_TOOLS = [
   { href: "/income",         label: "Income",          icon: DollarSign },
   { href: "/debt",           label: "Debt Payoff",     icon: CreditCard },
-  { href: "/analytics",      label: "Analytics",       icon: BarChart3 },
   { href: "/net-worth",      label: "Net Worth",       icon: Wallet },
-  { href: "/merchants",      label: "Merchants",       icon: Store },
   { href: "/recurring",      label: "Recurring",       icon: RefreshCw },
   { href: "/health",         label: "Health Score",    icon: Activity },
-  { href: "/insights",       label: "AI Insights",     icon: Brain },
+  { href: "/insights",       label: "Insights",     icon: Brain },
   { href: "/receipts",       label: "Receipts",        icon: Camera },
 ];
 

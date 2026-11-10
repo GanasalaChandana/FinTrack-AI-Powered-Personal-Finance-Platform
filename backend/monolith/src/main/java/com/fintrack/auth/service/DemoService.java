@@ -54,6 +54,13 @@ public class DemoService {
     public AuthResponse loginAsDemo() {
         User demo = userRepository.findByEmail(DEMO_EMAIL)
                 .orElseGet(this::createDemoUser);
+        // Visitors can edit the shared demo profile; put the name back for the next one
+        if (!"Demo".equals(demo.getFirstName()) || !"User".equals(demo.getLastName()) || !DEMO_NAME.equals(demo.getName())) {
+            demo.setFirstName("Demo");
+            demo.setLastName("User");
+            demo.setName(DEMO_NAME);
+            userRepository.save(demo);
+        }
 
         String userId = demo.getId().toString();
 

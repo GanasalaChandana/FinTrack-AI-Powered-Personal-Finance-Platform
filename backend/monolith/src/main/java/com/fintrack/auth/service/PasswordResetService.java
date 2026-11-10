@@ -90,7 +90,7 @@ public class PasswordResetService {
 
                 FinTrack
                 """.formatted(link));
-        if (!sent) log.warn("Password reset link for user {} was not emailed (email not configured)", user.getId());
+        if (!sent) log.warn("Password reset link for user {} was not emailed (see the EmailService line above for why)", user.getId());
     }
 
     /**

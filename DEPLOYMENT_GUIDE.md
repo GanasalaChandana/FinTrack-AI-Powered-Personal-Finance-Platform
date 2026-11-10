@@ -42,8 +42,10 @@ Environment variables:
 | `DATABASE_URL`, `DB_USERNAME`, `DB_PASSWORD` | Yes | See above |
 | `JWT_SECRET` | **Yes** | 32+ bytes. The app refuses to start without a strong secret. Generate with `openssl rand -base64 48`. Changing it logs everyone out |
 | `GOOGLE_CLIENT_ID` | No | Enables Google sign-in |
-| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | For email | SMTP server for password-reset (and alert) emails. Without `MAIL_USERNAME` nothing is sent, so "Forgot password" can't deliver links. Gmail: `smtp.gmail.com`, port `587`, your address, and an [app password](https://myaccount.google.com/apppasswords) |
+| `BREVO_API_KEY` + `MAIL_FROM` | For email (recommended on Render free) | Sends email through [Brevo](https://www.brevo.com)'s HTTPS API. **Render's free tier blocks outgoing SMTP**, so Gmail SMTP can't work there. Free plan: 300 emails/day. Verify `MAIL_FROM` as a sender in Brevo, and give the API key the *Transactional email: All* permission |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | For email (paid hosts) | SMTP server for password-reset (and alert) emails. Without `MAIL_USERNAME` nothing is sent, so "Forgot password" can't deliver links. Gmail: `smtp.gmail.com`, port `587`, your address, and an [app password](https://myaccount.google.com/apppasswords) |
 | `MAIL_FROM` | No | From address for emails (defaults to `MAIL_USERNAME`) |
+| `SENTRY_DSN` | No | Error tracking with [Sentry](https://sentry.io) (free plan). Off when unset; only errors are sent, without request bodies, cookies or user details |
 | `APP_BASE_URL` | No | Web app URL used in email links; defaults to `https://fintrack-liart.vercel.app` |
 | `PLAID_CLIENT_ID`, `PLAID_SECRET` | For bank connections | From [dashboard.plaid.com](https://dashboard.plaid.com) → Developers → Keys. Without them, Settings → Bank accounts says connections aren't set up |
 | `PLAID_ENV` | No | `sandbox` (default, test banks: user `user_good`, password `pass_good`), `development` or `production` (needs Plaid's approval) |
@@ -54,6 +56,26 @@ Environment variables:
 ### CORS
 
 The backend only accepts browser requests from an explicit allow-list in `SecurityConfig.corsConfigurationSource()`: localhost dev ports, the Vercel production domain and its preview URLs. **If you serve the frontend from another domain (for example a custom domain), add it to that list and redeploy the backend** — otherwise the browser blocks every API call.
+
+## 2a. Keeping the free backend awake
+
+Render's free tier sleeps after 15 minutes without traffic, and the next visitor waits about a minute.
+GitHub's scheduled `keep-alive.yml` helps but GitHub often delays it by hours. A free external monitor is
+reliable: create an HTTP monitor at [UptimeRobot](https://uptimerobot.com) for
+`https://<your-api>.onrender.com/actuator/health` every 5 minutes. One always-on service is ~730
+instance hours a month, inside Render's free 750.
+
+## 2b. Database backups
+
+Supabase's free plan has no downloadable backups. `.github/workflows/db-backup.yml` takes an
+encrypted (AES-256) copy every Sunday and keeps it 30 days as a workflow artifact. Add two repository
+secrets (*Settings → Secrets and variables → Actions*):
+
+- `BACKUP_DATABASE_URL`: Supabase → Project settings → Database → Connection string (URI)
+- `BACKUP_PASSPHRASE`: a long random passphrase; keep a copy in your password manager
+
+Run it once by hand (*Actions → Database backup → Run workflow*). To restore:
+`gpg --decrypt fintrack-YYYY-MM-DD.sql.gz.gpg | gunzip | psql "<database url>"`.
 
 ## 3. Frontend (Vercel)
 

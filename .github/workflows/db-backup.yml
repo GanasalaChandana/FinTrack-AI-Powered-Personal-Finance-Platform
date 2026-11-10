@@ -1,0 +1,71 @@
+name: Database backup
+
+# Weekly encrypted copy of the production database, kept 30 days as a workflow
+# artifact. Supabase's free plan has no downloadable backups.
+#
+# Needs two repository secrets (Settings -> Secrets and variables -> Actions):
+#   BACKUP_DATABASE_URL  Supabase -> Project settings -> Database -> Connection string (URI),
+#                        e.g. postgresql://postgres.xxxx:PASSWORD@aws-0-...pooler.supabase.com:5432/postgres
+#   BACKUP_PASSPHRASE    a long random passphrase; keep a copy somewhere safe (password manager)
+# Without them the job does nothing.
+#
+# The file is encrypted (AES-256) before upload, so the artifact is useless without
+# the passphrase. To restore:
+#   gpg --decrypt fintrack-YYYY-MM-DD.sql.gz.gpg | gunzip | psql "<database url>"
+on:
+  schedule:
+    - cron: '23 3 * * 0'   # Sundays 03:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check the secrets are set
+        id: check
+        env:
+          DB: ${{ secrets.BACKUP_DATABASE_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DB" ] || [ -z "$PASS" ]; then
+            echo "::notice::BACKUP_DATABASE_URL / BACKUP_PASSPHRASE not set; skipping the backup"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install pg_dump 17
+        if: steps.check.outputs.run == 'true'
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Dump, compress and encrypt
+        if: steps.check.outputs.run == 'true'
+        env:
+          DB: ${{ secrets.BACKUP_DATABASE_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -o pipefail
+          f="fintrack-$(date -u +%F).sql.gz.gpg"
+          /usr/lib/postgresql/17/bin/pg_dump --no-owner --no-privileges --schema=public "$DB" \
+            | gzip -9 \
+            | gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$PASS" -o "$f"
+          ls -lh "$f"
+          echo "FILE=$f" >> "$GITHUB_ENV"
+
+      - name: Keep for 30 days
+        if: steps.check.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FILE }}
+          path: ${{ env.FILE }}
+          retention-days: 30
+          if-no-files-found: error

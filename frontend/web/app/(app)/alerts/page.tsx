@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Bell, BellOff, TrendingUp, AlertTriangle, CheckCircle2, Zap, ShoppingBag, CreditCard, Target, Sparkles, RefreshCw, Settings, ChevronRight, Trash2, Check, X, Loader2, DollarSign, Clock, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
-import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
-import { userCurrency, currencySymbol } from "@/lib/userPrefs";
+import { apiRequest, getUser, isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
+import { setSynced } from "@/lib/userData";
+import { userCurrency } from "@/lib/userPrefs";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -126,6 +127,24 @@ interface AlertRule {
   threshold?: number;
 }
 
+// Which rule produces which kind of alert (server budget alerts aren't tied to a rule)
+const RULE_FOR_TYPE: Record<string, string> = {
+  large_transaction: "large_txn", category_limit: "category", recurring_detected: "recurring",
+  income_received: "income", savings_opportunity: "savings", budget_exceeded: "budget_over",
+  top_merchant: "top_merchant", spending_spike: "spike",
+};
+const RULES_KEY = "fintrack:alert-rules"; // {ruleId: enabled}, saved to the account
+
+function loadRuleSwitches(): Record<string, boolean> {
+  try { return JSON.parse(localStorage.getItem(RULES_KEY) ?? "{}"); } catch { return {}; }
+}
+
+/** Off rules hide their alerts; alerts that no rule produces always show. */
+function ruleAllows(type: string, rules: AlertRule[]): boolean {
+  const ruleId = RULE_FOR_TYPE[type.toLowerCase()];
+  return !ruleId || rules.find((r) => r.id === ruleId)?.enabled !== false;
+}
+
 // ── Formatters ────────────────────────────────────────────────────────────────
 
 const fmt = (v: number) =>
@@ -146,7 +165,7 @@ const timeAgo = (d: Date): string => {
 
 // ── Alert Generator — pure function, no backend needed ────────────────────────
 
-function generateAlertsFromTransactions(transactions: Transaction[]): SmartAlert[] {
+function generateAlertsFromTransactions(transactions: Transaction[], largeThreshold = 500): SmartAlert[] {
   if (!transactions.length) return [];
 
   const alerts: SmartAlert[] = [];
@@ -157,11 +176,11 @@ function generateAlertsFromTransactions(transactions: Transaction[]): SmartAlert
   const expenses = transactions.filter(t => t.type === "expense");
   const income   = transactions.filter(t => t.type === "income");
 
-  // ── 1. Large single transactions (> $500) — deduplicated by merchant ────────
+  // ── 1. Large single transactions (over the user's threshold) — one per merchant ─
   // Group by merchant, keep only the largest transaction per merchant
   const largeByMerchant: Record<string, Transaction> = {};
   expenses
-    .filter(t => t.amount > 500)
+    .filter(t => t.amount >= largeThreshold)
     .forEach(t => {
       const key = t.merchant || t.description;
       if (!largeByMerchant[key] || t.amount > largeByMerchant[key].amount) {
@@ -177,7 +196,7 @@ function generateAlertsFromTransactions(transactions: Transaction[]): SmartAlert
       alerts.push({
         id: nextId(),
         type: "large_transaction",
-        severity: t.amount > 1000 ? "high" : "medium",
+        severity: t.amount >= largeThreshold * 2 ? "high" : "medium",
         title: `Large Transaction: ${merchant}`,
         message: `${merchant} charged ${fmt(t.amount)}${t.category ? ` in ${t.category}` : ""}.`,
         amount: t.amount,
@@ -374,7 +393,7 @@ const SEVERITY_CONFIG: Record<Severity, {
 // ── Default Alert Rules ───────────────────────────────────────────────────────
 
 const DEFAULT_RULES: AlertRule[] = [
-  { id: "large_txn",    name: "Large Transaction Alert",    description: `Alert when any transaction exceeds ${currencySymbol()}500`,         enabled: true,  threshold: 500 },
+  { id: "large_txn",    name: "Large Transaction Alert",    description: "Alert when a transaction is at or above your threshold", enabled: true },
   { id: "category",     name: "Category Concentration",     description: "Alert when one category exceeds 25% of spending", enabled: true,  threshold: 25 },
   { id: "recurring",    name: "Recurring Pattern Detection", description: "Detect merchants with 3+ transactions",          enabled: true,  threshold: 3 },
   { id: "income",       name: "Income Tracking",            description: "Notify when income is recorded",                 enabled: true },
@@ -399,7 +418,12 @@ export default function AlertsPage() {
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
   const [severityFilter, setSeverityFilter] = useState<"all" | Severity>("all");
   const [showRules, setShowRules] = useState(false);
-  const [rules, setRules] = useState<AlertRule[]>(DEFAULT_RULES);
+  const [rules, setRules] = useState<AlertRule[]>(() => {
+    const saved = typeof window !== "undefined" ? loadRuleSwitches() : {};
+    return DEFAULT_RULES.map((r) => (r.id in saved ? { ...r, enabled: !!saved[r.id] } : r));
+  });
+  const rulesRef = useRef(rules); // read by fetchAndGenerate; updated in toggleRule
+  const [largeThreshold, setLargeThreshold] = useState(500); // from Settings → Notifications
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // ── Auth ───────────────────────────────────────────────────────────────────
@@ -422,14 +446,19 @@ export default function AlertsPage() {
       const userId = typeof window !== "undefined" ? localStorage.getItem("userId") ?? "" : "";
 
       // Fetch transactions and existing backend alerts in parallel
-      const [txns, backendAlerts] = await Promise.all([
+      const uid = getUser()?.id;
+      const [txns, backendAlerts, notifSettings] = await Promise.all([
         transactionsAPI.getAll(),
         fetchBackendAlerts().catch(() => [] as BackendAlert[]),
+        uid ? apiRequest<{ largeTransactionThreshold?: number }>(`/api/notifications/settings/${uid}`).catch(() => null) : Promise.resolve(null),
       ]);
       setTransactions(txns);
+      const threshold = Number(notifSettings?.largeTransactionThreshold) > 0 ? Number(notifSettings?.largeTransactionThreshold) : 500;
+      setLargeThreshold(threshold);
 
-      // Generate client-side alerts from transactions
-      const generated = generateAlertsFromTransactions(txns);
+      // Generate client-side alerts from transactions, only for rules that are on
+      const rulesNow = rulesRef.current;
+      const generated = generateAlertsFromTransactions(txns, threshold).filter((a) => ruleAllows(a.type, rulesNow));
 
       // Build a set of already-persisted alert keys (title+type) to avoid duplicates
       const existingKeys = new Set(backendAlerts.map((a) => `${a.title}|${a.type}`));
@@ -475,7 +504,8 @@ export default function AlertsPage() {
           : b.createdAt.getTime() - a.createdAt.getTime()
       );
 
-      setAlerts(merged.length > 0 ? merged : generated);
+      // Alerts saved earlier for rules that are now off stay hidden
+      setAlerts((merged.length > 0 ? merged : generated).filter((a) => ruleAllows(a.type, rulesNow)));
       setLastUpdated(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load transactions");
@@ -537,8 +567,13 @@ export default function AlertsPage() {
     });
   }, []);
 
-  const toggleRule = (id: string) =>
-    setRules(prev => prev.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r));
+  const toggleRule = (id: string) => {
+    const next = rules.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r);
+    setRules(next);
+    rulesRef.current = next;
+    setSynced(RULES_KEY, JSON.stringify(Object.fromEntries(next.map((r) => [r.id, r.enabled]))));
+    void fetchAndGenerate(); // hide (or bring back) that kind of alert right away
+  };
 
   // ── Loading / Auth ─────────────────────────────────────────────────────────
   if (isCheckingAuth || !isAuth) {
@@ -640,9 +675,13 @@ export default function AlertsPage() {
                     <div>
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{rule.name}</p>
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{rule.description}
-                        {rule.threshold && <span className="text-indigo-500 ml-1">
-                          (threshold: {rule.id === "category" || rule.id === "spike" ? `${rule.threshold}%` : rule.id === "large_txn" ? fmt(rule.threshold) : `${rule.threshold}x`})
-                        </span>}
+                        {rule.id === "large_txn" ? (
+                          <span className="text-indigo-500 ml-1">(threshold: {fmt(largeThreshold)}, set in Settings → Notifications)</span>
+                        ) : rule.threshold ? (
+                          <span className="text-indigo-500 ml-1">
+                            (threshold: {rule.id === "category" || rule.id === "spike" ? `${rule.threshold}%` : `${rule.threshold}x`})
+                          </span>
+                        ) : null}
                       </p>
                     </div>
                     <button onClick={() => toggleRule(rule.id)}
@@ -657,7 +696,7 @@ export default function AlertsPage() {
                 ))}
               </div>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 text-center">
-                Rule changes apply on next Refresh — alerts are generated from your live transaction data.
+                Changes apply right away and are saved to your account.
               </p>
             </div>
           </div>

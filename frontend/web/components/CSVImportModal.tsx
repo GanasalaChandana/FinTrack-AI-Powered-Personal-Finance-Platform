@@ -8,6 +8,7 @@ import { X, Upload, FileText, AlertCircle, Download, CheckCircle, ChevronRight, 
 import { errorMessage } from "@/lib/utils/errors";
 import { currencySymbol } from "@/lib/userPrefs";
 import { looksLikeOfx, parseOfx } from "@/lib/utils/ofxParser";
+import { parsePdfStatement } from "@/lib/utils/pdfStatementParser";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public types (unchanged — dashboard passes these)
@@ -246,6 +247,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
   const [colMap,     setColMap]     = useState<ColumnMap>({ date:"",merchant:"",description:"",amount:"",type:"",category:"",paymentMethod:"" });
   const [mapped,     setMapped]     = useState<MappedRow[]>([]);
   const [error,      setError]      = useState<string | null>(null);
+  const [note,       setNote]       = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [importing,  setImporting]  = useState(false);
   const [fileName,   setFileName]   = useState("");
@@ -257,7 +259,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
     if (isOpen) {
       setStep("upload"); setParsed(null);
       setColMap({ date:"",merchant:"",description:"",amount:"",type:"",category:"",paymentMethod:"" });
-      setMapped([]); setError(null); setFileName("");
+      setMapped([]); setError(null); setNote(null); setFileName("");
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
@@ -268,17 +270,29 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
   // ── File handling ──────────────────────────────────────────────────────────
 
   const handleFile = useCallback(async (file: File) => {
-    setError(null);
-    if (!/\.(csv|ofx|qfx)$/i.test(file.name)) {
-      setError("Please upload a .csv, .ofx or .qfx file."); return;
+    setError(null); setNote(null);
+    if (!/\.(csv|ofx|qfx|pdf)$/i.test(file.name)) {
+      setError("Please upload a .csv, .ofx, .qfx or .pdf file."); return;
     }
     if (file.size / 1024 / 1024 > maxFileSize) {
       setError(`File must be under ${maxFileSize} MB.`); return;
     }
     try {
-      const text   = await file.text();
-      // OFX/QFX (the "Quicken" / "Money" download most banks offer) or CSV
-      const result = looksLikeOfx(file.name, text) ? parseOfx(text) : parseCSVRobust(text);
+      let result;
+      if (/\.pdf$/i.test(file.name)) {
+        // Statement PDF: read in the browser, nothing is uploaded until you import
+        const pdf = await parsePdfStatement(file);
+        result = pdf;
+        setNote(
+          `Read ${pdf.rows.length} transactions from the PDF.` +
+          (pdf.skippedPayments ? ` Left out ${pdf.skippedPayments} card payment${pdf.skippedPayments > 1 ? "s" : ""} (paying the card isn't spending).` : "") +
+          " Check the rows before importing.",
+        );
+      } else {
+        const text = await file.text();
+        // OFX/QFX (the "Quicken" / "Money" download most banks offer) or CSV
+        result = looksLikeOfx(file.name, text) ? parseOfx(text) : parseCSVRobust(text);
+      }
       const detectedMap = autoDetectMapping(result.headers);
       setParsed(result);
       setColMap(detectedMap);
@@ -410,10 +424,10 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                   <FileText className="w-7 h-7 text-indigo-500" />
                 </div>
                 <p className="font-semibold text-gray-800 dark:text-gray-200 mb-1">
-                  {dragActive ? "Drop your file here" : "Drag & drop your bank CSV, OFX or QFX"}
+                  {dragActive ? "Drop your file here" : "Drag & drop a bank CSV, OFX, QFX or PDF statement"}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">or click to browse · max {maxFileSize} MB</p>
-                <input ref={fileRef} type="file" accept=".csv,.ofx,.qfx" className="hidden"
+                <input ref={fileRef} type="file" accept=".csv,.ofx,.qfx,.pdf" className="hidden"
                        onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
               </div>
 
@@ -426,7 +440,8 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                     <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
                       We automatically detect column names from Chase, Bank of America, Wells Fargo, Mint,
                       and 100+ other banks. If the auto-detection isn&apos;t perfect, you can manually map
-                      columns in the next step.
+                      columns in the next step. Only have a PDF statement? Upload it: transactions are read
+                      in your browser (downloaded PDFs only, not scans).
                     </p>
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {["Chase","Bank of America","Wells Fargo","Mint","Citi","Capital One","Any bank CSV"].map(b=>(
@@ -575,6 +590,13 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                 )}
               </div>
             </>
+          )}
+
+          {note && !error && (
+            <div className="flex items-start gap-2 p-3.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl">
+              <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-emerald-800 dark:text-emerald-300">{note}</p>
+            </div>
           )}
 
           {/* Error */}

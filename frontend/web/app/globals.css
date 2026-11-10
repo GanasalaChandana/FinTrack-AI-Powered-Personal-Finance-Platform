@@ -1012,3 +1012,19 @@ button:not(:disabled):active {
 
 /* Keep the install banner out of the way while Plaid's bank window is open */
 html[data-plaid-open] .pwa-install-banner { display: none !important; }
+
+/* A solid colour behind every gradient. Some browsers, extensions and contrast settings
+   drop background images, which left white text on a white card. Text gradients
+   (bg-clip-text) are left alone. */
+[class*="bg-gradient-to-"].from-indigo-600:not(.bg-clip-text)  { background-color: #4f46e5; }
+[class*="bg-gradient-to-"].from-indigo-500:not(.bg-clip-text)  { background-color: #6366f1; }
+[class*="bg-gradient-to-"].from-purple-600:not(.bg-clip-text)  { background-color: #9333ea; }
+[class*="bg-gradient-to-"].from-blue-600:not(.bg-clip-text)    { background-color: #2563eb; }
+[class*="bg-gradient-to-"].from-blue-500:not(.bg-clip-text)    { background-color: #3b82f6; }
+[class*="bg-gradient-to-"].from-green-600:not(.bg-clip-text)   { background-color: #16a34a; }
+[class*="bg-gradient-to-"].from-green-500:not(.bg-clip-text)   { background-color: #22c55e; }
+[class*="bg-gradient-to-"].from-emerald-600:not(.bg-clip-text) { background-color: #059669; }
+[class*="bg-gradient-to-"].from-emerald-500:not(.bg-clip-text) { background-color: #10b981; }
+[class*="bg-gradient-to-"].from-red-600:not(.bg-clip-text)     { background-color: #dc2626; }
+[class*="bg-gradient-to-"].from-red-500:not(.bg-clip-text)     { background-color: #ef4444; }
+[class*="bg-gradient-to-"].from-amber-400:not(.bg-clip-text)   { background-color: #fbbf24; }

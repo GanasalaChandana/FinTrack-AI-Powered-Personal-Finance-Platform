@@ -727,7 +727,7 @@ export default function NetWorthPage() {
 
         {/* ── Tip ── */}
         <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-6">
-          💡 Your data is saved locally in your browser. Update balances regularly to keep your trend accurate.
+          💡 Saved to your account, so it shows on all your devices. Update balances regularly to keep your trend accurate.
         </p>
 
       </div>

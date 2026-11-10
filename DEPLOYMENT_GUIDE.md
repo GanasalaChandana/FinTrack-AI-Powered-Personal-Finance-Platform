@@ -45,7 +45,6 @@ Environment variables:
 | `BREVO_API_KEY` + `MAIL_FROM` | For email (recommended on Render free) | Sends email through [Brevo](https://www.brevo.com)'s HTTPS API. **Render's free tier blocks outgoing SMTP**, so Gmail SMTP can't work there. Free plan: 300 emails/day. Verify `MAIL_FROM` as a sender in Brevo, and give the API key the *Transactional email: All* permission |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | For email (paid hosts) | SMTP server for password-reset (and alert) emails. Without `MAIL_USERNAME` nothing is sent, so "Forgot password" can't deliver links. Gmail: `smtp.gmail.com`, port `587`, your address, and an [app password](https://myaccount.google.com/apppasswords) |
 | `MAIL_FROM` | No | From address for emails (defaults to `MAIL_USERNAME`) |
-| `SENTRY_DSN` | No | Error tracking with [Sentry](https://sentry.io) (free plan). Off when unset; only errors are sent, without request bodies, cookies or user details |
 | `APP_BASE_URL` | No | Web app URL used in email links; defaults to `https://fintrack-liart.vercel.app` |
 | `PLAID_CLIENT_ID`, `PLAID_SECRET` | For bank connections | From [dashboard.plaid.com](https://dashboard.plaid.com) → Developers → Keys. Without them, Settings → Bank accounts says connections aren't set up |
 | `PLAID_ENV` | No | `sandbox` (default, test banks: user `user_good`, password `pass_good`), `development` or `production` (needs Plaid's approval) |

@@ -84,7 +84,7 @@ export const metadata: Metadata = {
       { url: "/icons/icon.svg", type: "image/svg+xml" },
     ],
     shortcut: "/favicon.ico",
-    apple: "/icons/icon.svg",
+    apple: "/icons/apple-touch-icon.png", // iPhone/iPad need a PNG (180x180, no transparency)
   },
   manifest: "/site.webmanifest",
 };
@@ -106,10 +106,11 @@ export default function RootLayout({
         />
         <meta name="theme-color" content="#7c3aed" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta
-          name="apple-mobile-web-app-status-bar-style"
-          content="black-translucent"
-        />
+        {/* iPhone/iPad home-screen app: opens full-screen, below the status bar
+            ("black-translucent" drew the page under the clock/notch) */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="FinTrack" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         {/* ── Sidebar width + collapsed state — set BEFORE first paint so layout
              never shifts on refresh. Must be inline (no defer/async). ── */}
         <script

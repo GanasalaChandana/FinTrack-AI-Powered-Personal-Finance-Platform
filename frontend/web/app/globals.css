@@ -998,3 +998,14 @@ button:not(:disabled):active {
     text-decoration: underline;
   }
 }
+
+/* Touch screens (phones, tablets): 16px text in form fields. iPhone Safari zooms the
+   page in when a field with smaller text is tapped, and stays zoomed, which makes
+   the page pan around instead of scrolling. Laptops keep the compact sizes. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

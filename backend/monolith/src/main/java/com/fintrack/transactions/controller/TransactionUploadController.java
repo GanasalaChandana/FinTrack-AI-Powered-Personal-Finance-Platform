@@ -33,6 +33,7 @@ public class TransactionUploadController {
 
     private final TransactionService    transactionService;
     private final TransactionRepository transactionRepository;
+    private final com.fintrack.alerts.repository.AlertRepository alertRepository;
 
     private static final DateTimeFormatter[] DATE_FORMATTERS = {
             DateTimeFormatter.ofPattern("yyyy-MM-dd"),
@@ -81,6 +82,7 @@ public class TransactionUploadController {
 
             if (clearFirst) {
                 transactionRepository.deleteAllByUserId(userId);
+                alertRepository.deleteAllByUserId(userId); // alerts describe the old data
                 log.info("Cleared existing transactions for user {} before import", userId);
             }
 

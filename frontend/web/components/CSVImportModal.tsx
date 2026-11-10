@@ -145,6 +145,8 @@ function autoDetectMapping(headers: string[]): ColumnMap {
   // Never reuse a column already picked for another field
   const used = [map.date, map.merchant, map.description, map.amount, map.type, map.category];
   if (used.includes(map.paymentMethod)) map.paymentMethod = "";
+  // "Type" (expense/income) is not a category: leave category empty so it's worked out from the merchant
+  if (map.category && map.category === map.type) map.category = "";
   return map;
 }
 
@@ -159,6 +161,7 @@ const CAT_RULES: Array<{ kw: string[]; cat: string }> = [
   { kw:["amazon","walmart","target","costco","sam's club","best buy","ebay","etsy","aliexpress","shein","h&m","zara","gap","old navy","banana republic","nordstrom","macy","kohls","tj maxx","ross","marshalls","homegoods","bed bath","ikea","wayfair","overstock","chewy","petco","petsmart"],cat:"Shopping"},
   { kw:["comcast","xfinity","at&t","verizon","t-mobile","spectrum","cox","centurylink","frontier","internet","cable","electric","electricity","utility","pgande","pge","con ed","duke energy","national grid","water bill","gas bill","waste","trash","phone bill","cell phone"],cat:"Bills & Utilities"},
   { kw:["cvs","walgreens","rite aid","duane reade","pharmacy","doctor","physician","hospital","clinic","urgent care","dentist","optometrist","vision","lens","health insurance","medical","lab","quest diagnostics","radiology","therapy","counseling","mental health"],cat:"Healthcare"},
+  { kw:["anthropic","openai","chatgpt","claude","adobe","microsoft 365","icloud","google storage","dropbox","github","notion"],cat:"Bills & Utilities"},
   { kw:["rent","mortgage","hoa","homeowners association","property management","landlord","realtor","zillow","apartment","lease"],cat:"Housing"},
   { kw:["planet fitness","la fitness","anytime fitness","gold's gym","equinox","soulcycle","peloton","crunch fitness","orange theory","crossfit","ymca","gym","fitness","yoga","pilates","workout"],cat:"Health & Fitness"},
   { kw:["udemy","coursera","linkedin learning","skillshare","masterclass","edx","school","university","college","tuition","student loan","textbook","book","course","class","workshop","training"],cat:"Education"},
@@ -251,7 +254,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const [importing,  setImporting]  = useState(false);
   const [fileName,   setFileName]   = useState("");
-  const [clearFirst, setClearFirst] = useState(true);
+  const [clearFirst, setClearFirst] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Reset on open/close
@@ -644,8 +647,8 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">Start fresh (replace all data)</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {clearFirst
-                      ? "Deletes all existing transactions, budgets & goals — then imports your CSV so you can set your own."
-                      : "Your CSV will be added on top of existing data. Budgets and goals are kept as-is."}
+                      ? "Deletes all existing transactions, budgets & goals — then imports this file."
+                      : "This file is added to your existing data. Budgets and goals are kept."}
                   </p>
                 </div>
               </button>

@@ -112,6 +112,17 @@ async function acknowledgeAllBackendAlerts(): Promise<void> {
   });
 }
 
+/** Types this page generates from transactions (the server only adds monthly budget alerts). */
+const GENERATED_TYPES = new Set([
+  "LARGE_TRANSACTION", "CATEGORY_LIMIT", "RECURRING_DETECTED", "INCOME_RECEIVED",
+  "SAVINGS_OPPORTUNITY", "BUDGET_EXCEEDED", "TOP_MERCHANT", "SPENDING_SPIKE",
+]);
+
+function isGeneratedHere(a: BackendAlert): boolean {
+  if (!GENERATED_TYPES.has((a.type ?? "").toUpperCase())) return false;
+  return !/^budget (warning|exceeded)\b/i.test(a.title); // those come from the server's budget check
+}
+
 async function deleteBackendAlert(backendId: number): Promise<void> {
   await fetch(`${API_BASE_URL}/api/alerts/${backendId}`, {
     method:  "DELETE",
@@ -447,18 +458,36 @@ export default function AlertsPage() {
 
       // Fetch transactions and existing backend alerts in parallel
       const uid = getUser()?.id;
-      const [txns, backendAlerts, notifSettings] = await Promise.all([
+      const [txns, loadedAlerts, notifSettings] = await Promise.all([
         transactionsAPI.getAll(),
         fetchBackendAlerts().catch(() => [] as BackendAlert[]),
         uid ? apiRequest<{ largeTransactionThreshold?: number }>(`/api/notifications/settings/${uid}`).catch(() => null) : Promise.resolve(null),
       ]);
       setTransactions(txns);
+      let backendAlerts = loadedAlerts;
       const threshold = Number(notifSettings?.largeTransactionThreshold) > 0 ? Number(notifSettings?.largeTransactionThreshold) : 500;
       setLargeThreshold(threshold);
 
       // Generate client-side alerts from transactions, only for rules that are on
       const rulesNow = rulesRef.current;
       const generated = generateAlertsFromTransactions(txns, threshold).filter((a) => ruleAllows(a.type, rulesNow));
+
+      // Alerts this page creates are snapshots of the transactions at the time. When the
+      // data changes (an import, a deletion) a saved one can describe money that's no longer
+      // there, so: drop saved ones nothing generates any more, and replace ones whose numbers
+      // changed. Budget alerts from the server's hourly check are left alone.
+      const keyOf = (title: string, type: string) => `${title}|${type.toUpperCase()}`;
+      const current = new Map(generated.map((g) => [keyOf(g.title, g.type), g]));
+      const fresh: BackendAlert[] = [];
+      const stale: BackendAlert[] = [];
+      for (const ba of backendAlerts) {
+        if (!isGeneratedHere(ba)) { fresh.push(ba); continue; }
+        const now = current.get(keyOf(ba.title, ba.type ?? ""));
+        if (now && withCurrency(ba.message) === now.message) fresh.push(ba);
+        else stale.push(ba);
+      }
+      void Promise.all(stale.map((ba) => deleteBackendAlert(ba.id).catch(() => undefined)));
+      backendAlerts = fresh;
 
       // Build a set of already-persisted alert keys (title+type) to avoid duplicates
       const existingKeys = new Set(backendAlerts.map((a) => `${a.title}|${a.type}`));

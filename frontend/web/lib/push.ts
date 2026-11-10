@@ -56,7 +56,7 @@ export async function enablePush(): Promise<void> {
   if (permission !== "granted") {
     throw new Error(permission === "denied"
       ? "Notifications are blocked for this site. Allow them in your browser's site settings, then try again."
-      : "Notifications weren't allowed.");
+      : "Notifications weren't allowed. If your browser shows \"Notifications blocked\" in the address bar, click it and choose Allow, then try again.");
   }
   const { publicKey } = await apiRequest<{ publicKey: string }>("/api/push/config");
   const key = keyBytes(publicKey);

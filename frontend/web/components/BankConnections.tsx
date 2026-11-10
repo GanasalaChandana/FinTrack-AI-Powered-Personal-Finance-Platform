@@ -5,6 +5,7 @@ import { Landmark, Loader2, RefreshCw, Unlink, Plus, AlertTriangle, CheckCircle2
 import { apiRequest } from "@/lib/api";
 import { errorMessage } from "@/lib/utils/errors";
 import { dateLocale } from "@/lib/userPrefs";
+import { finishConnection, loadPlaid, rememberLinkToken, syncSummary, takeLinkToken, type SyncResult } from "@/lib/plaid";
 
 interface BankItem {
   id: string;
@@ -13,32 +14,6 @@ interface BankItem {
   lastError: string | null;
   lastSyncedAt: string | null;
 }
-interface SyncResult { added: number; modified: number; removed: number }
-
-// Plaid Link (https://plaid.com/docs/link/web/), loaded only when connecting a bank
-type PlaidHandler = { open: () => void; destroy: () => void };
-type PlaidLink = {
-  create: (o: {
-    token: string;
-    onSuccess: (publicToken: string, metadata: { institution?: { name?: string } | null }) => void;
-    onExit?: (err: { error_message?: string } | null) => void;
-  }) => PlaidHandler;
-};
-declare global { interface Window { Plaid?: PlaidLink } }
-
-const PLAID_SCRIPT = "https://cdn.plaid.com/link/v2/stable/link-initialize.js";
-function loadPlaid(): Promise<PlaidLink> {
-  if (window.Plaid) return Promise.resolve(window.Plaid);
-  return new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = PLAID_SCRIPT;
-    s.async = true;
-    s.onload = () => (window.Plaid ? resolve(window.Plaid) : reject(new Error("Plaid didn't load")));
-    s.onerror = () => reject(new Error("Couldn't load Plaid. Check your connection or ad blocker."));
-    document.head.appendChild(s);
-  });
-}
-
 /** Settings → Bank accounts: connect banks through Plaid and keep their transactions in sync. */
 export function BankConnections({ notify }: { notify: (msg: string, type?: "success" | "error") => void }) {
   const [enabled, setEnabled] = useState<boolean | null>(null);
@@ -54,7 +29,6 @@ export function BankConnections({ notify }: { notify: (msg: string, type?: "succ
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  const summary = (r: SyncResult) => `${r.added} new, ${r.modified} updated, ${r.removed} removed`;
 
   const connect = async () => {
     setBusy("connect");
@@ -63,21 +37,23 @@ export function BankConnections({ notify }: { notify: (msg: string, type?: "succ
         apiRequest<{ linkToken: string }>("/api/plaid/link-token", { method: "POST" }),
         loadPlaid(),
       ]);
+      // Banks that sign in on their own website send the user back to /plaid/oauth,
+      // which needs this same link token to finish
+      rememberLinkToken(linkToken);
       const handler = Plaid.create({
         token: linkToken,
         onSuccess: async (publicToken, metadata) => {
+          takeLinkToken();
           try {
-            const r = await apiRequest<SyncResult>("/api/plaid/connect", {
-              method: "POST",
-              body: JSON.stringify({ publicToken, institutionName: metadata?.institution?.name }),
-            });
-            notify(`Bank connected: ${summary(r)}`);
+            const r = await finishConnection(publicToken, metadata?.institution?.name);
+            notify(`Bank connected: ${syncSummary(r)}`);
             await load();
           } catch (e) { notify(errorMessage(e) ?? "Couldn't connect the bank", "error"); }
           finally { setBusy(null); handler.destroy(); }
         },
         onExit: (err) => {
-          if (err?.error_message) notify(err.error_message, "error");
+          takeLinkToken();
+          if (err?.display_message || err?.error_message) notify(err.display_message || err.error_message || "", "error");
           setBusy(null);
         },
       });
@@ -92,7 +68,7 @@ export function BankConnections({ notify }: { notify: (msg: string, type?: "succ
     setBusy(item.id);
     try {
       const r = await apiRequest<SyncResult>(`/api/plaid/items/${item.id}/sync`, { method: "POST" });
-      notify(`${item.institutionName}: ${summary(r)}`);
+      notify(`${item.institutionName}: ${syncSummary(r)}`);
       await load();
     } catch (e) { notify(errorMessage(e) ?? "Sync failed", "error"); }
     finally { setBusy(null); }

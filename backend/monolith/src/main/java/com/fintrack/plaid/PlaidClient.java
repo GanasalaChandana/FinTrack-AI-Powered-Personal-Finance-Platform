@@ -40,11 +40,12 @@ public class PlaidClient {
         Map<String, Object> body = new HashMap<>();
         body.put("client_name", "FinTrack");
         body.put("language", "en");
-        body.put("country_codes", List.of("US", "CA", "GB"));
+        body.put("country_codes", config.countryCodes());
         body.put("user", Map.of("client_user_id", userId));
         body.put("products", List.of("transactions"));
         body.put("transactions", Map.of("days_requested", 180));
         if (webhookUrl != null && !webhookUrl.isBlank()) body.put("webhook", webhookUrl);
+        if (!config.redirectUri().isBlank()) body.put("redirect_uri", config.redirectUri()); // OAuth banks
         return post("/link/token/create", body).path("link_token").asText();
     }
 

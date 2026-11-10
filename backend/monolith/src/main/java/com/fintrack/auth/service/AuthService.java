@@ -40,6 +40,7 @@ public class AuthService {
     private final JwtUtil                jwtUtil;
     private final DemoService            demoService;
     private final com.fintrack.auth.twofactor.TwoFactorService twoFactorService;
+    private final com.fintrack.auth.twofactor.TwoFactorRecoveryService twoFactorRecovery;
 
     // ── register ──────────────────────────────────────────────────────────────
 
@@ -81,14 +82,29 @@ public class AuthService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Invalid credentials");
         }
-        if (user.isTotpEnabled()) {
+        if (user.isTotpEnabled() && twoFactorRecovery.isDue(user)) {
+            twoFactorRecovery.complete(user); // the waiting period after "lost my authenticator" is over
+            log.info("Two-factor turned off for {} after the recovery waiting period", user.getEmail());
+        } else if (user.isTotpEnabled()) {
             String code = request.getTwoFactorCode();
             if (code == null || code.isBlank()) throw new com.fintrack.auth.twofactor.TwoFactorRequiredException();
             if (!twoFactorService.verify(user, code)) throw new com.fintrack.auth.twofactor.InvalidTwoFactorCodeException();
+            if (user.getTotpRecoveryAt() != null) { // they still have their authenticator: cancel the recovery
+                user.setTotpRecoveryAt(null);
+                user.setTotpRecoveryCancelHash(null);
+                userRepository.save(user);
+            }
         }
 
         log.info("User logged in: {}", user.getEmail());
         return buildAuthResponse(user);
+    }
+
+    /** The user, if the email and password are right (no session is issued). */
+    public java.util.Optional<User> checkPassword(String email, String password) {
+        if (email == null || password == null) return java.util.Optional.empty();
+        return userRepository.findByEmailIgnoreCase(email.trim())
+                .filter(u -> u.getPasswordHash() != null && passwordEncoder.matches(password, u.getPasswordHash()));
     }
 
     // ── refresh ───────────────────────────────────────────────────────────────

@@ -40,6 +40,7 @@ class AuthControllerRateLimitTest {
 
     @MockitoBean private AuthService authService;
     @MockitoBean private GoogleAuthService googleAuthService;
+    @MockitoBean private com.fintrack.auth.twofactor.TwoFactorRecoveryService twoFactorRecovery;
     @MockitoBean private DemoService demoService;
     @MockitoBean private com.fintrack.auth.service.PasswordResetService passwordResetService;
 

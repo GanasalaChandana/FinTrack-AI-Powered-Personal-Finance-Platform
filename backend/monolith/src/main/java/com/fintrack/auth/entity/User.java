@@ -84,6 +84,15 @@ public class User {
     @JsonIgnore
     private String totpBackupCodes;
 
+    /** A pending "lost my authenticator" request: two-factor turns off at this time unless cancelled */
+    @Column(name = "totp_recovery_at")
+    @JsonIgnore
+    private LocalDateTime totpRecoveryAt;
+
+    @Column(name = "totp_recovery_cancel_hash", length = 64)
+    @JsonIgnore
+    private String totpRecoveryCancelHash;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

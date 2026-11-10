@@ -30,6 +30,7 @@ public class AuthController {
     private final GoogleAuthService googleAuthService;
     private final DemoService demoService;
     private final LoginRateLimiter rateLimiter;
+    private final com.fintrack.auth.twofactor.TwoFactorRecoveryService twoFactorRecovery;
     private final JwtUtil jwtUtil;
     private final TokenRevocationService tokenRevocationService;
     private final com.fintrack.auth.security.AuthCookies authCookies;
@@ -255,6 +256,40 @@ public class AuthController {
         }
         return ResponseEntity.ok().header(org.springframework.http.HttpHeaders.SET_COOKIE, authCookies.cleared())
                 .body(Map.of("message", "Your password has been changed. Please sign in."));
+    }
+
+    // ── Two-factor recovery (lost authenticator and backup codes) ────────────
+
+    @PostMapping("/two-factor-recovery")
+    public ResponseEntity<?> requestTwoFactorRecovery(@RequestBody(required = false) Map<String, String> body,
+                                                      HttpServletRequest httpRequest) {
+        String ip = resolveClientIp(httpRequest);
+        String email = body == null || body.get("email") == null ? "" : body.get("email").trim().toLowerCase();
+        if (!rateLimiter.tryConsume(ip) || !resetEmailLimiter.tryConsume("2fa:" + email)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("error", "Too many requests", "message", "Too many attempts. Please try again later."));
+        }
+        var user = authService.checkPassword(email, body == null ? null : body.get("password"));
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Login failed", "message", "Invalid email or password."));
+        }
+        java.time.LocalDateTime at = twoFactorRecovery.request(user.get());
+        return ResponseEntity.ok(Map.of("turnsOffAt", at.toString(), "message",
+                "We emailed you. Two-factor sign-in will be turned off on " + at.toLocalDate()
+                        + "; after that, sign in with just your password."));
+    }
+
+    @PostMapping("/two-factor-recovery/cancel")
+    public ResponseEntity<?> cancelTwoFactorRecovery(@RequestBody(required = false) Map<String, String> body,
+                                                     HttpServletRequest httpRequest) {
+        if (!resetIpLimiter.tryConsume(resolveClientIp(httpRequest))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("message", "Please try again later."));
+        }
+        boolean cancelled = twoFactorRecovery.cancel(body == null ? null : body.get("token"));
+        return cancelled
+                ? ResponseEntity.ok(Map.of("message", "Cancelled. Two-factor sign-in stays on."))
+                : ResponseEntity.badRequest().body(Map.of("message", "This link is invalid or the request was already cancelled or completed."));
     }
 
     // ── POST /api/auth/google ─────────────────────────────────────────────────

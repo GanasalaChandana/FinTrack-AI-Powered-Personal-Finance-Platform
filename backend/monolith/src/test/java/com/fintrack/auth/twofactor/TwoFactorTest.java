@@ -28,6 +28,9 @@ class TwoFactorTest {
 
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper json;
+    @Autowired private com.fintrack.auth.repository.UserRepository users;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private com.fintrack.common.EmailService email;
     private static final AtomicInteger ip = new AtomicInteger(1);
     private static final String PASSWORD = "Secret123!";
 
@@ -101,5 +104,39 @@ class TwoFactorTest {
         call(post("/api/users/me/2fa/disable"), bearer, "{\"password\":\"" + PASSWORD + "\",\"code\":\"" + backup2 + "\"}")
                 .andExpect(status().isOk());
         login(email, null).andExpect(status().isOk()).andExpect(cookie().exists("ft_at"));
+    }
+
+    @Test
+    @DisplayName("lost authenticator: recovery turns two-factor off after the wait, unless cancelled")
+    void recovery() throws Exception {
+        org.mockito.Mockito.when(email.send(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+        String addr = "tfa-rec-" + UUID.randomUUID() + "@test.dev";
+        String bearer = signup(addr);
+        String secret = json.readTree(call(post("/api/users/me/2fa/setup"), bearer, null).andReturn().getResponse().getContentAsString())
+                .get("secret").asText();
+        long step = Totp.currentStep(System.currentTimeMillis());
+        call(post("/api/users/me/2fa/enable"), bearer, "{\"code\":\"" + Totp.code(secret, step) + "\"}").andExpect(status().isOk());
+
+        String body = "{\"email\":\"" + addr + "\",\"password\":\"%s\"}";
+        call(post("/api/auth/two-factor-recovery"), null, body.formatted("wrong")).andExpect(status().isUnauthorized());
+        call(post("/api/auth/two-factor-recovery"), null, body.formatted(PASSWORD)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.turnsOffAt").exists());
+        var mail = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(email).send(org.mockito.ArgumentMatchers.eq(addr), org.mockito.ArgumentMatchers.contains("two-factor"), mail.capture());
+        String token = mail.getValue().replaceAll("(?s).*cancel\\?token=([\\w-]+).*", "$1");
+
+        // Still needs a code during the wait; cancelling works once
+        login(addr, null).andExpect(jsonPath("$.twoFactorRequired").value(true));
+        call(post("/api/auth/two-factor-recovery/cancel"), null, "{\"token\":\"" + token + "\"}").andExpect(status().isOk());
+        call(post("/api/auth/two-factor-recovery/cancel"), null, "{\"token\":\"" + token + "\"}").andExpect(status().isBadRequest());
+
+        // Ask again and let the wait run out: the password alone signs in and two-factor is off
+        call(post("/api/auth/two-factor-recovery"), null, body.formatted(PASSWORD)).andExpect(status().isOk());
+        var u = users.findByEmailIgnoreCase(addr).orElseThrow();
+        u.setTotpRecoveryAt(java.time.LocalDateTime.now().minusMinutes(1));
+        users.save(u);
+        login(addr, null).andExpect(status().isOk()).andExpect(cookie().exists("ft_at"));
+        call(get("/api/users/me/2fa"), bearer, null).andExpect(jsonPath("$.enabled").value(false));
     }
 }

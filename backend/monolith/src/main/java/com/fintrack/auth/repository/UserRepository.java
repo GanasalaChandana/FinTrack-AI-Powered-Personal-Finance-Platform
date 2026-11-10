@@ -46,4 +46,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         return base + "-" + java.util.UUID.randomUUID();
     }
 
+    java.util.Optional<User> findByTotpRecoveryCancelHash(String hash);
 }

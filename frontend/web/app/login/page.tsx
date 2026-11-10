@@ -63,6 +63,25 @@ function AuthPageContent() {
   // Two-factor sign-in: after the password checks out, the code from the authenticator app
   const [twoFactor, setTwoFactor] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [recoveryMsg, setRecoveryMsg] = useState('');
+
+  // Lost the authenticator and the backup codes: turn two-factor off after a waiting period
+  const requestRecovery = async () => {
+    if (!confirm('Turn off two-factor sign-in for this account?\n\nFor your safety this happens in 3 days, and we email you a link to cancel it. After that you can sign in with just your password.')) return;
+    setError(''); setRecoveryMsg('');
+    try {
+      const res = await fetch('/api/auth/two-factor-recovery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ email: formData.email.toLowerCase().trim(), password: formData.password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(data.message || "Couldn't start recovery. Please try again."); return; }
+      setRecoveryMsg(data.message);
+    } catch {
+      setError("Couldn't reach the server. It may be waking up; try again in a few seconds.");
+    }
+  };
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const [googleLoaded, setGoogleLoaded] = useState(false);
   const googleInitialized = useRef(false);
@@ -594,6 +613,12 @@ function AuthPageContent() {
                     Use a different account
                   </button>
                 </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  <button type="button" className="text-purple-400 hover:text-purple-300" onClick={() => void requestRecovery()}>
+                    Lost your phone and backup codes?
+                  </button>
+                </p>
+                {recoveryMsg && <p className="text-sm text-emerald-300 mt-2" role="status">{recoveryMsg}</p>}
               </div>
             ) : (<>
             <div>

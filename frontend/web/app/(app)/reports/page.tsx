@@ -899,19 +899,20 @@ const EnhancedFinancialReports: React.FC = () => {
           </RePieChart>
         );
       }
-      const common = (
-        <>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey="label" {...axisProps} />
-          <YAxis {...axisProps} tickFormatter={(v) => `${currencySymbol()}${Math.round(Number(v)).toLocaleString()}`} width={70} />
-          <Tooltip formatter={(v) => fmt(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
-          <Legend />
-        </>
+      // Recharts only sees direct children, so these can't be wrapped in a fragment
+      const common = [
+        <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#e2e8f0" />,
+        <XAxis key="x" dataKey="label" {...axisProps} />,
+        <YAxis key="y" {...axisProps} tickFormatter={(v) => `${currencySymbol()}${Math.round(Number(v)).toLocaleString()}`} width={70} />,
+        <Tooltip key="tip" formatter={(v) => fmt(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />,
+        <Legend key="legend" />,
+      ];
+      // A line or area through one or two points is just dots: show bars instead
+      const kind = r.rows.length < 3 && r.chartType !== "bar" ? "bar" : r.chartType;
+      if (kind === "bar") return (
+        <BarChart data={r.rows}>{common}{series.map((s) => <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]} maxBarSize={64} />)}</BarChart>
       );
-      if (r.chartType === "bar") return (
-        <BarChart data={r.rows}>{common}{series.map((s) => <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]} />)}</BarChart>
-      );
-      if (r.chartType === "area") return (
+      if (kind === "area") return (
         <AreaChart data={r.rows}>{common}{series.map((s) => <Area key={s.key} type="monotone" dataKey={s.key} name={s.label} stroke={s.color} fill={s.color} fillOpacity={0.15} />)}</AreaChart>
       );
       return (
@@ -929,6 +930,9 @@ const EnhancedFinancialReports: React.FC = () => {
             </div>
           ))}
         </div>
+        {r.chartType !== "pie" && r.chartType !== "bar" && r.rows.length < 3 && (
+          <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">Only {r.rows.length} {r.rows.length === 1 ? "period has" : "periods have"} data, so this is shown as bars. Pick a longer range or a shorter grouping for a {r.chartType} chart.</p>
+        )}
         {r.chartType === "pie" && series.length > 1 && (
           <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">Pie charts show one metric — showing {pieMetric.label.toLowerCase()}.</p>
         )}

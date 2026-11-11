@@ -23,6 +23,14 @@ async function goToReports(page: Page) {
 }
 
 async function clickTab(page: Page, tabLabel: string) {
+  // Phones pick the report from a dropdown instead of tabs
+  const picker = page.locator('select[aria-label="Report"]');
+  if (await picker.isVisible().catch(() => false)) {
+    const options = await picker.locator('option').allInnerTexts();
+    const match = options.find((o) => o.toLowerCase().includes(tabLabel.toLowerCase()));
+    if (match) { await picker.selectOption({ label: match }); await page.waitForTimeout(600); }
+    return;
+  }
   const tab = page.locator(
     `button:has-text("${tabLabel}"), [role="tab"]:has-text("${tabLabel}")`
   ).filter({ visible: true }).first();

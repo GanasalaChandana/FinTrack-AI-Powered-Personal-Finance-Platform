@@ -2154,7 +2154,16 @@ const EnhancedFinancialReports: React.FC = () => {
 
           <Section>
             {/* Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
+            {/* Phones: a picker instead of ten tabs scrolling sideways */}
+            <select
+              aria-label="Report"
+              value={selectedReport}
+              onChange={(e) => setSelectedReport(e.target.value as ReportTab)}
+              className="md:hidden w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-base font-semibold text-gray-900 dark:text-gray-100"
+            >
+              {TABS.map((tab) => <option key={tab.id} value={tab.id}>{tab.label}</option>)}
+            </select>
+            <div className="hidden md:flex gap-2 pb-2 flex-wrap">
               {TABS.map((tab) => (
                 <Button className="shrink-0"
                   key={tab.id}

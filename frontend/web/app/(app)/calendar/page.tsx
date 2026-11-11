@@ -59,7 +59,19 @@ export default function CalendarPage() {
 
   useEffect(() => {
     transactionsAPI.getAll()
-      .then((data: Transaction[]) => setTransactions(data))
+      .then((data: Transaction[]) => {
+        setTransactions(data);
+        // Nothing this month yet: open on the most recent month that has transactions
+        const now = new Date();
+        const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+        const months = data.map((t) => String(t.date ?? "").slice(0, 7)).filter((m) => /^\d{4}-\d{2}$/.test(m) && m <= thisMonth);
+        if (months.length && !months.includes(thisMonth)) {
+          const latest = months.sort().at(-1)!;
+          setCurrentYear(Number(latest.slice(0, 4)));
+          setCurrentMonth(Number(latest.slice(5, 7)) - 1);
+          setYearView(Number(latest.slice(0, 4)));
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

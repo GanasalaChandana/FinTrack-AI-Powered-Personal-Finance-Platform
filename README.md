@@ -82,14 +82,16 @@
 </div>
 
 **Key flows to explore in the live app:**
-- 🤖 **Dashboard → AI Insights row** — anomaly cards + burn rate forecast + next-month prediction
-- 📊 **Reports tab** — nine report views (overview, custom, trends, comparison, forecast, budget history, tax, income, savings) built from your real transactions; the **Custom** view generates a report from the metrics, range and grouping you pick
+- 💡 **Dashboard → Smart Insights row** — unusual-spending cards, month-end budget forecast and next-month estimate, all worked out from your own transactions
+- 💰 **Dashboard → Net Worth** — what you own minus what you owe, from the Net Worth page (the demo has sample assets and debts)
+- 📊 **Reports** — ten views (overview, analytics, merchants, income, savings rate, custom, spending trends, comparison, forecast, budget history) built from your real transactions; the **Custom** view generates a report from the metrics, range and grouping you pick
 - 🔔 **Alerts page** — smart rule-based alerts with severity badges; budget alerts are generated hourly by a background job
-- 📥 **Transactions → Import CSV** — bulk upload with auto-tagging and payment methods read from the file; an unusable file never wipes existing data, and you get a real import result back
+- 🔁 **Recurring** — two tabs: *Subscriptions* (what you pay every month, next renewal) and *Rules* (save a detected pattern so it posts itself)
+- 📥 **Dashboard → Import file** — CSV, OFX/QFX or a PDF bank statement; bulk upload with auto-tagging and payment methods read from the file; an unusable file never wipes existing data, and you get a real import result back
 - 🏦 **Settings → Bank accounts → Connect a bank** — connect one of Plaid's test banks with `user_good` / `pass_good`; sample transactions import and categorise automatically
 - 🔐 **Settings → Security** — set up two-factor sign-in with any authenticator app
 - 📲 **Settings → Notifications** — turn on push notifications for this device and send yourself a test
-- 🧪 **Demo account** — try the app without signing up; the demo account is protected from deletion
+- 🧪 **Demo account** — try the app without signing up; the demo account's settings are locked so every visitor gets the same clean account
 
 ---
 
@@ -142,9 +144,9 @@ Choices that shaped the code, and why:
 flowchart TD
     subgraph FE["🌐 Frontend — Vercel (Next.js 16 · TypeScript · Tailwind)"]
         direction TB
-        dash["Dashboard\nAI Insights · Forecast · Prediction"]
+        dash["Dashboard\nSmart Insights · Forecast · Prediction"]
         txn["Transactions\nCRUD · CSV Import · OCR"]
-        rep["Reports\n9 report views · Recharts"]
+        rep["Reports\n10 report views · Recharts"]
         ale["Alerts · Notifications"]
 
         subgraph AI["⚡ Client-side Analytics Engine (rule-based, zero API cost)"]

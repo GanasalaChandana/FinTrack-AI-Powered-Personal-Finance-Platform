@@ -108,6 +108,7 @@ export function pullUserData(): Promise<void> {
     const uploads = localSyncedKeys().filter((k) => !(k in remote));
     await Promise.all(uploads.map((k) => put(k, localStorage.getItem(k) ?? "null").catch(() => undefined)));
     localStorage.setItem(OWNER_KEY, String(me));
+    window.dispatchEvent(new Event("fintrack-user-data-loaded"));
   })().catch((e) => {
     console.warn("Couldn't load your saved data; using this browser's copy", e);
     pulled = null; // try again on the next navigation

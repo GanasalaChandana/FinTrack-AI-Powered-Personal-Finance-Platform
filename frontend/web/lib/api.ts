@@ -578,6 +578,23 @@ export const authAPI = {
     // Mark this session as a demo so the banner shows
     if (typeof window !== "undefined") {
       localStorage.setItem("isDemo", "true");
+      // Sample assets and debts so the Net Worth page and dashboard card have something to show
+      if (!localStorage.getItem("fintrack-net-worth")) {
+        localStorage.setItem("fintrack-net-worth", JSON.stringify({
+          assets: [
+            { id: "demo-a1", name: "Checking account", value: 4200, type: "Cash" },
+            { id: "demo-a2", name: "High-yield savings", value: 12500, type: "Savings" },
+            { id: "demo-a3", name: "401(k)", value: 18300, type: "Investment" },
+            { id: "demo-a4", name: "2019 Honda Civic", value: 14000, type: "Vehicle" },
+          ],
+          liabilities: [
+            { id: "demo-l1", name: "Visa credit card", value: 1850, type: "Credit Card" },
+            { id: "demo-l2", name: "Car loan", value: 6400, type: "Car Loan" },
+            { id: "demo-l3", name: "Student loan", value: 15200, type: "Student Loan" },
+          ],
+          snapshots: [],
+        }));
+      }
     }
     return response;
   },

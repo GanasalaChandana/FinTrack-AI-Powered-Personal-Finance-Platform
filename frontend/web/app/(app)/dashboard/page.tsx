@@ -173,7 +173,7 @@ const buildSparkline = (trendData: SpendingPoint[], key: "income" | "expenses" |
   trendData.map((m) => ({ v: m[key] }));
 
 // ✅ FIXED: Calculate stats directly from transactions within date range
-const calculateStats = (transactions: Transaction[], days: number, goalsList: Goal[]) => {
+const calculateStats = (transactions: Transaction[], days: number, _goalsList: Goal[]) => {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
   const cutoffStr = cutoff.toISOString().slice(0, 10);
@@ -215,10 +215,8 @@ const calculateStats = (transactions: Transaction[], days: number, goalsList: Go
   const incomeChange   = comparable ? safePercentChange(totalIncome, prevIncome) : null;
   const expensesChange = comparable ? safePercentChange(totalExpenses, prevExpenses) : null;
 
-  const goalsSavings = goalsList.reduce(
-    (s, g) => s + (g.currentAmount ?? 0), 0
-  );
-  const netWorth = goalsSavings + totalSavings;
+  // Net worth comes from the Net Worth page (what you own minus what you owe), not from here
+  const netWorth = 0;
 
   return { totalIncome, totalExpenses, totalSavings, netWorth, incomeChange, expensesChange };
 };
@@ -274,6 +272,25 @@ export default function DashboardPage() {
   const [showResetConfirm, setShowResetConfirm]           = useState(false);
   const [isResetting, setIsResetting]                     = useState(false);
   const [isDemoAccount, setIsDemoAccount]                 = useState(false);
+  // Assets minus liabilities from the Net Worth page; null until something is entered there
+  const [netWorthTotal, setNetWorthTotal]                 = useState<number | null>(null);
+  useEffect(() => {
+    const read = () => {
+      try {
+        const d = JSON.parse(localStorage.getItem("fintrack-net-worth") ?? "null") as
+          { assets?: { value: number }[]; liabilities?: { value: number }[] } | null;
+        const a = d?.assets ?? [], l = d?.liabilities ?? [];
+        setNetWorthTotal(a.length || l.length
+          ? a.reduce((s, x) => s + (Number(x.value) || 0), 0) - l.reduce((s, x) => s + (Number(x.value) || 0), 0)
+          : null);
+      } catch { setNetWorthTotal(null); }
+    };
+    read();
+    // The account's saved data arrives a moment after the page opens
+    window.addEventListener("fintrack-user-data-loaded", read);
+    window.addEventListener("storage", read);
+    return () => { window.removeEventListener("fintrack-user-data-loaded", read); window.removeEventListener("storage", read); };
+  }, []);
   useEffect(() => {
     try { setIsDemoAccount(localStorage.getItem("isDemo") === "true"); } catch { /* ignore */ }
   }, []);
@@ -674,20 +691,24 @@ export default function DashboardPage() {
                       color="primary"
                       sparklineData={savingsSparkline}
                     />
-                    <StatCard
-                      title="Net Worth"
-                      value={formatCurrency(stats.netWorth)}
-                      icon={Wallet}
-                      color="accent"
-                      onClick={() => router.push("/goals-budgets?tab=goals")}
-                    />
+                    {netWorthTotal !== null ? (
+                      <StatCard
+                        title="Net Worth"
+                        value={formatCurrency(netWorthTotal)}
+                        icon={Wallet}
+                        color="accent"
+                        onClick={() => router.push("/net-worth")}
+                      />
+                    ) : (
+                      <EmptyStatCard title="Net Worth" description="Add what you own and owe" action={() => router.push("/net-worth")} actionLabel="Set up net worth" />
+                    )}
                   </>
                 ) : (
                   <>
                     <EmptyStatCard title="Total Income"   description="No income recorded yet"          action={handleAddTransaction}                          actionLabel="Add income" />
                     <EmptyStatCard title="Total Expenses" description="No expenses recorded yet"        action={handleAddTransaction}                          actionLabel="Add expense" />
                     <EmptyStatCard title="Net Savings"    description="Add transactions to see savings" action={() => setShowCsvModal(true)}                   actionLabel="Import a bank file" />
-                    <EmptyStatCard title="Net Worth"      description="Set goals to track net worth"    action={() => router.push("/goals-budgets?tab=goals")} actionLabel="Create a goal" />
+                    <EmptyStatCard title="Net Worth"      description="Add what you own and owe"        action={() => router.push("/net-worth")}               actionLabel="Set up net worth" />
                   </>
                 )}
               </Grid>

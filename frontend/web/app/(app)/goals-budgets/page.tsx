@@ -981,7 +981,7 @@ function GoalsSection() {
           {totalGoals > 0 && (
             <button
               onClick={() => setShowClearConfirm(true)}
-              className="flex items-center gap-2 border border-red-200 dark:border-red-800/50 text-red-500 dark:text-red-400 px-3 py-2 rounded-xl text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+              className="flex items-center gap-2 whitespace-nowrap border border-red-200 dark:border-red-800/50 text-red-500 dark:text-red-400 px-3 py-2 rounded-xl text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition"
             >
               <Trash2 className="w-4 h-4" />
               Clear all
@@ -989,7 +989,7 @@ function GoalsSection() {
           )}
           <button
             onClick={() => { setEditGoal(null); setShowForm(true); }}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-indigo-700 transition"
+            className="flex items-center gap-2 whitespace-nowrap bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-indigo-700 transition"
           >
             <Plus className="w-4 h-4" />
             Add Goal

@@ -259,7 +259,7 @@ export default function DebtPayoffPage() {
           </div>
           <button
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition"
+            className="flex items-center gap-2 whitespace-nowrap shrink-0 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition"
           >
             <Plus className="w-4 h-4" /> Add Debt
           </button>

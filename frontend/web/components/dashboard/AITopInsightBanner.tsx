@@ -51,7 +51,7 @@ export function AITopInsightBanner({ transactions }: Props) {
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3.5 rounded-2xl shadow-lg animate-slide-down"
+      className="flex flex-wrap sm:flex-nowrap items-start sm:items-center gap-3 px-4 py-3.5 rounded-2xl shadow-lg animate-slide-down"
       style={{ background: gradient }}
     >
       {/* Icon */}
@@ -69,7 +69,7 @@ export function AITopInsightBanner({ transactions }: Props) {
             {label}
           </span>
         </div>
-        <p className="text-sm font-semibold text-white leading-snug line-clamp-1">
+        <p className="text-sm font-semibold text-white leading-snug line-clamp-3 sm:line-clamp-1">
           {topInsight.message}
         </p>
       </div>
@@ -77,7 +77,7 @@ export function AITopInsightBanner({ transactions }: Props) {
       {/* Action */}
       <Link
         href="/insights"
-        className="flex items-center gap-1.5 text-xs font-bold text-white flex-shrink-0 px-3 py-1.5 rounded-lg transition-all"
+        className="order-last sm:order-none w-full sm:w-auto justify-center flex items-center gap-1.5 text-xs font-bold text-white flex-shrink-0 px-3 py-2 sm:py-1.5 rounded-lg transition-all"
         style={{ background: "rgba(255,255,255,0.2)" }}
       >
         View insights <ArrowRight className="w-3 h-3" />

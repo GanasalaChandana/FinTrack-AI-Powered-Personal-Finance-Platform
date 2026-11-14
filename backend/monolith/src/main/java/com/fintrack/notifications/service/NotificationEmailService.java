@@ -44,13 +44,16 @@ public class NotificationEmailService {
     private final BudgetRepository budgets;
     private final String appUrl;
     private final com.fintrack.push.WebPushService push;
+    private final com.fintrack.plaid.PlaidItemRepository plaidItems;
 
     public NotificationEmailService(EmailService email, UserRepository users,
                                     NotificationSettingsRepository settings,
                                     TransactionRepository transactions, BudgetRepository budgets,
                                     @Value("${app.base-url:https://fintrack-liart.vercel.app}") String appUrl,
-                                    com.fintrack.push.WebPushService push) {
+                                    com.fintrack.push.WebPushService push,
+                                    com.fintrack.plaid.PlaidItemRepository plaidItems) {
         this.push = push;
+        this.plaidItems = plaidItems;
         this.email = email;
         this.users = users;
         this.settings = settings;
@@ -179,6 +182,45 @@ public class NotificationEmailService {
         }
         log.info("Monthly reports sent: {}", sent);
         return sent;
+    }
+
+    /**
+     * 5th of the month 14:23 UTC (statements are out by then): people who keep FinTrack up
+     * to date by uploading files, not a bank connection, get a nudge to upload last month's.
+     */
+    @Scheduled(cron = "0 23 14 5 * *", zone = "UTC")
+    @SchedulerLock(name = "statementReminder", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
+    public void sendStatementReminders() {
+        sendStatementRemindersNow();
+    }
+
+    public int sendStatementRemindersNow() {
+        YearMonth month = YearMonth.now().minusMonths(1);
+        int sent = 0;
+        for (User u : users.findAll()) {
+            try { if (statementReminder(u.getId().toString(), u.getEmail(), month)) sent++; }
+            catch (Exception e) { log.warn("Statement reminder for {} failed: {}", u.getId(), e.getMessage()); }
+        }
+        log.info("Statement reminders sent: {}", sent);
+        return sent;
+    }
+
+    boolean statementReminder(String userId, String userEmail, YearMonth month) {
+        if (DemoService.DEMO_EMAIL.equalsIgnoreCase(userEmail)) return false;
+        if (!plaidItems.findByUserId(userId).isEmpty()) return false;          // a connected bank keeps itself up to date
+        if (!transactions.findByUserIdAndDateBetween(userId, month.atDay(1), month.atEndOfMonth()).isEmpty()) return false; // already there
+        if (transactions.findByUserIdAndDateBetween(userId, month.minusMonths(12).atDay(1), month.atDay(1).minusDays(1)).isEmpty()) {
+            return false; // never really used it: don't nag
+        }
+        String name = month.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+        String link = appUrl + "/dashboard?import=1";
+        String body = "Your " + name + " bank statement should be ready.\n\n"
+                + "Upload it to keep your budgets, alerts and reports up to date. A PDF statement works, or your bank's CSV download:\n"
+                + link + "\n\nTip: connect your bank in Settings and FinTrack updates itself.";
+        boolean mailed = send(userId, NotificationSettings::isMonthlyReport, "FinTrack: time to upload your " + name + " statement", body);
+        pushIf(userId, NotificationSettings::isMonthlyReport, new com.fintrack.push.WebPushService.Message(
+                "Upload your " + name + " statement", "Keep your budgets and reports up to date.", "/dashboard?import=1", "statement-" + month));
+        return mailed;
     }
 
     boolean weeklyDigest(String userId, LocalDate start, LocalDate end) {

@@ -186,4 +186,27 @@ class NotificationEmailTest {
                 .header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON).content("{\"amount\":500}")).andExpect(status().isOk()); // 100 %
         verify(email, after(1000).times(1)).send(eq(address), contains("Trip"), anyString());
     }
+
+    @Test
+    @DisplayName("statement reminder: only for file uploaders missing last month, and only with monthly emails on")
+    void statementReminder() {
+        YearMonth last = YearMonth.now().minusMonths(1);
+        tx("EXPENSE", 40, "Food & Dining", last.minusMonths(1).atDay(10)); // used it before, nothing for last month
+        prefs(s -> { s.setEmailEnabled(true); s.setMonthlyReport(true); });
+
+        emails.sendStatementRemindersNow();
+        verify(email).send(eq(address), contains("upload your"), contains("/dashboard?import=1"));
+
+        // monthly emails off: no reminder
+        clearInvocations(email);
+        prefs(s -> s.setMonthlyReport(false));
+        emails.sendStatementRemindersNow();
+        verify(email, never()).send(eq(address), anyString(), anyString());
+
+        // last month already uploaded: no reminder
+        prefs(s -> s.setMonthlyReport(true));
+        tx("EXPENSE", 12, "Food & Dining", last.atDay(3));
+        emails.sendStatementRemindersNow();
+        verify(email, never()).send(eq(address), anyString(), anyString());
+    }
 }

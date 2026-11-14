@@ -9,6 +9,7 @@ import { errorMessage } from "@/lib/utils/errors";
 import { currencySymbol } from "@/lib/userPrefs";
 import { looksLikeOfx, parseOfx } from "@/lib/utils/ofxParser";
 import { parsePdfStatement } from "@/lib/utils/pdfStatementParser";
+import { BANK_GUIDES } from "@/lib/bankGuides";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public types (unchanged — dashboard passes these)
@@ -215,6 +216,52 @@ function applyMapping(rows: Record<string, string>[], map: ColumnMap): MappedRow
 // Sample CSV download
 // ─────────────────────────────────────────────────────────────────────────────
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// "How do I get my file?" — steps for the user's bank
+// ─────────────────────────────────────────────────────────────────────────────
+
+function BankFileGuide() {
+  const [bank, setBank] = useState("");
+  const [kind, setKind] = useState<"pdf" | "csv">("pdf");
+  const guide = BANK_GUIDES.find((g) => g.id === bank);
+  return (
+    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40 rounded-xl p-4">
+      <p className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">How do I get my file?</p>
+      <select aria-label="Your bank" value={bank} onChange={(e) => setBank(e.target.value)}
+              className="w-full rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-800 dark:text-gray-100">
+        <option value="">Choose your bank…</option>
+        {BANK_GUIDES.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+      </select>
+      {guide && (
+        <div className="mt-3">
+          <div role="tablist" className="inline-flex rounded-lg bg-blue-100/70 dark:bg-blue-900/40 p-0.5 mb-2">
+            {(["pdf", "csv"] as const).map((k) => (
+              <button key={k} role="tab" aria-selected={kind === k} onClick={() => setKind(k)}
+                      className={`px-3 py-1 rounded-md text-xs font-semibold ${kind === k ? "bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-300 shadow-sm" : "text-blue-700/70 dark:text-blue-300/70"}`}>
+                {k === "pdf" ? "Monthly statement (PDF)" : "Transaction download (CSV)"}
+              </button>
+            ))}
+          </div>
+          <ol className="list-decimal pl-5 space-y-1 text-xs text-blue-800 dark:text-blue-300">
+            {(kind === "pdf" ? guide.pdf : guide.csv).map((step) => <li key={step}>{step}</li>)}
+          </ol>
+          {guide.url && (
+            <a href={guide.url} target="_blank" rel="noopener noreferrer"
+               className="inline-block mt-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+              Open {guide.name} in a new tab ↗
+            </a>
+          )}
+          <p className="mt-2 text-[11px] text-blue-700/80 dark:text-blue-400/80">
+            {kind === "pdf"
+              ? "Use the PDF you download from the website. Photos or scans of paper statements can't be read."
+              : "Use the bank's website; phone apps usually can't download files. A few months at once is fine."}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main component
@@ -427,33 +474,15 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                   <FileText className="w-7 h-7 text-indigo-500" />
                 </div>
                 <p className="font-semibold text-gray-800 dark:text-gray-200 mb-1">
-                  {dragActive ? "Drop your file here" : "Drag & drop a bank CSV, OFX, QFX or PDF statement"}
+                  {dragActive ? "Drop your file here" : "Upload your bank statement (PDF)"}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">or click to browse · max {maxFileSize} MB</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">or your bank&apos;s CSV / OFX / QFX download · tap to choose · max {maxFileSize} MB</p>
                 <input ref={fileRef} type="file" accept=".csv,.ofx,.qfx,.pdf" className="hidden"
                        onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
               </div>
 
-              {/* Bank format info */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40 rounded-xl p-4">
-                <div className="flex items-start gap-2.5">
-                  <Sparkles className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-1">Works with any bank</p>
-                    <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
-                      We automatically detect column names from Chase, Bank of America, Wells Fargo, Mint,
-                      and 100+ other banks. If the auto-detection isn&apos;t perfect, you can manually map
-                      columns in the next step. Only have a PDF statement? Upload it: transactions are read
-                      in your browser (downloaded PDFs only, not scans).
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {["Chase","Bank of America","Wells Fargo","Mint","Citi","Capital One","Any bank CSV"].map(b=>(
-                        <span key={b} className="text-[10px] font-medium px-2 py-0.5 bg-blue-100 dark:bg-blue-800/50 text-blue-700 dark:text-blue-300 rounded-full">{b}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Where to get the file, bank by bank */}
+              <BankFileGuide />
 
               {/* Sample download */}
               <button onClick={downloadSampleCsv}

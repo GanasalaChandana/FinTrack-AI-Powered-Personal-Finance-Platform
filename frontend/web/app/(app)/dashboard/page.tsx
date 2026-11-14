@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect, useCallback } from "react";
-import { DollarSign, TrendingUp, TrendingDown, Target, Wallet, PiggyBank, Loader2, Upload, BarChart3, Camera, Brain, RefreshCw, Activity, Plus, Calendar, RotateCcw } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Target, Wallet, PiggyBank, Loader2, Upload, BarChart3, Camera, Brain, RefreshCw, Activity, Plus, Calendar, RotateCcw, Landmark, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { useToast } from "@/components/ui/Toast";
@@ -32,6 +32,7 @@ import { NoSpendStreakCard } from "@/components/dashboard/NoSpendStreakCard";
 import { TransactionModal, type ModalTransaction } from "@/components/modals/TransactionModal";
 import { CSVImportModal, type CSVRow } from "@/components/CSVImportModal";
 import { EMPTY_LINKED, fetchLinkedNetWorth, hasLinked, manualNetWorth } from "@/lib/netWorth";
+import { sampleCsv } from "@/lib/utils/sampleCsv";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { OnboardingWizard, shouldShowOnboarding } from "@/components/OnboardingWizard";
 import { getUser, isAuthenticated as checkAuth, transactionsAPI, budgetsAPI, goalsAPI, authAPI, type Budget, type Transaction, type Goal } from "@/lib/api";
@@ -267,6 +268,14 @@ export default function DashboardPage() {
   });
 
   const [showCsvModal, setShowCsvModal]                   = useState(false);
+  const [sampleLoading, setSampleLoading]                 = useState(false);
+  // The monthly "upload your statement" email links to /dashboard?import=1
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("import") === "1") {
+      setShowCsvModal(true);
+      window.history.replaceState(null, "", "/dashboard");
+    }
+  }, []);
   const [showTransactionModal, setShowTransactionModal]   = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showOnboarding, setShowOnboarding]               = useState(false);
@@ -465,6 +474,14 @@ export default function DashboardPage() {
 
   const handleAddTransaction = () => { setShowTransactionModal(true); };
 
+  const importSampleData = async () => {
+    setSampleLoading(true);
+    const [header, ...lines] = sampleCsv().trim().split("\n");
+    const keys = header.split(",");
+    const rows = lines.map((l) => Object.fromEntries(l.split(",").map((v, i) => [keys[i], v]))) as unknown as CSVRow[];
+    try { await handleImportTransactions(rows, false); } finally { setSampleLoading(false); }
+  };
+
   const handleResetData = async () => {
     setIsResetting(true);
     try {
@@ -558,7 +575,7 @@ export default function DashboardPage() {
         onClose={() => setShowCsvModal(false)}
         onImport={handleImportTransactions}
         title="Import Bank Transactions"
-        description="Upload a CSV from any bank — columns are detected automatically."
+        description="Your bank statement (PDF) or your bank's CSV / OFX download."
         maxFileSize={10}
       />
 
@@ -569,7 +586,7 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-50">
-                  {userName ? `Welcome back, ${userName}! 👋` : "Dashboard"}
+                  {userName ? `${hasTransactions || initialLoading ? "Welcome back" : "Welcome"}, ${userName}! 👋` : "Dashboard"}
                 </h1>
                 <p className="mt-1 text-neutral-600 dark:text-neutral-400">
                   Your financial overview at a glance
@@ -612,35 +629,38 @@ export default function DashboardPage() {
         <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
           <PageContent>
 
-            {/* Onboarding banner */}
-            {!hasTransactions && (
-              <Alert
-                variant="info"
-                title="🎉 Welcome to FinTrack!"
-                showIcon={false}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <p>Get started by adding your first transaction or importing from your bank.</p>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      icon={<Plus className="w-4 h-4" />}
-                      onClick={handleAddTransaction}
-                    >
-                      Add Transaction
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      icon={<Upload className="w-4 h-4" />}
-                      onClick={() => setShowCsvModal(true)}
-                    >
-                      Import file
-                    </Button>
-                  </div>
+            {/* First steps for an empty account: three clear ways in */}
+            {!initialLoading && !hasTransactions && (
+              <section aria-label="Get started" className="rounded-2xl border border-indigo-100 dark:border-indigo-900/50 bg-white dark:bg-neutral-800 p-5 sm:p-6">
+                <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-50">Welcome to FinTrack! How do you want to start?</h2>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1 mb-4">Pick one. You can always add the others later.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <button onClick={() => router.push("/settings?tab=banks")}
+                          style={{ border: "1px solid rgba(148,163,184,0.45)" }}
+                          className="text-left rounded-xl p-4 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition">
+                    <Landmark className="w-6 h-6 text-indigo-500 mb-2" />
+                    <p className="font-semibold text-neutral-900 dark:text-neutral-100">Connect your bank</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">Transactions and balances update by themselves.</p>
+                  </button>
+                  <button onClick={() => setShowCsvModal(true)}
+                          style={{ border: "2px solid #6366f1" }}
+                          className="text-left rounded-xl p-4 bg-indigo-50/60 dark:bg-indigo-900/20 hover:bg-indigo-50 transition">
+                    <Upload className="w-6 h-6 text-indigo-600 mb-2" />
+                    <p className="font-semibold text-neutral-900 dark:text-neutral-100">Upload a bank statement</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">Your monthly PDF, or a CSV from your bank. We show you where to find it.</p>
+                  </button>
+                  <button onClick={importSampleData} disabled={sampleLoading}
+                          style={{ border: "1px solid rgba(148,163,184,0.45)" }}
+                          className="text-left rounded-xl p-4 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition disabled:opacity-60">
+                    <Sparkles className="w-6 h-6 text-amber-500 mb-2" />
+                    <p className="font-semibold text-neutral-900 dark:text-neutral-100">{sampleLoading ? "Adding sample data…" : "Try it with sample data"}</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">Two months of example transactions. Remove them anytime with Clear Data.</p>
+                  </button>
                 </div>
-              </Alert>
+                <button onClick={handleAddTransaction} className="mt-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                  Or add a transaction by hand
+                </button>
+              </section>
             )}
 
             {/* ── AI Top Insight Banner — signature wow feature, first thing seen ── */}

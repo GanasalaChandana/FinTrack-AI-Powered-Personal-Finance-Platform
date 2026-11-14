@@ -584,9 +584,9 @@ export const authAPI = {
           assets: [
             { id: "demo-a1", name: "Checking account", value: 4200, type: "Cash" },
             { id: "demo-a2", name: "High-yield savings", value: 12500, type: "Savings" },
-            { id: "demo-a3", name: "401(k)", value: 18300, type: "Investment" },
             { id: "demo-a4", name: "2019 Honda Civic", value: 14000, type: "Vehicle" },
           ],
+          // (investments live on the Investments page and count automatically)
           liabilities: [
             { id: "demo-l1", name: "Visa credit card", value: 1850, type: "Credit Card" },
             { id: "demo-l2", name: "Car loan", value: 6400, type: "Car Loan" },

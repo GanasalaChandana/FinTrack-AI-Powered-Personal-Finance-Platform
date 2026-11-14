@@ -50,6 +50,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Reports", href: "/reports", icon: <FileText className="w-4 h-4" />, keywords: ["charts", "export", "monthly", "forecast"] },
   { label: "Analytics", href: "/reports?tab=analytics", icon: <BarChart3 className="w-4 h-4" />, keywords: ["spending", "trends", "merchants"] },
   { label: "Net Worth", href: "/net-worth", icon: <Wallet className="w-4 h-4" />, keywords: ["assets", "liabilities", "wealth"] },
+  { label: "Investments", href: "/investments", icon: <TrendingUp className="w-4 h-4" />, keywords: ["stocks", "portfolio", "crypto", "holdings", "401k"] },
   { label: "Health Score", href: "/health", icon: <Activity className="w-4 h-4" />, keywords: ["financial health", "score"] },
   { label: "Insights", href: "/insights", icon: <Brain className="w-4 h-4" />, keywords: ["ai", "anomaly", "smart"] },
   { label: "Subscriptions", href: "/recurring?tab=subscriptions", icon: <RefreshCw className="w-4 h-4" />, keywords: ["subscriptions", "netflix", "spotify", "cancel", "recurring charges"] },

@@ -54,6 +54,7 @@ public class AccountDeletionService {
     private final SpendingSummaryCacheRepository spendingSummaryCacheRepository;
     private final TransactionAggregateRepository transactionAggregateRepository;
     private final com.fintrack.userdata.UserDataRepository userDataRepository;
+    private final com.fintrack.investments.HoldingRepository holdingRepository;
     private final com.fintrack.push.PushSubscriptionRepository pushSubscriptionRepository;
 
     @Transactional
@@ -64,6 +65,7 @@ public class AccountDeletionService {
         importJobRepository.deleteAllByUserId(id);
         categoryRuleRepository.deleteAllByUserId(id);
         plaidService.deleteAllForUser(id); // tells Plaid to drop the bank connections too
+        holdingRepository.deleteAllByUserId(id); // hand-entered ones (imported ones went with the bank)
         householdService.removeUser(id); // leave (or, as owner, end) the household first
         recurringTransactionRepository.deleteAllByUserIdForAccountDeletion(id);
         budgetRepository.deleteAllByUserId(id);

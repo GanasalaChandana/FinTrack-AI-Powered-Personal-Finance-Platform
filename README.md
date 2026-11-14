@@ -39,7 +39,7 @@
 - **Two-factor sign-in (TOTP, RFC 6238)** — implemented from scratch (HMAC-SHA1, ±1 step drift, replay protection), one-time backup codes stored as SHA-256 hashes, and a lost-device recovery that only completes after a 3-day wait with an emailed cancel link
 - **Web Push with only the JDK** — message encryption (RFC 8291, `aes128gcm`) and VAPID signing (RFC 8292, ES256) written with `javax.crypto`, verified against independent implementations (Python `http_ece` and PyJWT) and accepted by Google's push service. Budget, unusual-spending and goal-milestone alerts reach phones and desktops
 - **Email that works on a free host** — Render's free tier blocks outgoing SMTP, so mail goes through Brevo's HTTPS API (SMTP still supported), with timeouts so a blocked mail server can't hang a request
-- **260+ automated tests** — 176 backend (Mockito unit, `@WebMvcTest` slices, `@SpringBootTest` integration on in-memory H2, fake Plaid / push servers on localhost), 63 Vitest unit tests and 35 Playwright end-to-end tests run on desktop and phone viewports in CI
+- **260+ automated tests** — 180 backend (Mockito unit, `@WebMvcTest` slices, `@SpringBootTest` integration on in-memory H2, fake Plaid / push servers on localhost), 63 Vitest unit tests and 36 Playwright end-to-end tests run on desktop and phone viewports in CI
 - **Versioned database migrations** — Flyway baselines the live database and owns schema changes going forward; a test checks the baseline against the JPA entities
 - **Safe to scale out** — every scheduled job takes a database lock (ShedLock), so with several instances each job runs once; recurring transactions and budget alerts carry unique keys, so a crash-and-retry can't create duplicates
 
@@ -83,7 +83,8 @@
 
 **Key flows to explore in the live app:**
 - 💡 **Dashboard → Smart Insights row** — unusual-spending cards, month-end budget forecast and next-month estimate, all worked out from your own transactions
-- 💰 **Dashboard → Net Worth** — what you own minus what you owe, from the Net Worth page (the demo has sample assets and debts)
+- 📈 **Investments** — stocks, ETFs, funds and crypto at live market prices, with gain/loss and allocation; connect a brokerage through Plaid and holdings import themselves
+- 💰 **Net Worth** — updates itself from connected bank balances (cards and loans counted as owed) and investments; add anything you can't connect (a car, a private loan) by hand
 - 📊 **Reports** — ten views (overview, analytics, merchants, income, savings rate, custom, spending trends, comparison, forecast, budget history) built from your real transactions; the **Custom** view generates a report from the metrics, range and grouping you pick
 - 🔔 **Alerts page** — smart rule-based alerts with severity badges; budget alerts are generated hourly by a background job
 - 🔁 **Recurring** — two tabs: *Subscriptions* (what you pay every month, next renewal) and *Rules* (save a detected pattern so it posts itself)
@@ -111,6 +112,8 @@
 | 🔐 | **Secure Auth** | Email/password and Google sign-in, JWT HS256, refresh token rotation, per-IP and per-account rate limiting, BCrypt hashing, case-insensitive unique emails |
 | 🏦 | **Bank Connections** | Plaid Link (incl. OAuth banks) → transactions sync every 6 hours; real banks for chosen accounts, Plaid's test banks for everyone else |
 | 📥 | **File Import** | CSV, OFX and QFX bank exports, plus PDF statements read in the browser; column mapping, preview and duplicate-safe import |
+| 📈 | **Investments** | Holdings priced from live market quotes (cached 15 min) or imported from a brokerage via Plaid; gain/loss and allocation |
+| 💰 | **Automatic net worth** | Connected account balances and investments update net worth on every sync; manual items for the rest |
 | 🔑 | **Two-Factor Sign-In** | Authenticator-app codes (TOTP), 10 one-time backup codes, lost-device recovery with an emailed cancel link |
 | 📲 | **Push Notifications** | Budget, large-transaction, unusual-spending and goal-milestone alerts on phones and desktops (Web Push) |
 | ✉️ | **Email** | Password reset, household invites, budget alerts, weekly digest and monthly report |
@@ -285,7 +288,7 @@ Output: "📊 Projected $3,855 vs $3,150 budget — $705 over.
 | **Database** | PostgreSQL (Supabase) with Flyway migrations V1–V16; Hibernate only validates the schema (`ddl-auto=validate`) |
 | **Auth** | JWT HS256 in HttpOnly cookies, Google sign-in, TOTP two-factor, BCrypt, Refresh Token Rotation, per-IP + per-account Rate Limiting |
 | **Integrations** | Plaid (bank data), Brevo (email over HTTPS), Web Push (RFC 8291 / 8292, no third-party library) |
-| **Testing** | Backend: JUnit 5, Mockito, @WebMvcTest, MockMvc, @SpringBootTest + in-memory H2 (176 tests). Frontend: Vitest (63 unit tests), Playwright (35 end-to-end tests on desktop and phone viewports) |
+| **Testing** | Backend: JUnit 5, Mockito, @WebMvcTest, MockMvc, @SpringBootTest + in-memory H2 (180 tests). Frontend: Vitest (63 unit tests), Playwright (36 end-to-end tests on desktop and phone viewports) |
 | **DevOps** | GitHub Actions CI (backend tests, TypeScript, Vitest, Docker image, Playwright against the live site), Docker Compose, Vercel (frontend), Render (backend), Supabase (database), weekly AES-256 encrypted database backups, UptimeRobot monitoring |
 
 ---
@@ -452,7 +455,7 @@ cd frontend/web && npm test
 cd frontend/web && npm run test:e2e
 ```
 
-**Backend:** 176 tests. Integration tests use an in-memory H2 database — no PostgreSQL required locally.
+**Backend:** 180 tests. Integration tests use an in-memory H2 database — no PostgreSQL required locally.
 
 | Area | Test classes | Coverage |
 |---|---|---|

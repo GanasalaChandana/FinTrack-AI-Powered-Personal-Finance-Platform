@@ -55,6 +55,8 @@ class PlaidLinkTokenTest {
         assertThat(sent.get().has("redirect_uri")).isFalse();
         assertThat(sent.get().get("country_codes").toString()).isEqualTo("[\"US\",\"CA\",\"GB\"]");
         assertThat(sent.get().get("user").get("client_user_id").asText()).isEqualTo("user-1");
+        // brokerages share holdings too; banks without them still connect
+        assertThat(sent.get().get("optional_products").toString()).isEqualTo("[\"investments\"]");
     }
 
     @Test

@@ -35,6 +35,7 @@ public class DemoService {
     private final TransactionRepository transactionRepository;
     private final BudgetRepository      budgetRepository;
     private final GoalRepository        goalRepository;
+    private final com.fintrack.investments.HoldingRepository holdingRepository;
     private final DataWipeService       dataWipeService;
     private final PasswordEncoder       passwordEncoder;
     private final JwtUtil               jwtUtil;
@@ -73,6 +74,7 @@ public class DemoService {
                 seedTransactions(userId);
                 seedBudgets(userId);
                 seedGoals(userId);
+                seedHoldings(userId);
                 demoLastSeededAt = now; // only after a successful seed, so failures retry
                 log.info("✅ Demo data re-seeded for user {}", userId);
             } else {
@@ -103,6 +105,7 @@ public class DemoService {
         seedTransactions(userId);
         seedBudgets(userId);
         seedGoals(userId);
+        seedHoldings(userId);
         log.info("✅ Data reset to demo dataset for user {}", userId);
     }
 
@@ -201,6 +204,32 @@ public class DemoService {
                 Budget.builder().userId(userId).category("Health & Fitness") .budget(100.0).spent(0.0).month(month).icon("💪").color("#ec4899").period("monthly").isActive(true).build()
         );
         budgetRepository.saveAll(budgets);
+    }
+
+    /** A small portfolio; prices come from live market quotes when the page loads. */
+    private void seedHoldings(String userId) {
+        Object[][] rows = {
+            // symbol, name, type, quantity, total paid, account
+            {"VTI", "Vanguard Total Stock Market ETF", "ETF", "40", "9200", "Brokerage"},
+            {"AAPL", "Apple Inc.", "STOCK", "15", "2550", "Brokerage"},
+            {"VTTSX", "Vanguard Target Retirement 2060 Fund", "FUND", "300", "14800", "401(k)"},
+            {"BTC", "Bitcoin", "CRYPTO", "0.12", "5400", "Coinbase"},
+        };
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        for (Object[] r : rows) {
+            com.fintrack.investments.Holding h = new com.fintrack.investments.Holding();
+            h.setUserId(userId);
+            h.setSymbol((String) r[0]);
+            h.setName((String) r[1]);
+            h.setAssetType(com.fintrack.investments.Holding.AssetType.valueOf((String) r[2]));
+            h.setQuantity(new java.math.BigDecimal((String) r[3]));
+            h.setCostBasis(new java.math.BigDecimal((String) r[4]));
+            h.setAccountName((String) r[5]);
+            h.setSource(com.fintrack.investments.Holding.Source.MANUAL);
+            h.setCreatedAt(now);
+            h.setUpdatedAt(now);
+            holdingRepository.save(h);
+        }
     }
 
     private void seedGoals(String userId) {

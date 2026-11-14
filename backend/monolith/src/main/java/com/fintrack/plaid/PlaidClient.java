@@ -48,6 +48,8 @@ public class PlaidClient {
         body.put("country_codes", mode.countryCodes());
         body.put("user", Map.of("client_user_id", userId));
         body.put("products", List.of("transactions"));
+        // Brokerages also share their holdings; banks without investments still connect
+        body.put("optional_products", List.of("investments"));
         body.put("transactions", Map.of("days_requested", 180));
         if (webhookUrl != null && !webhookUrl.isBlank()) body.put("webhook", webhookUrl);
         if (!config.redirectUri().isBlank()) body.put("redirect_uri", config.redirectUri()); // OAuth banks
@@ -67,6 +69,16 @@ public class PlaidClient {
         body.put("count", 250);
         if (cursor != null && !cursor.isBlank()) body.put("cursor", cursor);
         return post(mode, "/transactions/sync", body);
+    }
+
+    /** Accounts with their latest (cached) balances. */
+    public JsonNode accounts(PlaidConfig.Mode mode, String accessToken) {
+        return post(mode, "/accounts/get", Map.of("access_token", accessToken));
+    }
+
+    /** Investment holdings and the securities they refer to. */
+    public JsonNode investmentHoldings(PlaidConfig.Mode mode, String accessToken) {
+        return post(mode, "/investments/holdings/get", Map.of("access_token", accessToken));
     }
 
     public void removeItem(PlaidConfig.Mode mode, String accessToken) {

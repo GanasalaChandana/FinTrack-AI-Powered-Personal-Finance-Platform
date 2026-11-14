@@ -31,6 +31,7 @@ import { SavingsRateCard } from "@/components/dashboard/SavingsRateCard";
 import { NoSpendStreakCard } from "@/components/dashboard/NoSpendStreakCard";
 import { TransactionModal, type ModalTransaction } from "@/components/modals/TransactionModal";
 import { CSVImportModal, type CSVRow } from "@/components/CSVImportModal";
+import { EMPTY_LINKED, fetchLinkedNetWorth, hasLinked, manualNetWorth } from "@/lib/netWorth";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { OnboardingWizard, shouldShowOnboarding } from "@/components/OnboardingWizard";
 import { getUser, isAuthenticated as checkAuth, transactionsAPI, budgetsAPI, goalsAPI, authAPI, type Budget, type Transaction, type Goal } from "@/lib/api";
@@ -275,21 +276,19 @@ export default function DashboardPage() {
   // Assets minus liabilities from the Net Worth page; null until something is entered there
   const [netWorthTotal, setNetWorthTotal]                 = useState<number | null>(null);
   useEffect(() => {
-    const read = () => {
-      try {
-        const d = JSON.parse(localStorage.getItem("fintrack-net-worth") ?? "null") as
-          { assets?: { value: number }[]; liabilities?: { value: number }[] } | null;
-        const a = d?.assets ?? [], l = d?.liabilities ?? [];
-        setNetWorthTotal(a.length || l.length
-          ? a.reduce((s, x) => s + (Number(x.value) || 0), 0) - l.reduce((s, x) => s + (Number(x.value) || 0), 0)
-          : null);
-      } catch { setNetWorthTotal(null); }
+    let linked = EMPTY_LINKED;
+    const combine = () => {
+      const manual = manualNetWorth();
+      setNetWorthTotal(manual || hasLinked(linked)
+        ? (manual?.assets ?? 0) + linked.assets - (manual?.liabilities ?? 0) - linked.liabilities
+        : null);
     };
-    read();
+    combine();
+    void fetchLinkedNetWorth().then((l) => { linked = l; combine(); });
     // The account's saved data arrives a moment after the page opens
-    window.addEventListener("fintrack-user-data-loaded", read);
-    window.addEventListener("storage", read);
-    return () => { window.removeEventListener("fintrack-user-data-loaded", read); window.removeEventListener("storage", read); };
+    window.addEventListener("fintrack-user-data-loaded", combine);
+    window.addEventListener("storage", combine);
+    return () => { window.removeEventListener("fintrack-user-data-loaded", combine); window.removeEventListener("storage", combine); };
   }, []);
   useEffect(() => {
     try { setIsDemoAccount(localStorage.getItem("isDemo") === "true"); } catch { /* ignore */ }
@@ -708,7 +707,11 @@ export default function DashboardPage() {
                     <EmptyStatCard title="Total Income"   description="No income recorded yet"          action={handleAddTransaction}                          actionLabel="Add income" />
                     <EmptyStatCard title="Total Expenses" description="No expenses recorded yet"        action={handleAddTransaction}                          actionLabel="Add expense" />
                     <EmptyStatCard title="Net Savings"    description="Add transactions to see savings" action={() => setShowCsvModal(true)}                   actionLabel="Import a bank file" />
-                    <EmptyStatCard title="Net Worth"      description="Add what you own and owe"        action={() => router.push("/net-worth")}               actionLabel="Set up net worth" />
+                    {netWorthTotal !== null ? (
+                      <StatCard title="Net Worth" value={formatCurrency(netWorthTotal)} icon={Wallet} color="accent" onClick={() => router.push("/net-worth")} />
+                    ) : (
+                      <EmptyStatCard title="Net Worth"      description="Add what you own and owe"        action={() => router.push("/net-worth")}               actionLabel="Set up net worth" />
+                    )}
                   </>
                 )}
               </Grid>

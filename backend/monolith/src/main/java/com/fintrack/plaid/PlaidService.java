@@ -39,12 +39,18 @@ public class PlaidService {
     private final String webhookUrl;
 
     private final com.fintrack.auth.repository.UserRepository users;
+    private final PlaidAccountRepository accounts;
+    private final com.fintrack.investments.HoldingRepository holdings;
 
     public PlaidService(PlaidConfig config, PlaidClient plaid, TokenCipher cipher, PlaidItemRepository items,
                         TransactionRepository transactions, CategoryRuleService categories,
                         @Value("${plaid.webhook-url:}") String webhookUrl,
-                        com.fintrack.auth.repository.UserRepository users) {
+                        com.fintrack.auth.repository.UserRepository users,
+                        PlaidAccountRepository accounts,
+                        com.fintrack.investments.HoldingRepository holdings) {
         this.users = users;
+        this.accounts = accounts;
+        this.holdings = holdings;
         this.config = config;
         this.plaid = plaid;
         this.cipher = cipher;
@@ -173,6 +179,7 @@ public class PlaidService {
                 if (!r.path("has_more").asBoolean(false)) break;
             }
             item.setSyncCursor(cursor);
+            refreshBalancesAndHoldings(item, mode, accessToken);
             item.setStatus(PlaidItem.Status.OK);
             item.setLastError(null);
             item.setLastSyncedAt(LocalDateTime.now());
@@ -184,6 +191,94 @@ public class PlaidService {
         }
         items.save(item);
         return new SyncResult(added, modified, removed);
+    }
+
+    /**
+     * Account balances (for net worth) and, for brokerages, holdings. Best effort: a bank
+     * without investments, or a failed call, never fails the transaction sync.
+     */
+    void refreshBalancesAndHoldings(PlaidItem item, PlaidConfig.Mode mode, String accessToken) {
+        java.util.Map<String, String> accountNames = new java.util.HashMap<>();
+        try {
+            for (JsonNode a : plaid.accounts(mode, accessToken).path("accounts")) {
+                String accountId = a.path("account_id").asText();
+                PlaidAccount acc = accounts.findByPlaidItemIdAndAccountId(item.getId(), accountId).orElseGet(PlaidAccount::new);
+                acc.setUserId(item.getUserId());
+                acc.setPlaidItemId(item.getId());
+                acc.setAccountId(accountId);
+                acc.setName(truncate(a.path("official_name").asText(a.path("name").asText("Account"))));
+                if (a.hasNonNull("name")) acc.setName(truncate(a.path("name").asText()));
+                acc.setMask(a.path("mask").asText(null));
+                acc.setType(a.path("type").asText(null));
+                acc.setSubtype(a.path("subtype").asText(null));
+                JsonNode bal = a.path("balances");
+                acc.setCurrentBalance(bal.hasNonNull("current") ? new BigDecimal(bal.path("current").asText()) : null);
+                acc.setCurrency(bal.path("iso_currency_code").asText("USD"));
+                acc.setUpdatedAt(LocalDateTime.now());
+                accounts.save(acc);
+                accountNames.put(accountId, acc.getName() + (acc.getMask() != null ? " ••" + acc.getMask() : ""));
+            }
+        } catch (Exception e) {
+            log.warn("Plaid balances for item {} failed: {}", item.getId(), e.getMessage());
+        }
+        if (!accountNames.isEmpty() && accounts.findByUserId(item.getUserId()).stream()
+                .noneMatch(a -> item.getId().equals(a.getPlaidItemId()) && "investment".equals(a.getType()))) {
+            return; // no brokerage accounts here, so no holdings to ask for
+        }
+        try {
+            importHoldings(item, plaid.investmentHoldings(mode, accessToken), accountNames);
+        } catch (PlaidClient.PlaidException e) {
+            log.info("No holdings for item {}: {}", item.getId(), e.code()); // e.g. PRODUCTS_NOT_SUPPORTED
+        } catch (Exception e) {
+            log.warn("Plaid holdings for item {} failed: {}", item.getId(), e.getMessage());
+        }
+    }
+
+    void importHoldings(PlaidItem item, JsonNode r, java.util.Map<String, String> accountNames) {
+        java.util.Map<String, JsonNode> securities = new java.util.HashMap<>();
+        for (JsonNode s : r.path("securities")) securities.put(s.path("security_id").asText(), s);
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (JsonNode h : r.path("holdings")) {
+            JsonNode sec = securities.getOrDefault(h.path("security_id").asText(), com.fasterxml.jackson.databind.node.MissingNode.getInstance());
+            String externalId = "plaid:" + h.path("account_id").asText() + ":" + h.path("security_id").asText();
+            seen.add(externalId);
+            com.fintrack.investments.Holding hold = holdings.findByUserIdAndExternalId(item.getUserId(), externalId)
+                    .orElseGet(com.fintrack.investments.Holding::new);
+            if (hold.getId() == null) {
+                hold.setUserId(item.getUserId());
+                hold.setExternalId(externalId);
+                hold.setCreatedAt(LocalDateTime.now());
+            }
+            hold.setSource(com.fintrack.investments.Holding.Source.PLAID);
+            hold.setPlaidItemId(item.getId());
+            String ticker = sec.hasNonNull("ticker_symbol") ? sec.path("ticker_symbol").asText() : null;
+            hold.setSymbol(ticker != null && ticker.length() <= 20 ? ticker : null);
+            hold.setName(truncate(sec.path("name").asText(ticker != null ? ticker : "Holding")));
+            hold.setAssetType(assetType(sec.path("type").asText("")));
+            hold.setQuantity(new BigDecimal(h.path("quantity").asText("0")));
+            hold.setCostBasis(h.hasNonNull("cost_basis") ? new BigDecimal(h.path("cost_basis").asText()).setScale(2, java.math.RoundingMode.HALF_UP) : null);
+            hold.setLastPrice(h.hasNonNull("institution_price") ? new BigDecimal(h.path("institution_price").asText()) : null);
+            hold.setPriceUpdatedAt(LocalDateTime.now());
+            hold.setAccountName(truncate(accountNames.getOrDefault(h.path("account_id").asText(), item.getInstitutionName())));
+            hold.setUpdatedAt(LocalDateTime.now());
+            holdings.save(hold);
+        }
+        // sold since the last sync
+        for (com.fintrack.investments.Holding old : holdings.findByPlaidItemId(item.getId())) {
+            if (!seen.contains(old.getExternalId())) holdings.delete(old);
+        }
+    }
+
+    static com.fintrack.investments.Holding.AssetType assetType(String plaidType) {
+        return switch (plaidType) {
+            case "equity" -> com.fintrack.investments.Holding.AssetType.STOCK;
+            case "etf" -> com.fintrack.investments.Holding.AssetType.ETF;
+            case "mutual fund" -> com.fintrack.investments.Holding.AssetType.FUND;
+            case "cryptocurrency" -> com.fintrack.investments.Holding.AssetType.CRYPTO;
+            case "fixed income" -> com.fintrack.investments.Holding.AssetType.BOND;
+            case "cash" -> com.fintrack.investments.Holding.AssetType.CASH;
+            default -> com.fintrack.investments.Holding.AssetType.OTHER;
+        };
     }
 
     /** Creates (added) or updates (modified) the transaction. Returns true if something was written. */

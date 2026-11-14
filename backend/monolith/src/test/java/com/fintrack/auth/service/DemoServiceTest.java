@@ -34,6 +34,7 @@ class DemoServiceTest {
     @Mock private DataWipeService       dataWipeService;
     @Mock private PasswordEncoder       passwordEncoder;
     @Mock private JwtUtil               jwtUtil;
+    @Mock private com.fintrack.investments.HoldingRepository holdingRepository;
 
     @InjectMocks
     private DemoService demoService;
@@ -58,6 +59,7 @@ class DemoServiceTest {
 
         verify(dataWipeService, times(1)).wipeAllUserData(anyString());
         verify(transactionRepository, times(1)).saveAll(anyList());
+        verify(holdingRepository, times(4)).save(any()); // the sample portfolio, once
     }
 
     @Test

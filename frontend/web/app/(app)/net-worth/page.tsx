@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -9,6 +10,7 @@ import {
 import { TrendingUp, TrendingDown, Plus, Trash2, Edit2, Check, X, Wallet, CreditCard, Home, Car, Briefcase, PiggyBank, DollarSign, Building, BarChart3, Flag, Sparkles } from "lucide-react";
 import { userCurrency, currencySymbol, dateLocale } from "@/lib/userPrefs";
 import { setSynced, removeSynced } from "@/lib/userData";
+import { EMPTY_LINKED, fetchLinkedNetWorth, hasLinked, type LinkedNetWorth } from "@/lib/netWorth";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -93,10 +95,10 @@ function saveData(data: NetWorthData) {
   setSynced(STORAGE_KEY, JSON.stringify(data));
 }
 
-function takeSnapshot(data: NetWorthData): NetWorthData {
+function takeSnapshot(data: NetWorthData, linked: LinkedNetWorth = EMPTY_LINKED): NetWorthData {
   const today = todayStr();
-  const totalAssets = data.assets.reduce((s, a) => s + a.value, 0);
-  const totalLiabilities = data.liabilities.reduce((s, l) => s + l.value, 0);
+  const totalAssets = data.assets.reduce((s, a) => s + a.value, 0) + linked.assets;
+  const totalLiabilities = data.liabilities.reduce((s, l) => s + l.value, 0) + linked.liabilities;
   const netWorth = totalAssets - totalLiabilities;
 
   // Replace today's snapshot or append
@@ -289,6 +291,9 @@ export default function NetWorthPage() {
   const router = useRouter();
   const [data, setData] = useState<NetWorthData>({ assets: [], liabilities: [], snapshots: [] });
   const [mounted, setMounted] = useState(false);
+  // Connected banks and investments: these update themselves
+  const [linked, setLinked] = useState<LinkedNetWorth>(EMPTY_LINKED);
+  const linkedRef = useRef<LinkedNetWorth>(EMPTY_LINKED);
 
   // Milestone target
   const [target, setTarget] = useState<number | null>(null);
@@ -310,10 +315,20 @@ export default function NetWorthPage() {
     }
 
     setMounted(true);
+
+    void fetchLinkedNetWorth().then((l) => {
+      linkedRef.current = l;
+      setLinked(l);
+      if (hasLinked(l)) {
+        const again = takeSnapshot(loadData(), l); // today's point includes linked balances
+        setData(again);
+        saveData(again);
+      }
+    });
   }, [router]);
 
   const persist = useCallback((next: NetWorthData) => {
-    const withSnapshot = takeSnapshot(next);
+    const withSnapshot = takeSnapshot(next, linkedRef.current);
     setData(withSnapshot);
     saveData(withSnapshot);
   }, []);
@@ -339,9 +354,12 @@ export default function NetWorthPage() {
     persist({ ...data, liabilities: data.liabilities.map((l) => l.id === id ? { ...l, name, value, type: type as LiabilityType } : l) });
 
   // ── Derived ──
-  const totalAssets      = useMemo(() => data.assets.reduce((s, a) => s + a.value, 0), [data.assets]);
-  const totalLiabilities = useMemo(() => data.liabilities.reduce((s, l) => s + l.value, 0), [data.liabilities]);
+  const totalAssets      = useMemo(() => data.assets.reduce((s, a) => s + a.value, 0) + linked.assets, [data.assets, linked]);
+  const totalLiabilities = useMemo(() => data.liabilities.reduce((s, l) => s + l.value, 0) + linked.liabilities, [data.liabilities, linked]);
   const netWorth         = totalAssets - totalLiabilities;
+  // Counted items include linked accounts (and investments as one item)
+  const assetCount       = data.assets.length + linked.accounts.filter((a) => !a.liability).length + (linked.investments > 0 ? 1 : 0);
+  const liabilityCount   = data.liabilities.length + linked.accounts.filter((a) => a.liability).length;
   const debtRatio        = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
 
   // Trend: compare last two snapshots
@@ -455,7 +473,7 @@ export default function NetWorthPage() {
               </div>
             </div>
             <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{fmt(totalAssets)}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{data.assets.length} asset{data.assets.length !== 1 ? "s" : ""}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{assetCount} asset{assetCount !== 1 ? "s" : ""}</p>
           </div>
 
           {/* Total Liabilities */}
@@ -468,7 +486,7 @@ export default function NetWorthPage() {
             </div>
             <p className="text-3xl font-bold text-red-600 dark:text-red-400">{fmt(totalLiabilities)}</p>
             <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-gray-400 dark:text-gray-500">{data.liabilities.length} liabilit{data.liabilities.length !== 1 ? "ies" : "y"}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{liabilityCount} liabilit{liabilityCount !== 1 ? "ies" : "y"}</p>
               {totalAssets > 0 && (
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                   Debt ratio: {debtRatio.toFixed(0)}%
@@ -658,6 +676,44 @@ export default function NetWorthPage() {
           )}
         </div>
 
+        {/* ── Linked automatically ── */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-6">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">Linked automatically</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Connected bank balances and your investments. These update on their own.</p>
+            </div>
+            <Link href="/settings?tab=banks" className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline whitespace-nowrap">Connect a bank</Link>
+          </div>
+          {hasLinked(linked) ? (
+            <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+              {linked.accounts.map((a, i) => (
+                <li key={i} className="flex items-center justify-between py-2.5 text-sm">
+                  <span className="text-gray-700 dark:text-gray-200 min-w-0 truncate">
+                    {a.name}{a.mask ? ` ••${a.mask}` : ""}
+                    <span className="ml-2 text-xs text-gray-400">{a.liability ? "owed" : (a.subtype || a.type)}</span>
+                  </span>
+                  <span className={`font-semibold whitespace-nowrap ${a.liability ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                    {a.liability ? "−" : ""}{fmt(a.balance)}
+                  </span>
+                </li>
+              ))}
+              {linked.investments > 0 && (
+                <li className="flex items-center justify-between py-2.5 text-sm">
+                  <Link href="/investments" className="text-gray-700 dark:text-gray-200 hover:underline">Investments <span className="ml-2 text-xs text-gray-400">see holdings</span></Link>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">{fmt(linked.investments)}</span>
+                </li>
+              )}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Nothing linked yet. <Link href="/settings?tab=banks" className="text-indigo-600 dark:text-indigo-400 hover:underline">Connect a bank</Link> or{" "}
+              <Link href="/investments" className="text-indigo-600 dark:text-indigo-400 hover:underline">add investments</Link>, and they&apos;ll count here automatically.
+              Things you can&apos;t connect (a car, a loan from family) go below.
+            </p>
+          )}
+        </div>
+
         {/* ── Assets + Liabilities columns ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -665,10 +721,10 @@ export default function NetWorthPage() {
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">Assets</h2>
+                <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">Other assets</h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400">What you own</p>
               </div>
-              <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{fmt(totalAssets)}</span>
+              <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{fmt(totalAssets - linked.assets)}</span>
             </div>
 
             <div className="space-y-1 mb-4 max-h-72 overflow-y-auto">
@@ -696,10 +752,10 @@ export default function NetWorthPage() {
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">Liabilities</h2>
+                <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">Other liabilities</h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400">What you owe</p>
               </div>
-              <span className="text-sm font-bold text-red-600 dark:text-red-400">{fmt(totalLiabilities)}</span>
+              <span className="text-sm font-bold text-red-600 dark:text-red-400">{fmt(totalLiabilities - linked.liabilities)}</span>
             </div>
 
             <div className="space-y-1 mb-4 max-h-72 overflow-y-auto">

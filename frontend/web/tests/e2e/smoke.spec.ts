@@ -97,6 +97,13 @@ test.describe('FinTrack Smoke Tests', () => {
     await expect(page.locator('text=/Recurring/i').filter({ visible: true }).first()).toBeVisible({ timeout: 10_000 });
   });
 
+  /* 8b ─ Investments page loads, with holdings or the empty state */
+  test('navigate to Investments', async ({ page }) => {
+    await navTo(page, '/investments', /investments/);
+    await expect(page.getByRole('heading', { name: 'Investments' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('button', { name: /add holding/i }).first()).toBeVisible({ timeout: 10_000 });
+  });
+
   /* 9 ─ Settings page loads (previously outside (app)) */
   test('navigate to Settings', async ({ page }) => {
     // Settings is reachable via direct URL

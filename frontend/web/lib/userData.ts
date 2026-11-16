@@ -16,6 +16,7 @@ const SYNCED_KEYS = new Set([
   "fintrack:settings-categories",
   "fintrack:settings-preferences",
   "fintrack:alert-rules",
+  "fintrack:cancelled-subscriptions",
 ]);
 const SYNCED_PREFIXES = ["fintrack-goal-contributions-"];
 /** Whose data the synced keys in this browser belong to. */

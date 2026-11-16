@@ -12,6 +12,9 @@ import {
 import { isAuthenticated, transactionsAPI, type Transaction } from "@/lib/api";
 import { detectRecurring, type RecurringTransaction } from "@/lib/utils/recurringDetection";
 import { PageHeader, PageContent } from "@/components/layouts/PageHeader";
+import { setSynced } from "@/lib/userData";
+import { isEssential } from "@/lib/utils/recurringDetector";
+import { CANCELLED_KEY, cancelGuideFor, chargedAfterCancel, isCancelled, loadCancelled, monthlySaved, type CancelledSub } from "@/lib/cancelGuides";
 import { userCurrency, currencySymbol, dateLocale } from "@/lib/userPrefs";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -100,12 +103,25 @@ function RenewalBadge({ days }: { days: number }) {
 function SubCard({
   item,
   isCandidate,
+  cancelled,
+  chargedAgain,
+  onCancelled,
+  onUndo,
 }: {
   item: RecurringTransaction;
   isCandidate: boolean;
+  cancelled?: CancelledSub;
+  chargedAgain: { date: string; amount: number }[];
+  onCancelled: () => void;
+  onUndo: () => void;
 }) {
   const days = daysUntil(item.nextExpected);
   const monthlyAmt = monthlyEquivalent(item);
+  const [showGuide, setShowGuide] = useState(false);
+  const guide = cancelGuideFor(item.merchant);
+  // Rent, utilities and the like aren't things to cancel
+  const cancellable = !isEssential(item.category, item.merchant);
+  const shortDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(dateLocale(), { month: "short", day: "numeric" });
 
   return (
     <div className={`relative bg-white dark:bg-gray-800 rounded-2xl border shadow-sm hover:shadow-md transition-shadow p-5 flex flex-col gap-3 ${
@@ -174,12 +190,53 @@ function SubCard({
             ≈ {fmtShort(monthlyAmt)}/mo
           </span>
         )}
-        {isCandidate && (
+        {isCandidate && !cancelled && (
           <span className="text-orange-500 flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" /> No recent activity
           </span>
         )}
       </div>
+
+      {/* Cancel helper */}
+      {cancelled ? (
+        chargedAgain.length > 0 ? (
+          <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40 p-3 text-xs text-red-700 dark:text-red-300">
+            <p className="font-bold flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Charged again after you cancelled</p>
+            <p className="mt-1">{fmt(chargedAgain[0].amount)} on {shortDate(chargedAgain[0].date)} (you cancelled {shortDate(cancelled.cancelledOn)}). Contact {guide.name} for a refund, or dispute it with your bank.</p>
+            <button onClick={onUndo} className="mt-2 font-semibold underline">I&apos;m still subscribed</button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+            <span className="font-semibold">Cancelled {shortDate(cancelled.cancelledOn)}. We&apos;ll warn you if it charges again.</span>
+            <button onClick={onUndo} className="font-semibold underline ml-2 shrink-0">Undo</button>
+          </div>
+        )
+      ) : cancellable && (
+        <>
+          <div className="flex gap-2">
+            <button onClick={() => setShowGuide((v) => !v)} aria-expanded={showGuide}
+                    className="flex-1 whitespace-nowrap rounded-lg px-1.5 py-2 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100">
+              {showGuide ? "Hide steps" : "How to cancel"}
+            </button>
+            <button onClick={onCancelled}
+                    className="flex-1 whitespace-nowrap rounded-lg px-1.5 py-2 text-[11px] font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200">
+              I cancelled this
+            </button>
+          </div>
+          {showGuide && (
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 p-3 text-xs text-gray-600 dark:text-gray-300">
+              <p className="font-bold text-gray-800 dark:text-gray-100 mb-1">{guide.known ? `Cancel ${guide.name}` : "How to cancel"}</p>
+              <ol className="list-decimal pl-4 space-y-1">{guide.steps.map((st) => <li key={st}>{st}</li>)}</ol>
+              {guide.url && (
+                <a href={guide.url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                  Open {guide.name}&apos;s cancel page ↗
+                </a>
+              )}
+              <p className="mt-2 text-[11px] text-gray-400">FinTrack can&apos;t cancel for you. Once you have, press &quot;I cancelled this&quot; and we&apos;ll watch for further charges.</p>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -206,6 +263,28 @@ export default function SubscriptionsView() {
   }, [router]);
 
   const summary = useMemo(() => detectRecurring(transactions), [transactions]);
+
+  // What the user says they cancelled (saved to their account)
+  const [cancelled, setCancelled] = useState<CancelledSub[]>([]);
+  useEffect(() => {
+    const read = () => setCancelled(loadCancelled());
+    read();
+    window.addEventListener("fintrack-user-data-loaded", read);
+    return () => window.removeEventListener("fintrack-user-data-loaded", read);
+  }, []);
+  const saveCancelled = (next: CancelledSub[]) => { setCancelled(next); setSynced(CANCELLED_KEY, JSON.stringify(next)); };
+  const markCancelled = (item: RecurringTransaction) => {
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    saveCancelled([...cancelled.filter((c) => c.merchant.toLowerCase() !== item.merchant.toLowerCase()),
+      { merchant: item.merchant, monthly: Math.round(monthlyEquivalent(item) * 100) / 100, cancelledOn: today }]);
+  };
+  const undoCancelled = (merchant: string) => saveCancelled(cancelled.filter((c) => c.merchant.toLowerCase() !== merchant.toLowerCase()));
+  const saved = useMemo(() => monthlySaved(cancelled, transactions), [cancelled, transactions]);
+  // Listed in the banner itself, so the warning shows even if the service is no longer detected as recurring
+  const chargedAgain = useMemo(() => cancelled
+    .map((sub) => ({ sub, charge: chargedAfterCancel(sub, transactions)[0] }))
+    .filter((x) => x.charge), [cancelled, transactions]);
 
   // Cancel candidates: last seen > 60 days ago
   const cancelCandidateIds = useMemo(() => {
@@ -322,6 +401,26 @@ export default function SubscriptionsView() {
           ))}
         </div>
 
+        {/* ── Cancelled: savings and anything that charged again ── */}
+        {chargedAgain.length > 0 && (
+          <div role="alert" className="rounded-2xl border border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-900/20 px-5 py-4 text-sm text-red-700 dark:text-red-300">
+            <p className="font-bold flex items-center gap-2"><AlertTriangle className="w-4 h-4 shrink-0" /> Charged again after you cancelled</p>
+            <ul className="mt-2 space-y-1.5">
+              {chargedAgain.map(({ sub, charge }) => (
+                <li key={sub.merchant} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span><strong>{sub.merchant}</strong> charged {fmt(charge.amount)} on {new Date(`${charge.date}T00:00:00`).toLocaleDateString(dateLocale(), { month: "short", day: "numeric" })}. Ask them for a refund, or dispute it with your bank.</span>
+                  <button onClick={() => undoCancelled(sub.merchant)} className="font-semibold underline">I&apos;m still subscribed</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {saved.count > 0 && (
+          <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-900/20 px-5 py-4 text-sm text-emerald-800 dark:text-emerald-300">
+            🎉 You&apos;ve cancelled <strong>{saved.count} subscription{saved.count === 1 ? "" : "s"}</strong>, saving <strong>{fmt(saved.monthly)}/month</strong> ({fmt(saved.monthly * 12)} a year).
+          </div>
+        )}
+
         {summary.detectedCount === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-16 flex flex-col items-center gap-4 text-center">
             <RefreshCw className="w-12 h-12 text-gray-200 dark:text-gray-700" />
@@ -405,6 +504,10 @@ export default function SubscriptionsView() {
                     key={item.merchant}
                     item={item}
                     isCandidate={cancelCandidateIds.has(item.merchant)}
+                    cancelled={isCancelled(cancelled, item.merchant)}
+                    chargedAgain={isCancelled(cancelled, item.merchant) ? chargedAfterCancel(isCancelled(cancelled, item.merchant)!, transactions) : []}
+                    onCancelled={() => markCancelled(item)}
+                    onUndo={() => undoCancelled(item.merchant)}
                   />
                 ))}
               </div>

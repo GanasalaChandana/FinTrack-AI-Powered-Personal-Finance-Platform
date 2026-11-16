@@ -54,8 +54,10 @@
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Transactions](docs/screenshots/transactions.png) | ![Budgets](docs/screenshots/budgets.png) |
 | **Smart alerts** | **Reports & forecast** | **Bank connections (demo mode)** |
 | ![Alerts](docs/screenshots/alerts.png) | ![Reports](docs/screenshots/reports.png) | ![Bank connections](docs/screenshots/bank-connections.png) |
-| **Two-factor sign-in** | **Push notifications** | |
-| ![Two-factor](docs/screenshots/two-factor.png) | ![Push notifications](docs/screenshots/push-notifications.png) | |
+| **Investments (live prices)** | **Net worth (updates itself)** | **Two-factor sign-in** |
+| ![Investments](docs/screenshots/investments.png) | ![Net worth](docs/screenshots/net-worth.png) | ![Two-factor](docs/screenshots/two-factor.png) |
+| **Getting started (new account)** | **Import: bank-by-bank help** | **Push notifications** |
+| ![Getting started](docs/screenshots/get-started.png) | ![Import guide](docs/screenshots/import-guide.png) | ![Push notifications](docs/screenshots/push-notifications.png) |
 
 **Phone** (iPhone and Android; installable from the browser)
 
@@ -75,7 +77,7 @@
 
 [![Live App](https://img.shields.io/badge/🚀%20Try%20Live%20App-fintrack--liart.vercel.app-22c55e?style=for-the-badge&logo=vercel)](https://fintrack-liart.vercel.app)
 
-<img src="docs/screenshots/demo.gif" alt="FinTrack walkthrough: sign in, dashboard, transactions, budgets, reports, alerts and insights" width="900" />
+<img src="docs/screenshots/demo.gif" alt="FinTrack walkthrough: dashboard, transactions, budgets, reports, merchants, recurring, investments, net worth, insights and calendar" width="900" />
 
 *No sign-up needed: press **Try the demo** on the sign-in page. In the demo, Bank accounts uses Plaid's test banks (user `user_good`, password `pass_good`).*
 

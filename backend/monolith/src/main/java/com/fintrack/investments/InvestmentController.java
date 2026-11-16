@@ -45,6 +45,13 @@ public class InvestmentController {
         return q == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(q);
     }
 
+    /** What today's holdings were worth over the past "1m", "6m" or "1y". */
+    @GetMapping("/api/investments/history")
+    public InvestmentService.History history(@RequestHeader("X-User-Id") String userId,
+                                             @RequestParam(defaultValue = "6m") String range) {
+        return investments.history(userId, range);
+    }
+
     /** Balances of connected accounts and the value of investments, for the Net Worth page. */
     @GetMapping("/api/net-worth/linked")
     public InvestmentService.LinkedNetWorth linked(@RequestHeader("X-User-Id") String userId) {

@@ -39,7 +39,7 @@
 - **Two-factor sign-in (TOTP, RFC 6238)** — implemented from scratch (HMAC-SHA1, ±1 step drift, replay protection), one-time backup codes stored as SHA-256 hashes, and a lost-device recovery that only completes after a 3-day wait with an emailed cancel link
 - **Web Push with only the JDK** — message encryption (RFC 8291, `aes128gcm`) and VAPID signing (RFC 8292, ES256) written with `javax.crypto`, verified against independent implementations (Python `http_ece` and PyJWT) and accepted by Google's push service. Budget, unusual-spending and goal-milestone alerts reach phones and desktops
 - **Email that works on a free host** — Render's free tier blocks outgoing SMTP, so mail goes through Brevo's HTTPS API (SMTP still supported), with timeouts so a blocked mail server can't hang a request
-- **260+ automated tests** — 181 backend (Mockito unit, `@WebMvcTest` slices, `@SpringBootTest` integration on in-memory H2, fake Plaid / push servers on localhost), 63 Vitest unit tests and 36 Playwright end-to-end tests run on desktop and phone viewports in CI
+- **260+ automated tests** — 182 backend (Mockito unit, `@WebMvcTest` slices, `@SpringBootTest` integration on in-memory H2, fake Plaid / push servers on localhost), 63 Vitest unit tests and 36 Playwright end-to-end tests run on desktop and phone viewports in CI
 - **Versioned database migrations** — Flyway baselines the live database and owns schema changes going forward; a test checks the baseline against the JPA entities
 - **Safe to scale out** — every scheduled job takes a database lock (ShedLock), so with several instances each job runs once; recurring transactions and budget alerts carry unique keys, so a crash-and-retry can't create duplicates
 
@@ -85,7 +85,7 @@
 
 **Key flows to explore in the live app:**
 - 💡 **Dashboard → Smart Insights row** — unusual-spending cards, month-end budget forecast and next-month estimate, all worked out from your own transactions
-- 📈 **Investments** — stocks, ETFs, funds and crypto at live market prices, with gain/loss and allocation; connect a brokerage through Plaid and holdings import themselves
+- 📈 **Investments** — stocks, ETFs, funds and crypto at live market prices, with gain/loss, allocation and a value-over-time chart (1 month, 6 months, 1 year); connect a brokerage through Plaid and holdings import themselves
 - 💰 **Net Worth** — updates itself from connected bank balances (cards and loans counted as owed) and investments; add anything you can't connect (a car, a private loan) by hand
 - 📊 **Reports** — ten views (overview, analytics, merchants, income, savings rate, custom, spending trends, comparison, forecast, budget history) built from your real transactions; the **Custom** view generates a report from the metrics, range and grouping you pick
 - 🔔 **Alerts page** — smart rule-based alerts with severity badges; budget alerts are generated hourly by a background job
@@ -290,7 +290,7 @@ Output: "📊 Projected $3,855 vs $3,150 budget — $705 over.
 | **Database** | PostgreSQL (Supabase) with Flyway migrations V1–V16; Hibernate only validates the schema (`ddl-auto=validate`) |
 | **Auth** | JWT HS256 in HttpOnly cookies, Google sign-in, TOTP two-factor, BCrypt, Refresh Token Rotation, per-IP + per-account Rate Limiting |
 | **Integrations** | Plaid (bank data), Brevo (email over HTTPS), Web Push (RFC 8291 / 8292, no third-party library) |
-| **Testing** | Backend: JUnit 5, Mockito, @WebMvcTest, MockMvc, @SpringBootTest + in-memory H2 (181 tests). Frontend: Vitest (63 unit tests), Playwright (36 end-to-end tests on desktop and phone viewports) |
+| **Testing** | Backend: JUnit 5, Mockito, @WebMvcTest, MockMvc, @SpringBootTest + in-memory H2 (182 tests). Frontend: Vitest (63 unit tests), Playwright (36 end-to-end tests on desktop and phone viewports) |
 | **DevOps** | GitHub Actions CI (backend tests, TypeScript, Vitest, Docker image, Playwright against the live site), Docker Compose, Vercel (frontend), Render (backend), Supabase (database), weekly AES-256 encrypted database backups, UptimeRobot monitoring |
 
 ---
@@ -457,7 +457,7 @@ cd frontend/web && npm test
 cd frontend/web && npm run test:e2e
 ```
 
-**Backend:** 181 tests. Integration tests use an in-memory H2 database — no PostgreSQL required locally.
+**Backend:** 182 tests. Integration tests use an in-memory H2 database — no PostgreSQL required locally.
 
 | Area | Test classes | Coverage |
 |---|---|---|

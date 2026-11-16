@@ -32,8 +32,10 @@ class InvestmentsTest {
             calls.incrementAndGet();
             String sym = ex.getRequestURI().getPath().replace("/v8/finance/chart/", "");
             String body = switch (sym) {
-                case "AAPL" -> "{\"chart\":{\"result\":[{\"meta\":{\"regularMarketPrice\":200.5,\"currency\":\"USD\",\"longName\":\"Apple Inc.\"}}]}}";
-                case "BTC-USD" -> "{\"chart\":{\"result\":[{\"meta\":{\"regularMarketPrice\":65000,\"currency\":\"USD\",\"shortName\":\"Bitcoin USD\"}}]}}";
+                case "AAPL" -> "{\"chart\":{\"result\":[{\"meta\":{\"regularMarketPrice\":200.5,\"currency\":\"USD\",\"longName\":\"Apple Inc.\"},"
+                        + "\"timestamp\":[1793836800,1793923200,1794182400],\"indicators\":{\"quote\":[{\"close\":[100,null,110]}]}}]}}";
+                case "BTC-USD" -> "{\"chart\":{\"result\":[{\"meta\":{\"regularMarketPrice\":65000,\"currency\":\"USD\",\"shortName\":\"Bitcoin USD\"},"
+                        + "\"timestamp\":[1793836800,1794009600,1794182400],\"indicators\":{\"quote\":[{\"close\":[60000,62000,65000]}]}}]}}";
                 default -> "{\"chart\":{\"result\":null,\"error\":{\"code\":\"Not Found\"}}}";
             };
             byte[] b = body.getBytes(StandardCharsets.UTF_8);
@@ -104,6 +106,34 @@ class InvestmentsTest {
         assertThat(nw.assets()).isEqualByComparingTo("3200.00");      // checking + holdings (brokerage not counted twice)
         assertThat(nw.liabilities()).isEqualByComparingTo("9300.00");
         assertThat(nw.accounts()).hasSize(3);
+    }
+
+    @Test
+    @DisplayName("value over time: quantity x each day's close, closed days carried forward, unpriced holdings flat")
+    void valueOverTime() {
+        HoldingRepository repo = mock(HoldingRepository.class);
+        Holding aapl = holding("AAPL", Holding.AssetType.STOCK, "10", "200.5");
+        Holding btc = holding("BTC", Holding.AssetType.CRYPTO, "0.1", "65000");
+        Holding plan = holding(null, Holding.AssetType.OTHER, "2", "1000"); // no market price
+        when(repo.findByUserIdOrderByNameAsc("u1")).thenReturn(List.of(aapl, btc, plan));
+
+        var h = new InvestmentService(repo, mock(PlaidAccountRepository.class), quotes).history("u1", "1m");
+        // days: Nov 5 (both), Nov 7 (BTC only: AAPL carries 100), Nov 9 (both)
+        assertThat(h.points()).extracting(p -> p.value().toPlainString())
+                .containsExactly("9000.00", "9200.00", "9600.00"); // 10*100+0.1*60000+2000, then +200, then 10*110+6500+2000
+        assertThat(h.change()).isEqualByComparingTo("600.00");
+        assertThat(h.changePct()).isEqualTo(6.67);
+
+        when(repo.findByUserIdOrderByNameAsc("u2")).thenReturn(List.of(plan));
+        assertThat(new InvestmentService(repo, mock(PlaidAccountRepository.class), quotes).history("u2", "1m").points()).isEmpty();
+    }
+
+    private static Holding holding(String symbol, Holding.AssetType type, String qty, String price) {
+        Holding h = new Holding();
+        h.setSymbol(symbol); h.setName(symbol == null ? "Plan" : symbol); h.setAssetType(type);
+        h.setQuantity(new BigDecimal(qty)); h.setLastPrice(new BigDecimal(price));
+        h.setSource(Holding.Source.MANUAL); h.setPriceUpdatedAt(LocalDateTime.now());
+        return h;
     }
 
     private static PlaidAccount acct(String name, String type, String balance) {

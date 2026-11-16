@@ -128,6 +128,46 @@ public class InvestmentService {
                 h.getSource().name(), h.getAccountName(), h.getPriceUpdatedAt());
     }
 
+    // ── value over time ───────────────────────────────────────────────────────
+
+    public record ValuePoint(java.time.LocalDate date, BigDecimal value) {}
+    public record History(List<ValuePoint> points, BigDecimal change, Double changePct) {}
+
+    /**
+     * What today's holdings were worth on each day of the range ("1m", "6m" or "1y"):
+     * each holding's quantity times that day's closing price. Days a market was closed
+     * carry the last close forward; holdings without a market price stay at today's value.
+     */
+    public History history(String userId, String range) {
+        List<Holding> list = holdings.findByUserIdOrderByNameAsc(userId);
+        java.util.TreeSet<java.time.LocalDate> dates = new java.util.TreeSet<>();
+        java.util.Map<Holding, java.util.TreeMap<java.time.LocalDate, BigDecimal>> prices = new java.util.LinkedHashMap<>();
+        BigDecimal flat = BigDecimal.ZERO; // holdings with no price history
+        for (Holding h : list) {
+            List<QuoteService.PricePoint> pts = h.getSymbol() == null ? List.of() : quotes.history(h.getSymbol(), h.getAssetType(), range);
+            if (pts.size() < 2) {
+                if (h.getLastPrice() != null) flat = flat.add(h.getLastPrice().multiply(h.getQuantity()));
+                continue;
+            }
+            java.util.TreeMap<java.time.LocalDate, BigDecimal> m = new java.util.TreeMap<>();
+            for (QuoteService.PricePoint p : pts) { m.put(p.date(), p.close()); dates.add(p.date()); }
+            prices.put(h, m);
+        }
+        List<ValuePoint> out = new ArrayList<>();
+        for (java.time.LocalDate d : dates) {
+            BigDecimal total = flat;
+            for (var e : prices.entrySet()) {
+                var at = e.getValue().floorEntry(d);            // last close on or before this day
+                if (at == null) at = e.getValue().firstEntry(); // listed later than the others: use its first price
+                total = total.add(at.getValue().multiply(e.getKey().getQuantity()));
+            }
+            out.add(new ValuePoint(d, total.setScale(2, RoundingMode.HALF_UP)));
+        }
+        if (out.size() < 2) return new History(out, null, null);
+        BigDecimal change = out.get(out.size() - 1).value().subtract(out.get(0).value());
+        return new History(out, change, pct(change, out.get(0).value()));
+    }
+
     // ── net worth from connected accounts ─────────────────────────────────────
 
     public LinkedNetWorth linkedNetWorth(String userId) {

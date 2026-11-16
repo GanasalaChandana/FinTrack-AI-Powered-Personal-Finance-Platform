@@ -73,4 +73,50 @@ public class QuoteService {
             return null;
         }
     }
+
+    // ── price history ─────────────────────────────────────────────────────────
+
+    public record PricePoint(java.time.LocalDate date, BigDecimal close) {}
+
+    private static final Duration HISTORY_TTL = Duration.ofHours(6);
+    private record CachedHistory(java.util.List<PricePoint> points, Instant at) {}
+    private final Map<String, CachedHistory> historyCache = new ConcurrentHashMap<>();
+
+    /** Yahoo's range and bar size for our ranges: daily bars up to 6 months, weekly for a year. */
+    static String[] yahooRange(String range) {
+        return switch (range == null ? "" : range) {
+            case "1m" -> new String[] { "1mo", "1d" };
+            case "1y" -> new String[] { "1y", "1wk" };
+            default -> new String[] { "6mo", "1d" };
+        };
+    }
+
+    /** Closing prices, oldest first; empty when the symbol has no history. Cached for 6 hours. */
+    public java.util.List<PricePoint> history(String symbol, Holding.AssetType type, String range) {
+        String s = marketSymbol(symbol, type);
+        if (s == null) return java.util.List.of();
+        String[] yr = yahooRange(range);
+        String key = s + "|" + yr[0];
+        CachedHistory c = historyCache.get(key);
+        if (c != null && c.at().plus(HISTORY_TTL).isAfter(Instant.now())) return c.points();
+        try {
+            String body = http.get().uri(baseUrl + "/v8/finance/chart/" + s + "?range=" + yr[0] + "&interval=" + yr[1])
+                    .header("User-Agent", "Mozilla/5.0 (FinTrack)")
+                    .retrieve().body(String.class);
+            JsonNode r = json.readTree(body == null ? "{}" : body).path("chart").path("result").path(0);
+            JsonNode ts = r.path("timestamp"), closes = r.path("indicators").path("quote").path(0).path("close");
+            java.util.List<PricePoint> out = new java.util.ArrayList<>();
+            for (int i = 0; i < ts.size() && i < closes.size(); i++) {
+                if (closes.get(i).isNull()) continue; // a day with no trade
+                out.add(new PricePoint(
+                        Instant.ofEpochSecond(ts.get(i).asLong()).atZone(java.time.ZoneOffset.UTC).toLocalDate(),
+                        new BigDecimal(closes.get(i).asText())));
+            }
+            historyCache.put(key, new CachedHistory(out, Instant.now()));
+            return out;
+        } catch (Exception e) {
+            log.debug("No history for {}: {}", s, e.getMessage());
+            return java.util.List.of();
+        }
+    }
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 import { LineChart, Plus, Pencil, Trash2, X, Loader2, RefreshCw, Landmark, TrendingUp, TrendingDown } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { errorMessage } from "@/lib/utils/errors";
@@ -176,6 +176,8 @@ export default function InvestmentsPage() {
               </div>
             </div>
 
+            <ValueOverTime holdingsKey={holdings.map((h) => `${h.id}:${h.quantity}`).join(",")} />
+
             {/* Holdings */}
             <div className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
               {holdings.map((h) => (
@@ -221,6 +223,84 @@ export default function InvestmentsPage() {
       </PageContent>
 
       {form && <HoldingForm initial={form} onClose={() => setForm(null)} onSaved={async () => { setForm(null); await load(); }} />}
+    </div>
+  );
+}
+
+interface HistoryData { points: { date: string; value: number }[]; change: number | null; changePct: number | null }
+const RANGES = [{ id: "1m", label: "1 month", past: "month" }, { id: "6m", label: "6 months", past: "6 months" }, { id: "1y", label: "1 year", past: "year" }] as const;
+
+/** What today's holdings were worth over the chosen period. */
+function ValueOverTime({ holdingsKey }: { holdingsKey: string }) {
+  const [range, setRange] = useState<(typeof RANGES)[number]["id"]>("6m");
+  const [data, setData] = useState<HistoryData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    apiRequest<HistoryData>(`/api/investments/history?range=${range}`)
+      .then((d) => { if (!cancelled) setData({ ...d, points: (d?.points ?? []).map((p) => ({ date: p.date, value: Number(p.value) })) }); })
+      .catch(() => { if (!cancelled) setData(null); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [range, holdingsKey]);
+
+  const points = data?.points ?? [];
+  const up = (Number(data?.change) || 0) >= 0;
+  const color = up ? "#10b981" : "#ef4444";
+  const day = (d: string) => new Date(d + "T00:00:00").toLocaleDateString(dateLocale(), { month: "short", day: "numeric" });
+
+  return (
+    <div className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+        <div>
+          <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">Value over time</h2>
+          {data?.change != null ? (
+            <p className={`text-sm font-semibold ${up ? "text-emerald-600" : "text-red-600"}`}>
+              {up ? "+" : ""}{money(Number(data.change))}{data.changePct != null ? ` (${up ? "+" : ""}${data.changePct}%)` : ""}
+              <span className="font-normal text-gray-400"> over the last {RANGES.find((r) => r.id === range)?.past}</span>
+            </p>
+          ) : <p className="text-sm text-gray-400">&nbsp;</p>}
+        </div>
+        <div role="tablist" aria-label="Period" className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-700 p-0.5">
+          {RANGES.map((r) => (
+            <button key={r.id} role="tab" aria-selected={range === r.id} onClick={() => setRange(r.id)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold ${range === r.id ? "bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 dark:text-gray-300"}`}>
+              {r.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="h-56">
+        {loading && points.length === 0 ? (
+          <div className="h-full flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-indigo-400" /></div>
+        ) : points.length < 2 ? (
+          <p className="h-full flex items-center justify-center text-sm text-gray-400 text-center px-4">
+            No price history for these holdings. Holdings with a market symbol (like AAPL or VTI) are charted here.
+          </p>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={points} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="pv" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+              <XAxis dataKey="date" tickFormatter={day} minTickGap={40} tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false} />
+              <YAxis domain={["auto", "auto"]} width={62} tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false}
+                     tickFormatter={(v) => new Intl.NumberFormat(dateLocale(), { style: "currency", currency: userCurrency(), notation: "compact", maximumFractionDigits: 1 }).format(Number(v))} />
+              <Tooltip formatter={(v) => [money(Number(v)), "Value"]} labelFormatter={(d) => day(String(d))} />
+              <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2} fill="url(#pv)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+      <p className="mt-2 text-[11px] text-gray-400">
+        Shows what the holdings you have today were worth on each day, at that day&apos;s closing prices. It doesn&apos;t know when you bought or sold.
+      </p>
     </div>
   );
 }

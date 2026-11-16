@@ -54,7 +54,7 @@
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Transactions](docs/screenshots/transactions.png) | ![Budgets](docs/screenshots/budgets.png) |
 | **Smart alerts** | **Reports & forecast** | **Bank connections (demo mode)** |
 | ![Alerts](docs/screenshots/alerts.png) | ![Reports](docs/screenshots/reports.png) | ![Bank connections](docs/screenshots/bank-connections.png) |
-| **Investments (live prices)** | **Net worth (updates itself)** | **Two-factor sign-in** |
+| **Investments (live prices, value over time)** | **Net worth (updates itself)** | **Two-factor sign-in** |
 | ![Investments](docs/screenshots/investments.png) | ![Net worth](docs/screenshots/net-worth.png) | ![Two-factor](docs/screenshots/two-factor.png) |
 | **Getting started (new account)** | **Import: bank-by-bank help** | **Push notifications** |
 | ![Getting started](docs/screenshots/get-started.png) | ![Import guide](docs/screenshots/import-guide.png) | ![Push notifications](docs/screenshots/push-notifications.png) |
